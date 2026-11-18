@@ -596,7 +596,6 @@ describe('extractVerification', () => {
     });
     expect(report?.counts).toEqual({
       verified: 11,
-      foundInCode: 0,
       notVerified: 4,
       shippedUnenforced: 23,
     });
@@ -608,7 +607,7 @@ describe('extractVerification', () => {
       kind: 'requirement',
       id: 'R3',
       what: 'an order total is never negative',
-      how: 'backend/app/orders.py:42',
+      how: 'implementation cited and re-checked against the delivered source: backend/app/orders.py:42',
     };
     const report = extractVerification({
       verified: [],
@@ -622,13 +621,15 @@ describe('extractVerification', () => {
     expect(report?.verified).toEqual([]);
   });
 
-  it('reads a report from a backend without the found-in-code state as empty', () => {
+  it('leaves the found-in-code state out for a backend that does not send it', () => {
+    // That backend still lists source citations under verified.
     const report = extractVerification({
       verified: [ITEM],
       counts: { verified: 1 },
     });
-    expect(report?.foundInCode).toEqual([]);
-    expect(report?.counts.foundInCode).toBe(0);
+    expect(report).toBeDefined();
+    expect(report).not.toHaveProperty('foundInCode');
+    expect(report?.counts).not.toHaveProperty('foundInCode');
   });
 
   it('clamps a count UP to its own list length rather than under-reporting', () => {

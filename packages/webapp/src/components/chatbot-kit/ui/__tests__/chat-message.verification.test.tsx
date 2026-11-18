@@ -18,6 +18,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatMessage } from '../chat-message';
+import { extractVerification } from '@/main/features/spec-driven/state/specDrivenSlice';
 import type { SpecDrivenMessageState } from '@/main/features/spec-driven/types';
 
 // The card imports the shared download helper; mock it so jsdom never deals
@@ -204,7 +205,7 @@ describe('run card — found in the code, not run', () => {
         kind: 'requirement',
         id: 'R4',
         what: 'an order total is never negative',
-        how: 'backend/app/orders.py:42; unverified',
+        how: 'implementation cited and re-checked against the delivered source: backend/app/orders.py:42; screens not run (no frontend)',
       },
     ],
     notVerified: [],
@@ -225,13 +226,19 @@ describe('run card — found in the code, not run', () => {
     expect(screen.getByText(/9 found in code/)).toBeTruthy();
   });
 
-  it('lists it in its own section, with its true total and cited source', async () => {
+  it('lists it in its own section, with its true total and the evidence as sent', async () => {
     const user = await openPanel();
     const section = screen.getByRole('button', { name: /Found in the code, not run/ });
     expect(section.textContent).toContain('9');
     await user.click(section);
     expect(screen.getByText('an order total is never negative')).toBeTruthy();
-    expect(screen.getByText(/backend\/app\/orders\.py:42/)).toBeTruthy();
+    const [how] = screen.getAllByText(
+      (_content, element) =>
+        element?.tagName === 'P' && (element.textContent ?? '').includes('backend/app/orders.py:42'),
+    );
+    expect(how.textContent).toBe(
+      'Checked by: implementation cited and re-checked against the delivered source: backend/app/orders.py:42; screens not run (no frontend)',
+    );
     expect(screen.getByText(/Showing 1 of 9\./)).toBeTruthy();
   });
 
@@ -269,6 +276,26 @@ describe('run card — found in the code, not run', () => {
     await user.click(screen.getByRole('button', { name: /Verification/ }));
     expect(screen.getByText('Verified')).toBeTruthy();
     expect(screen.queryByText('Found in the code, not run')).toBeNull();
+  });
+
+  it('keeps the old wording for a live report from a backend without the state', async () => {
+    // That backend still lists source citations under verified.
+    const user = userEvent.setup();
+    renderCard(
+      doneCard(
+        extractVerification({
+          verified: cited!.foundInCode,
+          notVerified: [],
+          shippedUnenforced: [],
+          counts: { verified: 1, notVerified: 0, shippedUnenforced: 0 },
+        }),
+      ),
+    );
+    expect(screen.queryByText(/found in code/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
+    expect(screen.queryByText('Found in the code, not run')).toBeNull();
+    expect(screen.queryByText(/a call to the running app/)).toBeNull();
+    expect(screen.getByText(/ran or re-checked/)).toBeTruthy();
   });
 });
 

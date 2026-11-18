@@ -217,7 +217,8 @@ export interface SpecDrivenRunResult {
    * `shippedUnenforced` is the one the agent must not round off to "success". */
   verificationCounts?: {
     verified: number;
-    foundInCode: number;
+    /** Absent when the backend does not report this state. */
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
   };
@@ -638,7 +639,10 @@ export function useSpecDrivenTrigger(
           const verificationCounts = vCounts
             ? {
                 verified: Math.max(0, Math.round(vCounts.verified ?? 0)),
-                foundInCode: Math.max(0, Math.round(vCounts.foundInCode ?? 0)),
+                foundInCode:
+                  typeof vCounts.foundInCode === 'number'
+                    ? Math.max(0, Math.round(vCounts.foundInCode))
+                    : undefined,
                 notVerified: Math.max(0, Math.round(vCounts.notVerified ?? 0)),
                 shippedUnenforced: Math.max(
                   0,

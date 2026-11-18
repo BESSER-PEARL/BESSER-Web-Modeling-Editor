@@ -170,7 +170,10 @@ export function extractVerification(
   if (!raw || typeof raw !== 'object') return undefined;
   const r = raw as Record<string, unknown>;
   const verified = readVerificationItems(r.verified);
-  const foundInCode = readVerificationItems(r.foundInCode);
+  // Absent from backends that still list source citations under verified.
+  const foundInCode = Array.isArray(r.foundInCode)
+    ? readVerificationItems(r.foundInCode)
+    : undefined;
   const notVerified = readVerificationItems(r.notVerified);
   const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
   const rawCounts =
@@ -187,19 +190,25 @@ export function extractVerification(
   };
   const counts = {
     verified: count('verified', verified.length),
-    foundInCode: count('foundInCode', foundInCode.length),
+    ...(foundInCode && { foundInCode: count('foundInCode', foundInCode.length) }),
     notVerified: count('notVerified', notVerified.length),
     shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
   };
   if (
     counts.verified === 0 &&
-    counts.foundInCode === 0 &&
+    !counts.foundInCode &&
     counts.notVerified === 0 &&
     counts.shippedUnenforced === 0
   ) {
     return undefined;
   }
-  return { verified, foundInCode, notVerified, shippedUnenforced, counts };
+  return {
+    verified,
+    ...(foundInCode && { foundInCode }),
+    notVerified,
+    shippedUnenforced,
+    counts,
+  };
 }
 
 /** A phase event's run totals at its start, or undefined from an older backend. */
@@ -433,7 +442,7 @@ export function applySpecDrivenEvent(
         // context as a secondary throughput number — instead of the
         // misleading cumulative total that re-counts re-sent context.
         tokenUsage: extractTokenUsage(event.recipe),
-        // The three states the blocker count collapses. Undefined for older
+        // The four states the blocker count collapses. Undefined for older
         // backends — the card keeps its blocker-count summary then.
         verification: extractVerification(event.verification),
         runMode: event.mode,

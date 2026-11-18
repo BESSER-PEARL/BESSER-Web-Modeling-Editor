@@ -1906,7 +1906,6 @@
           "blurb": "Die Quelle ist angegeben, aber kein Aufruf der laufenden App hat es erreicht.",
           "empty": "Nichts stützt sich allein auf eine Quellenangabe."
         },
-        "citedSource": "Angegebene Quelle:",
         "verifiedBlurb": "Durch einen Aufruf der laufenden App ausgeführt, mit dem Nachweis.",
         "footer": "Verifiziert heißt, dass ein Aufruf der laufenden App es ausgeführt hat. Im Code gefunden heißt, dass die Quelle angegeben ist, es aber nicht ausgeführt wurde. Nicht verifizierbar heißt, dass es keinen Nachweis in die eine oder andere Richtung gibt — das ist kein Bestehen."
       }

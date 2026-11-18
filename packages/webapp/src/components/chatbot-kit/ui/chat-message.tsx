@@ -984,7 +984,6 @@ function VerificationItemRow({
   item: SpecDrivenVerificationItemView
   tone: VerificationTone
 }) {
-  const { t } = useTranslation()
   const styles = VERIFICATION_TONES[tone]
   return (
     <li className={cn("border-t px-3 py-2 first:border-t-0", styles.rule)}>
@@ -1012,13 +1011,7 @@ function VerificationItemRow({
       ) : null}
       {item.how ? (
         <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
-          <span className="font-semibold">
-            {tone === "found"
-              ? t("assistant.chatKit.verification.citedSource", {
-                  defaultValue: "Cited source:",
-                })
-              : "Checked by:"}{" "}
-          </span>
+          <span className="font-semibold">Checked by: </span>
           {item.how}
         </p>
       ) : null}
@@ -1046,7 +1039,7 @@ function VerificationCapNote({
 }
 
 /**
- * A ledger row for the two NON-headline states. Collapsed by default, but
+ * A ledger row for the three NON-headline states. Collapsed by default, but
  * the count is always on the row: the number is never hidden, only the
  * detail behind it.
  */
