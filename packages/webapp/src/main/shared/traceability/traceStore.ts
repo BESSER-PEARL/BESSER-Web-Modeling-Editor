@@ -72,6 +72,9 @@ const revisions = new Map<string, number>();
 const pendingUpdates = new Map<string, TraceUpdate[]>();
 /** Saves and reloads of a project trace run one after the other. */
 const busy = new Map<string, Promise<void>>();
+/** Updates made while each trace loads, applied in the order they were made once it has: an update made after the
+ *  load but before they are applied waits behind them. */
+const waiting = new Map<string, { applies: Array<(trace: TraceFile) => void>; done: Promise<void> }>();
 /** Projects whose stored trace this editor cannot read (a newer schema after a rollback, over `TRACE_LIMITS`,
  *  damaged): the stored record is left as it is and nothing is recorded for them this session, until it is cleared. */
 const unreadable = new Set<string>();
@@ -92,6 +95,7 @@ export function setTraceStorage(next: TraceStorage): void {
   revisions.clear();
   pendingUpdates.clear();
   busy.clear();
+  waiting.clear();
   unreadable.clear();
   guiBaselines.clear();
 }
@@ -466,15 +470,36 @@ export function updateProjectTrace(projectId: string, update: TraceUpdate): Prom
     scheduleSave(projectId);
     notify();
   };
+  const queue = waiting.get(projectId);
+  if (queue) {
+    queue.applies.push(apply);
+    return queue.done;
+  }
   const cached = cache.get(projectId);
   if (cached) {
     apply(cached);
     return Promise.resolve();
   }
-  return loadProjectTrace(projectId).then(() => {
-    const loaded = cache.get(projectId);
-    if (loaded) apply(loaded);
-  });
+  const applies = [apply];
+  const settle = () => {
+    if (waiting.get(projectId)?.applies === applies) waiting.delete(projectId);
+  };
+  const done = loadProjectTrace(projectId).then(
+    () => {
+      settle();
+      for (const each of applies) {
+        // Each apply puts a new trace object in the cache.
+        const loaded = cache.get(projectId);
+        if (loaded) each(loaded);
+      }
+    },
+    (error: unknown) => {
+      settle();
+      throw error;
+    },
+  );
+  waiting.set(projectId, { applies, done });
+  return done;
 }
 
 export function replaceProjectTrace(projectId: string, trace: TraceFile): Promise<void> {

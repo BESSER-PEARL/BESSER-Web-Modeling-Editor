@@ -72,6 +72,19 @@ describe('trace storage', () => {
     expect((await loadProjectTrace('p1')).actors.map((a) => a.id)).toEqual(['ada', 'second', 'third']);
   });
 
+  it('applies an update made once the trace has loaded after one made while it loaded', async () => {
+    // Live in CI: a template load (made while the trace loaded) was recorded after the user's next edit, made
+    // once the trace was in memory but before the template's update had been applied.
+    const { storage, release } = spyStorage(true);
+    setTraceStorage(storage);
+    const opened = loadProjectTrace('p1'); // a view opened the trace
+    const later = opened.then(() => updateProjectTrace('p1', (trace) => { trace.actors.push({ ...ada, id: 'later' }); }));
+    const during = updateProjectTrace('p1', (trace) => { trace.actors.push({ ...ada, id: 'during' }); });
+    release();
+    await Promise.all([during, later]);
+    expect(getProjectTrace('p1')!.actors.map((a) => a.id)).toEqual(['during', 'later']);
+  });
+
   it('leaves out an update that throws, without rejecting, and keeps the updates around it', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await expect(updateProjectTrace('p2', () => { throw new Error('boom'); })).resolves.toBeUndefined();
