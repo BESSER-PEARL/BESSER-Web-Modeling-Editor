@@ -243,3 +243,61 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
     })).toThrow('trainingPhrase');
   });
 });
+
+describe('agent transition triggers from the assistant', () => {
+  const CODE = "def came_from_q1(session):\n    return session.get('came_from') == 'q1'";
+  const transitionsOf = (model: AgentTestModel) =>
+    Object.values(model.relationships ?? {}).filter((rel: any) => rel.type === 'AgentStateTransition') as any[];
+
+  it('the converter keeps a custom condition as a custom transition with its code', () => {
+    const model = new AgentDiagramConverter().convertCompleteSystem({
+      states: [{ stateName: 'wrong' }, { stateName: 'q1' }],
+      transitions: [{ source: 'wrong', target: 'q1', condition: 'custom_condition', conditionCode: CODE }],
+    }) as AgentTestModel;
+
+    const [transition] = transitionsOf(model);
+    expect(transition.transitionType).toBe('custom');
+    expect(transition.custom).toEqual({ event: 'None', condition: [CODE] });
+    expect(transition.predefined.predefinedType).toBe('');
+  });
+
+  it('the modifier does the same for add_transition', () => {
+    let model = apply(emptyAgentModel(), { type: 'single', action: 'add_state', target: { stateName: 'wrong' }, changes: {} });
+    model = apply(model, { type: 'single', action: 'add_state', target: { stateName: 'q1' }, changes: {} });
+    model = apply(model, {
+      type: 'single', action: 'add_transition',
+      target: { sourceStateName: 'wrong', targetStateName: 'q1' },
+      changes: { condition: 'custom_condition', conditionCode: CODE },
+    });
+
+    const [transition] = transitionsOf(model);
+    expect(transition.transitionType).toBe('custom');
+    expect(transition.custom).toEqual({ event: 'None', condition: [CODE] });
+  });
+
+  it('a transition that names no condition continues unconditionally', () => {
+    let model = apply(emptyAgentModel(), { type: 'single', action: 'add_state', target: { stateName: 'a' }, changes: {} });
+    model = apply(model, { type: 'single', action: 'add_state', target: { stateName: 'b' }, changes: {} });
+    model = apply(model, {
+      type: 'single', action: 'add_transition', target: { sourceStateName: 'a', targetStateName: 'b' }, changes: {},
+    });
+
+    const [transition] = transitionsOf(model);
+    expect(transition.transitionType).toBe('predefined');
+    expect(transition.predefined.predefinedType).toBe('auto');
+  });
+
+  it('intent and fallback transitions keep their shape', () => {
+    const model = new AgentDiagramConverter().convertCompleteSystem({
+      states: [{ stateName: 'a' }, { stateName: 'b' }],
+      transitions: [
+        { source: 'a', target: 'b', condition: 'when_intent_matched', conditionValue: 'Yes' },
+        { source: 'a', target: 'a', condition: 'when_no_intent_matched' },
+      ],
+    }) as AgentTestModel;
+
+    const predefined = transitionsOf(model).map((t) => t.predefined);
+    expect(predefined).toContainEqual({ predefinedType: 'when_intent_matched', intentName: 'Yes' });
+    expect(predefined).toContainEqual({ predefinedType: 'when_no_intent_matched' });
+  });
+});
