@@ -1672,7 +1672,28 @@
       "fileMeta": "{{lines}} líneas · {{size}} · {{language}}",
       "plainText": "texto",
       "tooLarge": "Este archivo es demasiado grande para la vista previa. Descarga el proyecto para abrirlo.",
-      "binary": "Archivo binario, sin vista previa."
+      "binary": "Archivo binario, sin vista previa.",
+      "aiTag": "IA",
+      "aiTagTitle": "La IA escribió líneas de este archivo",
+      "aiShare": "La IA escribió el {{pct}} % de las líneas",
+      "authorship": "Quién escribió estas líneas",
+      "authorshipStale": "Cambiado después de registrar quién lo escribió",
+      "author": {
+        "ai": "IA",
+        "generator": "Generador",
+        "human": "Persona",
+        "unknown": "Sin atribuir"
+      },
+      "authorLines": {
+        "ai_one": "{{count}} línea escrita por la IA",
+        "ai_other": "{{count}} líneas escritas por la IA",
+        "generator_one": "{{count}} línea de un generador de BESSER",
+        "generator_other": "{{count}} líneas de un generador de BESSER",
+        "human_one": "{{count}} línea editada por una persona entre ejecuciones",
+        "human_other": "{{count}} líneas editadas por una persona entre ejecuciones",
+        "unknown_one": "{{count}} línea sin registro de quién la escribió",
+        "unknown_other": "{{count}} líneas sin registro de quién las escribió"
+      }
     },
     "rateLimitTooltip": "Solicitudes enviadas en el último minuto (límite {{limit}})",
     "import": {
@@ -1924,6 +1945,28 @@
       "fromRequest": "Se reconstruye a partir del modelo y de la petición original. La ejecución usa: {{key}}.",
       "askAssistant": "Se pide al asistente que la genere de nuevo. La ejecución usa: {{key}}.",
       "unknownKey": "la clave o el nivel gratuito configurado para las generaciones"
+    },
+    "runTrace": {
+      "firstCheck": "Primera comprobación",
+      "recheck": "Nueva comprobación tras el intento de corrección {{attempt}}",
+      "restored": "Se entregó la mejor versión anterior",
+      "noBlockers": "sin bloqueos",
+      "blockers_one": "{{count}} bloqueo",
+      "blockers_other": "{{count}} bloqueos",
+      "ofFindings": "de {{count}} hallazgos",
+      "fixed": "corregido",
+      "stillFailing": "sigue fallando",
+      "new": "nuevo",
+      "attempt": "Intento de corrección {{attempt}}",
+      "attemptNoCalls": "El intento de corrección {{attempt}} no llamó a ninguna herramienta",
+      "more": "{{count}} más",
+      "fixAttempts_one": "{{count}} intento de corrección",
+      "fixAttempts_other": "{{count}} intentos de corrección",
+      "findings": "hallazgos",
+      "turns_one": "{{count}} turno",
+      "turns_other": "{{count}} turnos",
+      "stats": "Duración, turnos del LLM y coste estimado de este paso",
+      "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura."
     }
   },
   "deploy": {

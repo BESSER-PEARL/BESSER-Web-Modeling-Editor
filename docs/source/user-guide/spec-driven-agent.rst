@@ -102,6 +102,29 @@ When it finishes the card collapses to a single line: *Application ready*, the
 generator that was used, the file count, and a clickable *N% deterministic*
 badge. **Show steps** expands the detail again.
 
+Each phase row shows how long the phase took and how many LLM turns it used;
+once the run has ended it adds the phase's estimated cost (token counts at list
+prices, not a bill). Open a row to see its tool calls: the files the agent
+read, wrote and edited, and the commands it ran.
+
+The *Validating* row starts as soon as the checks start. When a check fails,
+the row opens on the run as it happened: the **first check** and the blockers
+it found, each **fix attempt** with its tool calls, and each **re-check**
+marking which blockers were *fixed*, which are *still failing* and which are
+*new*. If the agent made things worse, the run goes back to its best earlier
+version and the last line says so.
+
+**View files** shows the generated project. Beside the line numbers a coloured
+bar says who wrote each line: the **AI** (violet), a **BESSER generator**
+(grey), a **person** who edited the code between two runs (amber), or no record
+(no bar). The file header counts the lines of each kind, the file tree tags
+files with AI-written lines, and the title shows the AI's share of all lines.
+It is read from the Agent Trace record the run ships in its ZIP; a file that
+changed after that record was written shows no colours rather than wrong ones.
+
+All of this survives a page reload: the editor replays the run's recorded
+events, during the run and after it.
+
 If the model is switched mid-run (for example because a free-tier quota ran out)
 the card says so explicitly rather than silently changing.
 

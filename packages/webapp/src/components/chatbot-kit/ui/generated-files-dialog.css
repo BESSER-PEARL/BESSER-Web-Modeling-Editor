@@ -15,3 +15,29 @@
 .gfd-gutter {
   color: #56606a;
 }
+
+/* Who wrote each line (Agent Trace record): a bar beside the line numbers. */
+.gfd-author-ai {
+  background: #b48ce8;
+}
+
+.gfd-author-generator {
+  background: #5c6874;
+}
+
+.gfd-author-human {
+  background: #e0a34a;
+}
+
+.gfd-author-unknown {
+  background: transparent;
+}
+
+.gfd-ai-tag {
+  color: #6b46c1;
+  background: rgba(180, 140, 232, 0.18);
+}
+
+.dark .gfd-ai-tag {
+  color: #c9aef0;
+}

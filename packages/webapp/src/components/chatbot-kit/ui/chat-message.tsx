@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils"
 import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
-import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import { phaseStats, selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import {
   canOfferRunNotification,
   isRunNotificationOn,
@@ -39,6 +39,8 @@ import {
 import type {
   SpecDrivenMessageState,
   SpecDrivenPhaseView,
+  SpecDrivenRunTotals,
+  SpecDrivenToolCallView,
   SpecDrivenVerificationItemView,
   SpecDrivenVerificationView,
   SpecDrivenWarningView,
@@ -67,6 +69,11 @@ import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl
 import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
+import {
+  fixAttemptCount,
+  repairTimeline,
+  type FindingsSegment,
+} from "@/components/chatbot-kit/ui/run-repairs"
 import { track } from "@/main/shared/services/analytics/events"
 
 const chatBubbleVariants = cva(
@@ -634,24 +641,174 @@ function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["stat
   )
 }
 
+/** A phase's duration, LLM turns and (once the run has ended) estimated cost. */
+function PhaseStats({ stats, showCost }: { stats: SpecDrivenRunTotals; showCost: boolean }) {
+  const { t } = useTranslation()
+  const parts = [stats.elapsedSeconds < 1 ? "<1s" : formatDuration(stats.elapsedSeconds)]
+  if (stats.turns > 0) parts.push(t("assistant.runTrace.turns", { count: stats.turns }))
+  // Sub-cent phases are common; two decimals would show them as "$0.00".
+  const cost = showCost && stats.usd > 0
+    ? `~$${stats.usd < 0.01 ? stats.usd.toFixed(4) : stats.usd.toFixed(2)}`
+    : null
+  return (
+    <span
+      data-testid="phase-stats"
+      title={t("assistant.runTrace.stats")}
+      className="shrink-0 font-mono text-[10.5px] tabular-nums text-muted-foreground/80"
+    >
+      {parts.join(" · ")}
+      {cost ? <span title={t("assistant.runTrace.costEstimate")}> · {cost}</span> : null}
+    </span>
+  )
+}
+
+function ToolCallList({ calls }: { calls: SpecDrivenToolCallView[] }) {
+  return (
+    <ul className="flex flex-col font-mono text-[11px] leading-[1.75]">
+      {calls.map((tc, j) => {
+        const { verb, target } = describeToolCall(tc.tool, tc.detail, tc.summary)
+        return (
+          <li
+            key={`${tc.turn}-${tc.tool}-${j}`}
+            title={`${tc.tool} · turn ${tc.turn}${tc.detail ? ` · ${tc.detail}` : ""}`}
+            className="flex min-w-0 gap-2.5"
+          >
+            <span className="w-12 shrink-0 font-medium text-foreground">{verb}</span>
+            <span className="truncate text-muted-foreground">{target}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+const FINDINGS_SHOWN = 5
+
+/** One validation round: what failed, and against the round before, what got fixed. */
+function FindingsRound({ segment }: { segment: FindingsSegment }) {
+  const { t } = useTranslation()
+  const { round, diff } = segment
+  const [showAll, setShowAll] = useState(false)
+  const title = round.restored
+    ? t("assistant.runTrace.restored")
+    : round.attempt === 0
+      ? t("assistant.runTrace.firstCheck")
+      : t("assistant.runTrace.recheck", { attempt: round.attempt })
+  const summary =
+    round.blockerCount === 0
+      ? t("assistant.runTrace.noBlockers")
+      : [
+          t("assistant.runTrace.blockers", { count: round.blockerCount }),
+          round.issueCount > round.blockerCount
+            ? t("assistant.runTrace.ofFindings", { count: round.issueCount })
+            : null,
+        ].filter(Boolean).join(" ")
+  const items: { message: string; state: "fixed" | "remaining" | "added" | "open" }[] = diff
+    ? [
+        ...diff.fixed.map((message) => ({ message, state: "fixed" as const })),
+        ...diff.remaining.map((message) => ({ message, state: "remaining" as const })),
+        ...diff.added.map((message) => ({ message, state: "added" as const })),
+      ]
+    : round.blockers.map((message) => ({ message, state: "open" as const }))
+  const shown = showAll ? items : items.slice(0, FINDINGS_SHOWN)
+  const unshown = items.length - shown.length
+  // The backend lists a capped number of blockers; the rest are only counted.
+  const unlisted = round.blockerCount - round.blockers.length
+  const stateLabel = {
+    fixed: t("assistant.runTrace.fixed"),
+    remaining: t("assistant.runTrace.stillFailing"),
+    added: t("assistant.runTrace.new"),
+    open: "",
+  }
+  const stateClass = {
+    fixed: "text-emerald-600 dark:text-emerald-400",
+    remaining: "text-red-600 dark:text-red-400",
+    added: "text-amber-600 dark:text-amber-400",
+    open: "",
+  }
+  return (
+    <li data-testid="findings-round" className="py-1">
+      <div className="flex items-center gap-1.5">
+        {round.blockerCount === 0 ? (
+          <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <ShieldAlert className="h-3 w-3 shrink-0 text-red-600 dark:text-red-400" />
+        )}
+        <span className="font-medium text-foreground">{title}</span>
+        <span className="text-muted-foreground">· {summary}</span>
+      </div>
+      {shown.length > 0 ? (
+        <ul className="mt-0.5 flex flex-col gap-0.5 pl-[18px] font-mono text-[10.5px] leading-[1.6]">
+          {shown.map((item, i) => (
+            <li key={`${item.state}-${i}`} className="flex min-w-0 gap-2">
+              {diff ? (
+                <span className={cn("w-[84px] shrink-0 font-sans text-[10px] font-medium", stateClass[item.state])}>
+                  {stateLabel[item.state]}
+                </span>
+              ) : (
+                <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-red-500/70" />
+              )}
+              <span
+                className={cn(
+                  "min-w-0 [overflow-wrap:anywhere]",
+                  item.state === "fixed" ? "text-muted-foreground/70 line-through" : "text-muted-foreground",
+                )}
+              >
+                {item.message}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {unshown > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="ml-[18px] mt-0.5 rounded px-1 text-[10.5px] text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          + {t("assistant.runTrace.more", { count: unshown })}
+        </button>
+      ) : unlisted > 0 && (showAll || items.length <= FINDINGS_SHOWN) ? (
+        <span className="ml-[18px] text-[10.5px] text-muted-foreground">
+          + {t("assistant.runTrace.more", { count: unlisted })}
+        </span>
+      ) : null}
+    </li>
+  )
+}
+
 function SpecDrivenPhaseRow({
   phase,
   isActivePhase,
+  stats,
+  showCost,
 }: {
   phase: SpecDrivenPhaseView
   isActivePhase: boolean
+  /** What this phase took; absent for rows an older backend did not stamp. */
+  stats?: SpecDrivenRunTotals
+  showCost: boolean
 }) {
+  const { t } = useTranslation()
   const hasTools = phase.toolCalls.length > 0
   const hasDetails = typeof phase.details === "string" && phase.details.length > 0
-  const isExpandable = hasTools || hasDetails
+  const segments = useMemo(() => repairTimeline(phase), [phase])
+  const attempts = fixAttemptCount(segments)
+  // Findings are worth opening when a check failed; a clean check is the row's own message.
+  const hasFindings = (phase.findings ?? []).some((r) => r.blockerCount > 0 || r.restored)
+  const isExpandable = hasTools || hasDetails || hasFindings
   const [expanded, setExpanded] = useState(false)
 
-  // Toggle label: prefer the action count (familiar metric); otherwise
-  // a generic "details" link for phases that only carry prose (e.g.
-  // gap analyser surfacing its task list).
-  const toggleLabel = hasTools
-    ? `${phase.toolCalls.length} ${phase.toolCalls.length === 1 ? "action" : "actions"}`
-    : "details"
+  // Toggle label: fix attempts on a validate row that repaired; otherwise the
+  // action count (familiar metric); otherwise a generic "details" link for
+  // phases that only carry prose (e.g. the gap analyser's task list).
+  const toggleLabel = hasFindings
+    ? attempts > 0
+      ? t("assistant.runTrace.fixAttempts", { count: attempts })
+      : t("assistant.runTrace.findings")
+    : hasTools
+      ? `${phase.toolCalls.length} ${phase.toolCalls.length === 1 ? "action" : "actions"}`
+      : "details"
 
   return (
     <li className="border-b border-border/40 last:border-b-0">
@@ -668,21 +825,26 @@ function SpecDrivenPhaseRow({
           </span>
         ) : null}
         {isActivePhase ? (
-          <Loader2 className="ml-1 h-3 w-3 animate-spin text-muted-foreground" />
+          <Loader2 className="ml-1 h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
         ) : null}
-        {isExpandable ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            aria-label={expanded ? "Hide details" : "Show details"}
-            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <span>{toggleLabel}</span>
-            <ChevronRight
-              className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
-            />
-          </button>
+        {stats || isExpandable ? (
+          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+            {stats ? <PhaseStats stats={stats} showCost={showCost} /> : null}
+            {isExpandable ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                aria-label={expanded ? "Hide details" : "Show details"}
+                className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <span>{toggleLabel}</span>
+                <ChevronRight
+                  className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
+                />
+              </button>
+            ) : null}
+          </span>
         ) : null}
       </div>
       {expanded && hasDetails ? (
@@ -690,22 +852,33 @@ function SpecDrivenPhaseRow({
           <MarkdownRenderer>{phase.details!}</MarkdownRenderer>
         </div>
       ) : null}
-      {expanded && hasTools ? (
-        <ul className="flex flex-col px-3 pb-2 pl-6 font-mono text-[11px] leading-[1.75]">
-          {phase.toolCalls.map((tc, j) => {
-            const { verb, target } = describeToolCall(tc.tool, tc.detail, tc.summary)
-            return (
-              <li
-                key={`${tc.turn}-${tc.tool}-${j}`}
-                title={`${tc.tool} · turn ${tc.turn}${tc.detail ? ` · ${tc.detail}` : ""}`}
-                className="flex min-w-0 gap-2.5"
-              >
-                <span className="w-12 shrink-0 font-medium text-foreground">{verb}</span>
-                <span className="truncate text-muted-foreground">{target}</span>
+      {expanded && hasFindings ? (
+        <ol data-testid="repair-timeline" className="flex flex-col px-3 pb-2 pl-6 text-[11px]">
+          {segments.map((segment, i) =>
+            segment.kind === "findings" ? (
+              <FindingsRound key={`f-${i}`} segment={segment} />
+            ) : (
+              <li key={`c-${i}`} className="py-1">
+                {segment.attempt !== undefined ? (
+                  <div className="font-medium text-foreground">
+                    {segment.calls.length > 0
+                      ? t("assistant.runTrace.attempt", { attempt: segment.attempt })
+                      : t("assistant.runTrace.attemptNoCalls", { attempt: segment.attempt })}
+                  </div>
+                ) : null}
+                {segment.calls.length > 0 ? (
+                  <div className="pl-[18px]">
+                    <ToolCallList calls={segment.calls} />
+                  </div>
+                ) : null}
               </li>
             )
-          })}
-        </ul>
+          )}
+        </ol>
+      ) : expanded && hasTools ? (
+        <div className="px-3 pb-2 pl-6">
+          <ToolCallList calls={phase.toolCalls} />
+        </div>
       ) : null}
     </li>
   )
@@ -1412,6 +1585,7 @@ function SpecDrivenCard({
     verification,
     costUsd,
     elapsedSeconds,
+    turns,
     maxRuntime,
     fileName,
     isZip,
@@ -1866,6 +2040,8 @@ function SpecDrivenCard({
                 key={`${phase.phase}-${i}`}
                 phase={phase}
                 isActivePhase={false}
+                stats={phaseStats(phases, i, { costUsd, turns, elapsedSeconds })}
+                showCost
               />
             ))}
           </ol>
@@ -1899,6 +2075,7 @@ function SpecDrivenCard({
               }
               fileName={fileName || "generated_code.zip"}
               meta={generatorUsed}
+              runId={runId}
               onDownload={
                 canDetDownload
                   ? handleDeterministicDownload
@@ -1944,6 +2121,8 @@ function SpecDrivenCard({
                 key={`${phase.phase}-${i}`}
                 phase={phase}
                 isActivePhase={isActivePhase}
+                stats={phaseStats(phases, i, { costUsd, turns, elapsedSeconds })}
+                showCost={status !== "running"}
               />
             )
           })}
