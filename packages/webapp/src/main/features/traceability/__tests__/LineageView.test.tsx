@@ -81,6 +81,15 @@ describe('LineageView', () => {
     expect(container.textContent).toContain('The latest 8 of 11 edits. Open in Diagrams for all of them.');
   });
 
+  it('names each end of a connector with its kind', () => {
+    // Live: "Library" twice (the diagram and the class) and "books" twice (two associations) could not be told apart.
+    const { container, labelled } = view(trace());
+    const connectors = () => [...container.querySelectorAll('li > button')].map((b) => b.querySelector('.sr-only')?.textContent);
+    expect(connectors()[0]).toMatch(/^Class Diagram \(class diagram\) → Generated SQLAlchemy DDL · /);
+    fireEvent.click(labelled('Show the parts of Class Diagram')!); // its class gets its own connector
+    expect(connectors()).toContainEqual(expect.stringMatching(/^Book \(class\) → Generated SQLAlchemy DDL · /));
+  });
+
   it('opens the path to an element whose lineage was asked for, and explains its links', () => {
     const { container, rowLabels, button } = view(trace(), 'book');
     expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);

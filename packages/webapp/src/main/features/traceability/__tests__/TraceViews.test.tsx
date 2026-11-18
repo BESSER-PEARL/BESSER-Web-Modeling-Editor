@@ -159,7 +159,7 @@ describe('LineageView, keyboard access', () => {
   it('lists the drawn connectors as buttons that select their link', () => {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON: () => ({}) });
     render(<LineageView index={indexTrace(trace())} rootId={null} onRootChange={() => {}} onOpenElement={() => {}} />);
-    const connector = screen.getByRole('button', { name: /^Library → Generated SQLAlchemy DDL/ });
+    const connector = screen.getByRole('button', { name: /^Library \(class diagram\) → Generated SQLAlchemy DDL/ });
     fireEvent.click(connector);
     expect(screen.getByRole('heading', { name: 'Trace link' })).toBeTruthy();
   });

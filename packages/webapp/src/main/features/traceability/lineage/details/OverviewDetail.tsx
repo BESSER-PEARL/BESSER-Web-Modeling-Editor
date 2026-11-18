@@ -6,7 +6,9 @@ import type { Lineage, LineageBundle, LineageLayout } from '../../../../shared/t
 import { runOfSubjectId } from '../../../../shared/traceability/lineage';
 import { formatTime, operationLabel } from '../../traceLabels';
 import { bundleLook, lookOf } from '../lineageLook';
-import { cardCounts, nodeLabel } from '../lineageLabels';
+import { cn } from '@/lib/utils';
+import { TypeTag } from '../../components/TypeTag';
+import { artifactKindLabel, cardCounts, nodeLabel } from '../lineageLabels';
 import { DetailPane, DetailSection } from './DetailPane';
 
 /** How many of the drawn connectors the overview lists. */
@@ -21,13 +23,27 @@ export const OverviewDetail: React.FC<{
 }> = ({ index, lineage, layout, onSelectEdge }) => {
   const { t, i18n } = useTranslation();
   const outdated = lineage.edges.filter((e) => e.outOfDate.length > 0).length;
-  const subjectLabel = (id: string) => {
+  // An end's name and what tells it apart from a namesake: a run's time, an artifact's kind ("books", association).
+  const subjectParts = (id: string): { label: string; kind?: string; time?: string } => {
     const run = runOfSubjectId(index, id);
-    if (run) return `${operationLabel(t, run, index)} · ${formatTime(run.startedAt, i18n.language)}`;
+    if (run) return { label: operationLabel(t, run, index), time: formatTime(run.startedAt, i18n.language) };
     const artifact = index.artifacts.get(id);
-    return artifact ? nodeLabel(t, index, artifact) : id;
+    return artifact ? { label: nodeLabel(t, index, artifact), kind: artifactKindLabel(t, artifact) } : { label: id };
   };
-  const describe = (bundle: LineageBundle) => `${subjectLabel(bundle.sourceId)} → ${subjectLabel(bundle.targetId)}`;
+  const subjectText = (id: string) => {
+    const { label, kind, time } = subjectParts(id);
+    return time ? `${label} · ${time}` : kind ? `${label} (${kind})` : label;
+  };
+  const describe = (bundle: LineageBundle) => `${subjectText(bundle.sourceId)} → ${subjectText(bundle.targetId)}`;
+  const end = (id: string, className: string) => {
+    const { label, kind, time } = subjectParts(id);
+    return (
+      <span className={cn('min-w-0', className)}>
+        <span className="block truncate">{label}</span>
+        {(kind ?? time) && <TypeTag className="block truncate">{kind ?? time}</TypeTag>}
+      </span>
+    );
+  };
   return (
     <DetailPane>
       <h3 className="font-semibold">{t('traceability.lineage.overviewTitle')}</h3>
@@ -61,9 +77,9 @@ export const OverviewDetail: React.FC<{
                     <span className="sr-only">{describe(bundle)}</span>
                     {/* Both ends stay readable: each is cut short on its own, the whole text is the tooltip. */}
                     <span aria-hidden className="flex min-w-0 flex-1 items-center gap-1" title={describe(bundle)}>
-                      <span className="w-[45%] shrink-0 truncate text-muted-foreground">{subjectLabel(bundle.sourceId)}</span>
+                      {end(bundle.sourceId, 'w-[45%] shrink-0 text-muted-foreground')}
                       <ArrowRight className="size-3 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">{subjectLabel(bundle.targetId)}</span>
+                      {end(bundle.targetId, 'flex-1')}
                     </span>
                     {bundle.edges.length > 1 && <span className="shrink-0 tabular-nums text-muted-foreground">×{bundle.edges.length}</span>}
                     {stale && (
