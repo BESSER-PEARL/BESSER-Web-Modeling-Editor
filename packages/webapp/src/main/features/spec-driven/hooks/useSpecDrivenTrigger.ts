@@ -212,11 +212,12 @@ export interface SpecDrivenRunResult {
    * misleading "stopped early". */
   blockerCount?: number;
   /** TRUE totals from the done event's verification report — what the run
-   * verified, could not verify, and delivered UNENFORCED. `blockerCount` is
-   * the same evidence collapsed to one number; `shippedUnenforced` is the
-   * one the agent must not round off to "success". */
+   * ran, only found in the code, could not verify, and delivered UNENFORCED.
+   * `blockerCount` is the same evidence collapsed to one number;
+   * `shippedUnenforced` is the one the agent must not round off to "success". */
   verificationCounts?: {
     verified: number;
+    foundInCode: number;
     notVerified: number;
     shippedUnenforced: number;
   };
@@ -637,6 +638,7 @@ export function useSpecDrivenTrigger(
           const verificationCounts = vCounts
             ? {
                 verified: Math.max(0, Math.round(vCounts.verified ?? 0)),
+                foundInCode: Math.max(0, Math.round(vCounts.foundInCode ?? 0)),
                 notVerified: Math.max(0, Math.round(vCounts.notVerified ?? 0)),
                 shippedUnenforced: Math.max(
                   0,

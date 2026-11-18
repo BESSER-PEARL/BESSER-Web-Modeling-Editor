@@ -156,7 +156,7 @@ const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
 
 /**
  * Normalise the done event's `verification` report into what the card
- * renders. The three lists are CAPPED by the backend while `counts` carries
+ * renders. The four lists are CAPPED by the backend while `counts` carries
  * the true totals, so a count below its own list length is a backend bug —
  * clamp up rather than render "showing 12 of 3".
  *
@@ -170,6 +170,7 @@ export function extractVerification(
   if (!raw || typeof raw !== 'object') return undefined;
   const r = raw as Record<string, unknown>;
   const verified = readVerificationItems(r.verified);
+  const foundInCode = readVerificationItems(r.foundInCode);
   const notVerified = readVerificationItems(r.notVerified);
   const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
   const rawCounts =
@@ -186,17 +187,19 @@ export function extractVerification(
   };
   const counts = {
     verified: count('verified', verified.length),
+    foundInCode: count('foundInCode', foundInCode.length),
     notVerified: count('notVerified', notVerified.length),
     shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
   };
   if (
     counts.verified === 0 &&
+    counts.foundInCode === 0 &&
     counts.notVerified === 0 &&
     counts.shippedUnenforced === 0
   ) {
     return undefined;
   }
-  return { verified, notVerified, shippedUnenforced, counts };
+  return { verified, foundInCode, notVerified, shippedUnenforced, counts };
 }
 
 /** A phase event's run totals at its start, or undefined from an older backend. */

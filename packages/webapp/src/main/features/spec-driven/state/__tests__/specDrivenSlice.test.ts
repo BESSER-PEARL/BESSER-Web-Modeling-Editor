@@ -596,10 +596,39 @@ describe('extractVerification', () => {
     });
     expect(report?.counts).toEqual({
       verified: 11,
+      foundInCode: 0,
       notVerified: 4,
       shippedUnenforced: 23,
     });
     expect(report?.shippedUnenforced).toHaveLength(1);
+  });
+
+  it('keeps what was only found in the code apart from what was run', () => {
+    const cited = {
+      kind: 'requirement',
+      id: 'R3',
+      what: 'an order total is never negative',
+      how: 'backend/app/orders.py:42',
+    };
+    const report = extractVerification({
+      verified: [],
+      foundInCode: [cited],
+      notVerified: [],
+      shippedUnenforced: [],
+      counts: { verified: 0, foundInCode: 6, notVerified: 0, shippedUnenforced: 0 },
+    });
+    expect(report?.foundInCode).toEqual([{ ...cited, why: undefined }]);
+    expect(report?.counts.foundInCode).toBe(6);
+    expect(report?.verified).toEqual([]);
+  });
+
+  it('reads a report from a backend without the found-in-code state as empty', () => {
+    const report = extractVerification({
+      verified: [ITEM],
+      counts: { verified: 1 },
+    });
+    expect(report?.foundInCode).toEqual([]);
+    expect(report?.counts.foundInCode).toBe(0);
   });
 
   it('clamps a count UP to its own list length rather than under-reporting', () => {

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Code2,
   Download,
+  FileSearch,
   FolderOpen,
   Github,
   HelpCircle,
@@ -943,7 +944,7 @@ const VERIFICATION_KIND_LABELS: Record<
   check: "Check",
 }
 
-type VerificationTone = "unenforced" | "unchecked" | "verified"
+type VerificationTone = "unenforced" | "unchecked" | "found" | "verified"
 
 const VERIFICATION_TONES: Record<
   VerificationTone,
@@ -958,6 +959,11 @@ const VERIFICATION_TONES: Record<
     body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
     chip: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
     rule: "border-amber-200 dark:border-amber-900/40",
+  },
+  found: {
+    body: "bg-sky-50/70 text-sky-900 dark:bg-sky-950/20 dark:text-sky-100",
+    chip: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
+    rule: "border-sky-200 dark:border-sky-900/40",
   },
   verified: {
     body: "bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100",
@@ -978,6 +984,7 @@ function VerificationItemRow({
   item: SpecDrivenVerificationItemView
   tone: VerificationTone
 }) {
+  const { t } = useTranslation()
   const styles = VERIFICATION_TONES[tone]
   return (
     <li className={cn("border-t px-3 py-2 first:border-t-0", styles.rule)}>
@@ -1005,7 +1012,13 @@ function VerificationItemRow({
       ) : null}
       {item.how ? (
         <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
-          <span className="font-semibold">Checked by: </span>
+          <span className="font-semibold">
+            {tone === "found"
+              ? t("assistant.chatKit.verification.citedSource", {
+                  defaultValue: "Cited source:",
+                })
+              : "Checked by:"}{" "}
+          </span>
           {item.how}
         </p>
       ) : null}
@@ -1214,7 +1227,7 @@ function RunChangesSummary({
 }
 
 /**
- * The verification report: three visually distinct states, each labelled
+ * The verification report: four visually distinct states, each labelled
  * with the TRUE total from `counts` rather than the capped list length.
  *
  * `shippedUnenforced` is the headline and is never collapsed: rules the user
@@ -1226,9 +1239,14 @@ function SpecDrivenVerificationPanel({
 }: {
   verification: SpecDrivenVerificationView
 }) {
-  const { verified, notVerified, shippedUnenforced, counts } = verification
+  const { t } = useTranslation()
+  const { verified, foundInCode, notVerified, shippedUnenforced, counts } =
+    verification
   const unenforced = counts.shippedUnenforced
   const alarm = VERIFICATION_TONES.unenforced
+  // Cards saved before this state existed counted source citations as verified.
+  const splitsFoundInCode = foundInCode !== undefined
+  const foundInCodeCount = counts.foundInCode ?? foundInCode?.length ?? 0
 
   // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
   // collapse to one summary row the user can open.
@@ -1253,6 +1271,19 @@ function SpecDrivenVerificationPanel({
             <span className={counts.verified > 0 ? "text-foreground" : undefined}>
               {counts.verified} verified
             </span>
+            {splitsFoundInCode ? (
+              <>
+                <span aria-hidden>·</span>
+                <span
+                  className={foundInCodeCount > 0 ? "text-foreground" : undefined}
+                >
+                  {t("assistant.chatKit.verification.summaryFoundInCode", {
+                    defaultValue: "{{count}} found in code",
+                    count: foundInCodeCount,
+                  })}
+                </span>
+              </>
+            ) : null}
             <span aria-hidden>·</span>
             <span className={counts.notVerified > 0 ? "text-foreground" : undefined}>
               {counts.notVerified} unverified
@@ -1337,20 +1368,49 @@ function SpecDrivenVerificationPanel({
         emptyNote="Everything in scope reached a verdict."
       />
 
+      {splitsFoundInCode ? (
+        <VerificationSection
+          label={t("assistant.chatKit.verification.foundInCode.label", {
+            defaultValue: "Found in the code, not run",
+          })}
+          count={foundInCodeCount}
+          items={foundInCode}
+          tone="found"
+          icon={FileSearch}
+          blurb={t("assistant.chatKit.verification.foundInCode.blurb", {
+            defaultValue:
+              "Its source is cited, but no call to the running app reached it.",
+          })}
+          emptyNote={t("assistant.chatKit.verification.foundInCode.empty", {
+            defaultValue: "Nothing rests on a source citation alone.",
+          })}
+        />
+      ) : null}
+
       <VerificationSection
         label="Verified"
         count={counts.verified}
         items={verified}
         tone="verified"
         icon={ShieldCheck}
-        blurb="Checked against the delivered code, with the evidence."
+        blurb={
+          splitsFoundInCode
+            ? t("assistant.chatKit.verification.verifiedBlurb", {
+                defaultValue:
+                  "Exercised by a call to the running app, with the evidence.",
+              })
+            : "Checked against the delivered code, with the evidence."
+        }
         emptyNote="Nothing was confirmed working in this run."
       />
 
       <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
-        Verified means we ran or re-checked it against the delivered code.
-        Could not verify means there is no evidence either way — it is not a
-        pass.
+        {splitsFoundInCode
+          ? t("assistant.chatKit.verification.footer", {
+              defaultValue:
+                "Verified means a call to the running app exercised it. Found in the code means its source is cited, but nothing ran it. Could not verify means there is no evidence either way — it is not a pass.",
+            })
+          : "Verified means we ran or re-checked it against the delivered code. Could not verify means there is no evidence either way — it is not a pass."}
       </p>
     </div>
   )

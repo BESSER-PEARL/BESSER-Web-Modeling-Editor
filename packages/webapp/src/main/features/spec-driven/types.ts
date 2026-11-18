@@ -164,15 +164,17 @@ export interface SpecDrivenVerificationItem {
   id: string;
   /** What the thing is, in the user's terms. */
   what: string;
-  /** Set on a VERIFIED item: what was actually run or re-checked. */
+  /** Set on a verified item (what was run) and a found-in-code item (the cited source). */
   how?: string;
   /** Set on the other two: why nothing reached it, or what is missing. */
   why?: string;
 }
 
 export interface SpecDrivenVerificationReport {
-  /** We checked and it works. */
+  /** A call to the running app exercised it and it works. */
   verified: SpecDrivenVerificationItem[];
+  /** Its source is cited, but nothing ran it. Absent from older backends. */
+  foundInCode?: SpecDrivenVerificationItem[];
   /** We could not check — unknown, not absent. */
   notVerified: SpecDrivenVerificationItem[];
   /** We checked and it is MISSING from the delivered code. */
@@ -181,6 +183,7 @@ export interface SpecDrivenVerificationReport {
    * count may exceed its list length — the UI says "showing N of M". */
   counts: {
     verified: number;
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
   };
@@ -381,7 +384,7 @@ export interface SpecDrivenVerificationItemView {
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
   id: string;
   what: string;
-  /** VERIFIED items: what was actually run or re-checked. */
+  /** Verified items: what was run; found-in-code items: the cited source. */
   how?: string;
   /** The other two: why nothing reached it, or what is missing. */
   why?: string;
@@ -394,10 +397,13 @@ export interface SpecDrivenVerificationItemView {
  */
 export interface SpecDrivenVerificationView {
   verified: SpecDrivenVerificationItemView[];
+  /** Absent on cards saved before this state existed. */
+  foundInCode?: SpecDrivenVerificationItemView[];
   notVerified: SpecDrivenVerificationItemView[];
   shippedUnenforced: SpecDrivenVerificationItemView[];
   counts: {
     verified: number;
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
   };

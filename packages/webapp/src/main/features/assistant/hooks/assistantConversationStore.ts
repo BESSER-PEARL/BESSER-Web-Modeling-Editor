@@ -152,6 +152,7 @@ const isWarning = (value: unknown): boolean => isRecord(value) && isString(value
 const isVerification = (value: unknown): boolean =>
   isRecord(value) &&
   isListOf(value.verified, isRecord) &&
+  (value.foundInCode === undefined || isListOf(value.foundInCode, isRecord)) &&
   isListOf(value.notVerified, isRecord) &&
   isListOf(value.shippedUnenforced, isRecord) &&
   isRecord(value.counts);

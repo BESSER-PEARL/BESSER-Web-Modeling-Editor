@@ -1898,6 +1898,17 @@
         "filesChanged_other": "{{count}} files changed",
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} found in code",
+        "foundInCode": {
+          "label": "Found in the code, not run",
+          "blurb": "Its source is cited, but no call to the running app reached it.",
+          "empty": "Nothing rests on a source citation alone."
+        },
+        "citedSource": "Cited source:",
+        "verifiedBlurb": "Exercised by a call to the running app, with the evidence.",
+        "footer": "Verified means a call to the running app exercised it. Found in the code means its source is cited, but nothing ran it. Could not verify means there is no evidence either way — it is not a pass."
       }
     },
     "generationKey": {

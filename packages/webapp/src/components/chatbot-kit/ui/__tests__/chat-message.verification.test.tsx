@@ -189,6 +189,89 @@ describe('run card — the other two states', () => {
   });
 });
 
+describe('run card — found in the code, not run', () => {
+  const cited: SpecDrivenMessageState['verification'] = {
+    verified: [
+      {
+        kind: 'api_workflow',
+        id: 'place-order',
+        what: "API workflow 'place-order'",
+        how: 'a test the agent wrote passed: 2 request(s) run against the app: POST /orders, GET /orders',
+      },
+    ],
+    foundInCode: [
+      {
+        kind: 'requirement',
+        id: 'R4',
+        what: 'an order total is never negative',
+        how: 'backend/app/orders.py:42; unverified',
+      },
+    ],
+    notVerified: [],
+    shippedUnenforced: [],
+    counts: { verified: 1, foundInCode: 9, notVerified: 0, shippedUnenforced: 0 },
+  };
+
+  const openPanel = async () => {
+    const user = userEvent.setup();
+    renderCard(doneCard(cited));
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
+    return user;
+  };
+
+  it('counts it in the summary row apart from what was verified', () => {
+    renderCard(doneCard(cited));
+    expect(screen.getByText(/1 verified/)).toBeTruthy();
+    expect(screen.getByText(/9 found in code/)).toBeTruthy();
+  });
+
+  it('lists it in its own section, with its true total and cited source', async () => {
+    const user = await openPanel();
+    const section = screen.getByRole('button', { name: /Found in the code, not run/ });
+    expect(section.textContent).toContain('9');
+    await user.click(section);
+    expect(screen.getByText('an order total is never negative')).toBeTruthy();
+    expect(screen.getByText(/backend\/app\/orders\.py:42/)).toBeTruthy();
+    expect(screen.getByText(/Showing 1 of 9\./)).toBeTruthy();
+  });
+
+  it('places it between Could not verify and Verified', async () => {
+    await openPanel();
+    const labels = screen
+      .getAllByRole('button')
+      .map((b) => b.textContent ?? '')
+      .filter((text) => /Could not verify|Found in the code|^Verified/.test(text));
+    expect(labels.map((text) => text.replace(/\d.*$/, ''))).toEqual([
+      'Could not verify',
+      'Found in the code, not run',
+      'Verified',
+    ]);
+  });
+
+  it('says verified means a call to the running app, not a re-check of the code', async () => {
+    await openPanel();
+    expect(screen.queryByText(/ran or re-checked/)).toBeNull();
+    expect(screen.getByText(/Verified means a call to the running app exercised it/)).toBeTruthy();
+    expect(screen.getByText(/Found in the code means/)).toBeTruthy();
+  });
+
+  it('renders a saved card from before the state existed without the section', async () => {
+    const user = userEvent.setup();
+    renderCard(
+      doneCard({
+        verified: cited!.verified,
+        notVerified: [],
+        shippedUnenforced: [],
+        counts: { verified: 1, notVerified: 0, shippedUnenforced: 0 },
+      }),
+    );
+    expect(screen.queryByText(/found in code/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
+    expect(screen.getByText('Verified')).toBeTruthy();
+    expect(screen.queryByText('Found in the code, not run')).toBeNull();
+  });
+});
+
 describe('run card — degradation', () => {
   it('falls back to the existing summary when verification is absent', () => {
     renderCard(doneCard(undefined));

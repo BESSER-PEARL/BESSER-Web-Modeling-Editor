@@ -1898,6 +1898,17 @@
         "filesChanged_other": "{{count}} Fichieren geännert",
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} am Code fonnt",
+        "foundInCode": {
+          "label": "Am Code fonnt, net ausgefouert",
+          "blurb": "Seng Quell ass uginn, mä keen Opruff vun der lafender App huet et erreecht.",
+          "empty": "Näischt baut eleng op enger Quellenugab op."
+        },
+        "citedSource": "Uginn Quell:",
+        "verifiedBlurb": "Duerch en Opruff vun der lafender App ausgefouert, mam Beweis.",
+        "footer": "Verifizéiert heescht, datt en Opruff vun der lafender App et ausgefouert huet. Am Code fonnt heescht, datt seng Quell uginn ass, mä näischt et ausgefouert huet. Konnt net verifizéiert ginn heescht, datt et kee Beweis an déi eng oder aner Richtung gëtt — dat ass kee Bestoen."
       }
     },
     "generationKey": {
