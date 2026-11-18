@@ -116,7 +116,7 @@ interface SurfaceAPI {
 }
 
 function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
-  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
   apiRef.current = { submit: (text) => hook.handleSubmit(undefined, { overrideText: text }), clear: hook.clearConversation, meta: () => hook.messageMeta as any };
   return null;
 }

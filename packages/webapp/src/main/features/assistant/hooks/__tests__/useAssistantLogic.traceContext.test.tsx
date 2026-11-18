@@ -92,7 +92,7 @@ async function renderWith(project: BesserProject) {
   const store = configureStore({ reducer, preloadedState: { workspace } as never });
   const api: { current: ReturnType<typeof useAssistantLogic> | null } = { current: null };
   function Surface() {
-    api.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true });
+    api.current = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
     return null;
   }
   render(
