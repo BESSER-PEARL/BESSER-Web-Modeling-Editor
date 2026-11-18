@@ -4704,7 +4704,7 @@
     "operations": {
       "modeling": "Sessió de modelatge",
       "assistant": "Sessió de modelatge amb l'assistent",
-      "generation": "{{generator}} generat",
+      "generation": "Generació: {{generator}}",
       "extraction": "Requisits extrets per l'assistent",
       "conversation": "Conversa amb l'assistent",
       "generationUnknown": "Generació de codi",

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import en from '../../../../../../i18n/en/webapp.json';
 import { APOLLON_TABLES, snapshotKnowledgeGraph, snapshotQuantumModel } from '../../../shared/traceability/diagramModelDiff';
+import i18n from '../../../shared/i18n';
+import { generatorLabel } from '../traceLabels';
 
 const labels = en.traceability.elementTypes as Record<string, string>;
 
@@ -18,5 +20,17 @@ describe('element type labels', () => {
     for (const snapshot of kg.values()) metaclasses.add(snapshot.elementType);
 
     expect([...metaclasses].filter((metaclass) => !labels[metaclass])).toEqual([]);
+  });
+});
+
+describe('generator labels', () => {
+  it('names a generator as the Generate menu does, and keeps the name of a tool the menu does not offer', () => {
+    // Live: "Generated sqlalchemy", "python: 1 file out of date".
+    const t = i18n.getFixedT('en');
+    expect(generatorLabel(t, 'sqlalchemy')).toBe('SQLAlchemy DDL');
+    expect(generatorLabel(t, 'python')).toBe('Python Classes');
+    // Offered in several forms under one group: the group names it.
+    expect(generatorLabel(t, 'pytorch')).toBe('PyTorch');
+    expect(generatorLabel(t, 'gpt-6-luna')).toBe('gpt-6-luna');
   });
 });

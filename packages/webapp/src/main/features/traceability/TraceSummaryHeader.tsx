@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowRight, CheckCircle2, FileWarning, Link2, ListTree, 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { TraceSummary } from '../../shared/traceability/traceSummary';
-import { formatTime } from './traceLabels';
+import { formatTime, generatorLabel } from './traceLabels';
 
 interface FigureProps {
   icon: React.ReactNode;
@@ -74,7 +74,7 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
               <span className="min-w-0 flex-1">
                 <span className="font-medium">
                   {t('traceability.summary.staleFiles', {
-                    generator: entry.tool?.name ?? t('traceability.summary.unknownGenerator'),
+                    generator: entry.tool ? generatorLabel(t, entry.tool.name) : t('traceability.summary.unknownGenerator'),
                     count: entry.files.length,
                   })}
                 </span>

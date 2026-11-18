@@ -54,21 +54,21 @@ describe('LineageView', () => {
 
   it('starts with the diagrams and generation runs, and shows their parts on demand', () => {
     const { container, rowLabels, labelled } = view(trace());
-    expect(rowLabels()).toEqual(['Class Diagram', 'Generated sqlalchemy']);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Generated SQLAlchemy DDL']);
     expect(container.textContent).toContain('2 diagrams, prompts and generation runs, joined by 1 trace links');
 
     fireEvent.click(container.querySelector('[aria-pressed]')!); // clicking a card opens it
-    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
-    fireEvent.click(labelled('Show the parts of Generated sqlalchemy')!);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);
+    fireEvent.click(labelled('Show the parts of Generated SQLAlchemy DDL')!);
     fireEvent.click(labelled('Show the parts of sql_alchemy.py')!);
-    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy', 'sql_alchemy.py', 'Book · lines 2–3']);
-    fireEvent.click(labelled('Hide the parts of Generated sqlalchemy')!);
-    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL', 'sql_alchemy.py', 'Book · lines 2–3']);
+    fireEvent.click(labelled('Hide the parts of Generated SQLAlchemy DDL')!);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);
   });
 
   it('opens the path to an element whose lineage was asked for, and explains its links', () => {
     const { container, rowLabels, button } = view(trace(), 'book');
-    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated sqlalchemy']);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Book', 'Generated SQLAlchemy DDL']);
     fireEvent.click(button('Lines 2–3')); // in the element's list of links
     expect(container.textContent).toContain('Deterministic rule: sql_alchemy_template.py.j2#class');
     expect(container.textContent).toContain('Out of date, source changed: the source changed after the link was made');
@@ -140,7 +140,7 @@ describe('LineageView', () => {
     file.traceLinks.push({ ...file.traceLinks[0], id: 'link2', sourceId: 'author', targetId: 'alines' });
     const { rowLabels, button } = view(file);
     fireEvent.click(button('×2'));
-    expect(rowLabels()).toEqual(['Class Diagram', 'Author', 'Book', 'Generated sqlalchemy', 'sql_alchemy.py', 'Book · lines 2–3', 'Author · lines 5–6']);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Author', 'Book', 'Generated SQLAlchemy DDL', 'sql_alchemy.py', 'Book · lines 2–3', 'Author · lines 5–6']);
     expect(button('×2')).toBeUndefined();
   });
 
@@ -149,7 +149,7 @@ describe('LineageView', () => {
     fireEvent.click(button('Expand all'));
     expect(rowLabels()).toContain('Book · lines 2–3');
     fireEvent.click(button('Collapse all'));
-    expect(rowLabels()).toEqual(['Class Diagram', 'Generated sqlalchemy']);
+    expect(rowLabels()).toEqual(['Class Diagram', 'Generated SQLAlchemy DDL']);
 
     fireEvent.click(button('Full screen'));
     expect(document.body.querySelector('.fixed.inset-0')).toBeTruthy(); // a portal: full screen leaves the page

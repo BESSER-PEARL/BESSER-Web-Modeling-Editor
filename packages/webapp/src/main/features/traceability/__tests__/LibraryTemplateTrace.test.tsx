@@ -93,6 +93,14 @@ describe('a project loaded from the Library template', () => {
     expect(screen.getByText('sql_alchemy.py:5–9')).toBeTruthy();
   });
 
+  it('names generators as the Generate menu does, not by their ids', () => {
+    // Live: "Generated python", "Generated sqlalchemy".
+    render(<TimelineView index={indexTrace(libraryProject())} onOpenElement={noop} />);
+    expect(screen.getByText('Generated Python Classes')).toBeTruthy();
+    expect(screen.getByText('Generated SQLAlchemy DDL')).toBeTruthy();
+    expect(screen.queryByText(/Generated (python|sqlalchemy)$/)).toBeNull();
+  });
+
   it('still names the models a derivation read', () => {
     const t = libraryProject();
     t.tools.push({ id: 'gui', type: 'ModelGenerator', name: 'BESSER GUI generator', timestamp: at(0) });

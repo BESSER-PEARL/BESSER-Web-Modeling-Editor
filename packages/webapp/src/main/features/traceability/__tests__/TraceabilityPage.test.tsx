@@ -152,7 +152,8 @@ describe('TraceabilityPage', () => {
     expect(summary.textContent).toContain('2operations recorded');
     expect(summary.textContent).toContain('1current trace link');
     expect(summary.textContent).toContain('1link may be out of date');
-    expect(summary.textContent).toContain('sqlalchemy: 1 file out of date');
+    // Live: "sqlalchemy: 1 file out of date", the generator's id.
+    expect(summary.textContent).toContain('SQLAlchemy DDL: 1 file out of date');
     fireEvent.click(screen.getByRole('button', { name: 'View coverage' }));
     expect(selectedTab()).toBe('Coverage');
   });

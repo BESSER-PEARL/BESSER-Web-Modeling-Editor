@@ -46,7 +46,7 @@ describe('TimelineView filters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Modeling' }));
     expect(titles()).toEqual(['Modeling session with the assistant', 'Modeling session']);
     fireEvent.click(screen.getByRole('button', { name: 'Code generation' }));
-    expect(titles()).toEqual(['Generated sqlalchemy']);
+    expect(titles()).toEqual(['Generated SQLAlchemy DDL']);
   });
 
   it('shows a conversation with its messages', () => {
@@ -67,7 +67,7 @@ describe('TimelineView filters', () => {
     expect(screen.queryAllByText(/session|Generated|Conversation with|Requirements extracted/).map((e) => e.textContent)).toEqual([
       'Requirements extracted by the assistant',
       'Conversation with the assistant',
-      'Generated sqlalchemy',
+      'Generated SQLAlchemy DDL',
       'Modeling session with the assistant',
       'Modeling session',
     ]);

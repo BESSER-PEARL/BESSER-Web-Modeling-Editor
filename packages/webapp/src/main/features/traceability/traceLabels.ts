@@ -5,6 +5,7 @@ import type {
 import { isModelArtifact, toolIdsOf } from '../../shared/types/traceability';
 import type { TraceIndex } from '../../shared/traceability/traceQueries';
 import { qualifiedName } from '../../shared/traceability/traceQueries';
+import { generatorMenuName } from '../../app/shell/menus/generator-menu-config';
 
 /** Display text for trace records; the trace itself stores only data. */
 
@@ -35,11 +36,19 @@ export const derivedBy = (operation: TraceOperation, index: TraceIndex): TraceTo
     ? toolIdsOf(operation).map((id) => index.toolsById.get(id)).find((tool) => tool?.type === 'ModelGenerator')
     : undefined;
 
+/** A generator as the Generate menu names it ("sqlalchemy" -> "SQLAlchemy DDL"); a tool the menu does not offer
+ *  keeps its recorded name. */
+export const generatorLabel = (t: TFunction, name: string): string => {
+  const entry = generatorMenuName(name);
+  if (!entry) return name;
+  return entry.labelKey ? t(entry.labelKey) : entry.label;
+};
+
 export const operationLabel = (t: TFunction, operation: TraceOperation, index: TraceIndex): string => {
   if (operation.type === 'CodeGeneration') {
     const generator = toolIdsOf(operation).map((id) => index.toolsById.get(id)?.name).find(Boolean);
     return generator
-      ? t('traceability.operations.generation', { generator })
+      ? t('traceability.operations.generation', { generator: generatorLabel(t, generator) })
       : t('traceability.operations.generationUnknown');
   }
   if (operation.type === 'RequirementExtraction') return t('traceability.operations.extraction');
