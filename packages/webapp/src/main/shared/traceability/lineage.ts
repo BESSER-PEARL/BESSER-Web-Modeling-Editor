@@ -45,7 +45,7 @@ export interface LineageOptions {
 }
 
 /** `links` without generation links superseded by a newer run of the same generator. */
-function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLink[] {
+export function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): TraceLink[] {
   const newest = new Map<string, string>(); // generator tool ids -> newest operation id
   const started = (operationId: string) => index.operations.get(operationId)?.startedAt ?? '';
   const keyOf = (link: TraceLink) => {

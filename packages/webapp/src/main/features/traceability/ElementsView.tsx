@@ -17,6 +17,7 @@ import {
   isDiagram,
   modelChildren,
 } from '../../shared/traceability/traceQueries';
+import { withoutOlderGenerations } from '../../shared/traceability/lineage';
 import { actorNames, describeChange, elementTypeLabel, formatTime, operationLabel } from './traceLabels';
 import { CodeLines } from './components/CodeLines';
 import { toggledIn } from './components/toggleSet';
@@ -199,9 +200,10 @@ const ElementDetail: React.FC<{ index: TraceIndex; artifactId: string; onShowLin
   const artifact = index.artifacts.get(artifactId)!;
   const history = useMemo(() => historyOf(index, artifactId), [index, artifactId]);
   const generated = useMemo(() => generatedFrom(index, artifactId), [index, artifactId]);
-  const latestRun = generated[0]?.link.operationId;
+  // The newest run of each generator: another generator's code is current, not older.
+  const current = useMemo(() => new Set(withoutOlderGenerations(index, generated.map((g) => g.link))), [index, generated]);
   const [showOlder, setShowOlder] = useState(false);
-  const shown = showOlder ? generated : generated.filter((g) => g.link.operationId === latestRun);
+  const shown = showOlder ? generated : generated.filter((g) => current.has(g.link));
 
   return (
     <div className="min-w-0 space-y-5">

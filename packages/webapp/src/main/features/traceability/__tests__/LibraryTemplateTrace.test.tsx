@@ -77,6 +77,22 @@ describe('a project loaded from the Library template', () => {
     expect(screen.queryByText(/Derived from/)).toBeNull();
   });
 
+  it('shows each generator’s current code for an element, and hides only what a newer run of the same generator replaced', () => {
+    // Live: the Python fragment, itself up to date, was hidden under "Show 1 fragment from older generations"
+    // next to the SQLAlchemy one.
+    const t = libraryProject();
+    t.artifacts.push({ id: 'saBook2', type: 'CodeArtifact', name: 'Book', path: 'sql_alchemy.py', contentHash: 'h3', startLine: 5, endLine: 10, parentId: 'saFile', timestamp: at(5) });
+    t.operations.push({ ...base, id: 'genSa2', type: 'CodeGeneration', startedAt: at(5), performedBy: ['ada'], writes: ['saFile', 'saBook2'],
+      toolCalls: [call('sc2', 'sa', 5)] });
+    t.traceLinks.push({ id: 'lSa2', sourceId: 'book', targetId: 'saBook2', operationId: 'genSa2', timestamp: at(5), evidence: [] });
+    render(<ElementsView index={indexTrace(t)} selectedId="book" onSelect={noop} onShowLineage={noop} />);
+    expect(screen.getByText('sql_alchemy.py:5–10')).toBeTruthy();
+    expect(screen.getByText('classes.py:1–3')).toBeTruthy();
+    expect(screen.queryByText('sql_alchemy.py:5–9')).toBeNull();
+    fireEvent.click(screen.getByText('Show 1 fragment from older generations'));
+    expect(screen.getByText('sql_alchemy.py:5–9')).toBeTruthy();
+  });
+
   it('still names the models a derivation read', () => {
     const t = libraryProject();
     t.tools.push({ id: 'gui', type: 'ModelGenerator', name: 'BESSER GUI generator', timestamp: at(0) });
