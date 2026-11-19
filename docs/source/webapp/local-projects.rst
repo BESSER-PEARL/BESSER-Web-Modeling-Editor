@@ -91,6 +91,15 @@ handles read/write operations:
   is absent; otherwise it is dropped.
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
+* After each save, ``checkLocalStorageQuota`` (``localStorageQuota.ts``) fires the
+  ``besser:storage-quota-warning`` event once ``localStorage`` passes 4 MB of its
+  ~5 MB. ``app/shell/StorageQuotaWarning.tsx`` turns it into a warning that says
+  how to free space and opens the *Free up browser storage* dialog
+  (``features/project/StorageCleanupDialog.tsx``). The dialog lists the saved
+  projects, least recently edited first, with their size, offers to export each
+  one, and deletes the selected ones after a confirm through
+  ``storageCleanup.ts``, which never deletes the open project (nor the one the
+  next load opens) and deletes through ``ProjectStorageRepository.deleteProject``.
 
 Redux slice
 -----------

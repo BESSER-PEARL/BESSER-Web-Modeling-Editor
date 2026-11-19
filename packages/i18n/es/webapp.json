@@ -1286,6 +1286,33 @@
         "connected": "Conectado a GitHub",
         "connect": "Conectar GitHub"
       }
+    },
+    "storageCleanup": {
+      "title": "Liberar almacenamiento del navegador",
+      "description": "Los proyectos se guardan en el almacenamiento local de este navegador, que admite unos 5 MB. Selecciona proyectos antiguos para eliminarlos. Exporta antes cualquier proyecto que quieras conservar.",
+      "usage": "{{used}} usados de unos {{limit}}",
+      "empty": "No hay proyectos guardados.",
+      "openBadge": "Abierto",
+      "lastModified": "Editado el {{date}}",
+      "selectAria": "Seleccionar el proyecto {{name}} para eliminarlo",
+      "export": "Exportar",
+      "exportAria": "Exportar el proyecto {{name}} como JSON",
+      "hint": "El proyecto abierto no se puede eliminar aquí. También puedes eliminar proyectos uno a uno desde Archivo › Abrir proyecto… (icono de papelera de cada tarjeta).",
+      "deleteNone": "Eliminar selección",
+      "deleteSelected_one": "Eliminar {{count}} proyecto ({{size}})",
+      "deleteSelected_other": "Eliminar {{count}} proyectos ({{size}})",
+      "confirm": {
+        "title_one": "¿Eliminar {{count}} proyecto?",
+        "title_other": "¿Eliminar {{count}} proyectos?",
+        "description_one": "¿Eliminar {{names}} de este navegador? Se liberan unos {{size}} y no se puede deshacer. Expórtalo antes si quieres conservar una copia.",
+        "description_other": "¿Eliminar {{names}} de este navegador? Se liberan unos {{size}} y no se puede deshacer. Expórtalos antes si quieres conservar una copia."
+      },
+      "toasts": {
+        "deleted_one": "{{count}} proyecto eliminado, {{size}} liberados.",
+        "deleted_other": "{{count}} proyectos eliminados, {{size}} liberados.",
+        "deleteFailed": "No se pudieron eliminar los proyectos seleccionados.",
+        "exportFailed": "No se pudo exportar el proyecto «{{name}}»."
+      }
     }
   },
   "github": {
@@ -2497,6 +2524,11 @@
         "freeDefaultModel": "el modelo gratuito incluido",
         "keyRemoved": "Clave API eliminada de esta pestaña."
       }
+    },
+    "storageQuota": {
+      "title": "El almacenamiento del navegador está casi lleno ({{used}} MB de {{limit}} MB).",
+      "instructions": "Tus proyectos se guardan en este navegador, así que debes eliminar los proyectos que ya no uses para liberar espacio; si no, es posible que los cambios nuevos no se guarden. Haz clic en «Liberar espacio» para ver el tamaño de cada proyecto y eliminar los más antiguos, o abre Archivo › Abrir proyecto… y usa el icono de papelera de una tarjeta de proyecto. Exporta antes un proyecto (Archivo › Exportar proyecto…) para conservar una copia.",
+      "action": "Liberar espacio"
     }
   },
   "shell": {
