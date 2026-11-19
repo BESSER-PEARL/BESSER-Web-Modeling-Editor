@@ -241,7 +241,8 @@
     "addTarget": "Add a target…",
     "lineage": "Lineage",
     "lineageSource": "Source:",
-    "lineageDerivedFrom": "Derived from"
+    "lineageDerivedFrom": "Derived from",
+    "showTraceability": "Show traceability"
   },
   "assessment": {
     "assessment": "Assessment for",

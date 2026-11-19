@@ -241,7 +241,8 @@
     "addTarget": "Afegeix una destinació…",
     "lineage": "Procedència",
     "lineageSource": "Origen:",
-    "lineageDerivedFrom": "Derivat de"
+    "lineageDerivedFrom": "Derivat de",
+    "showTraceability": "Mostra la traçabilitat"
   },
   "assessment": {
     "assessment": "Avaluació de",

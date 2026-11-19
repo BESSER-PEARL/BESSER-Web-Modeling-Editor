@@ -241,7 +241,8 @@
     "addTarget": "Ziel hinzufügen…",
     "lineage": "Herkunft",
     "lineageSource": "Quelle:",
-    "lineageDerivedFrom": "Abgeleitet von"
+    "lineageDerivedFrom": "Abgeleitet von",
+    "showTraceability": "Rückverfolgbarkeit anzeigen"
   },
   "assessment": {
     "assessment": "Bewertung für",

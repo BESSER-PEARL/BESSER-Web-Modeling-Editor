@@ -8,6 +8,7 @@ import {
   switchDiagramTypeThunk,
   updateDiagramModelThunk,
 } from '../../app/store/workspaceSlice';
+import { MODEL_GENERATORS } from '../../shared/traceability/traceStore';
 import type { DiagramLineage } from '../../shared/types/project';
 import { normalizeStoredAgentModel } from '../../shared/utils/projectExportUtils';
 import { bpmnModelToComponentModel } from './bpmn-to-component';
@@ -79,12 +80,13 @@ export function useGenerateComponentDiagram(): () => Promise<DerivationResult> {
       sourceModelHash: hashUmlModel(activeDiagram.model as UMLModel),
     };
 
-    const added = await dispatch(addDiagramThunk({ diagramType: 'ComponentDiagram', title, derivedFrom })).unwrap();
+    const generator = MODEL_GENERATORS.bpmnToComponent;
+    const added = await dispatch(addDiagramThunk({ diagramType: 'ComponentDiagram', title, derivedFrom, traceSource: { generator } })).unwrap();
     await dispatch(switchDiagramTypeThunk({ diagramType: 'ComponentDiagram' })).unwrap();
-    await dispatch(updateDiagramModelThunk({ model: result.model })).unwrap();
-    // write the element-level lineage sidecar for the new diagram.
+    await dispatch(updateDiagramModelThunk({ model: result.model, traceSource: { generator } })).unwrap();
+    // write the element-level lineage sidecar for the new diagram (also linked in the project trace).
     await dispatch(
-      setElementLineageThunk({ derivedDiagramId: added.diagram.id, mapping: result.elementMapping }),
+      setElementLineageThunk({ derivedDiagramId: added.diagram.id, mapping: result.elementMapping, generator }),
     ).unwrap();
     // updateDiagramModelThunk is intentionally
     // silent on editorRevision (so normal editing doesn't reinit the

@@ -6,6 +6,7 @@ import {
   Bot,
   Component,
   Brain,
+  GitBranch,
   Layers3,
   Network,
   PackageOpen,
@@ -143,7 +144,11 @@ export const DIAGRAM_ROUTE_ITEMS: Partial<Record<SupportedDiagramType, readonly 
   KnowledgeGraphDiagram: KG_ROUTE_ITEMS,
 };
 
-export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> }] as const;
+/** Project-wide pages, below the diagram editors: they concern every diagram of the project. */
+export const ROUTE_ITEMS = [
+  { path: '/traceability', label: 'Traceability', labelKey: 'nav.route.traceability', icon: <GitBranch className="size-4" /> },
+  { path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> },
+] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

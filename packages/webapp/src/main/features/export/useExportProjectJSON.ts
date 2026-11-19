@@ -3,11 +3,13 @@ import { buildProjectExportEnvelope } from '../../shared/utils/projectExportUtil
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadJson } from '../../shared/utils/download';
 import { loadBesserVersion } from '../../shared/services/besserVersion';
+import { loadProjectTrace } from '../../shared/traceability/traceStore';
 
 // Export project as a single JSON file
 export async function exportProjectAsJson(
   project: BesserProject,
-  diagramTypes?: SupportedDiagramType[]
+  diagramTypes?: SupportedDiagramType[],
+  includeTrace = false,
 ) {
   await loadBesserVersion();
 
@@ -17,7 +19,8 @@ export async function exportProjectAsJson(
 
   console.log('[Export] Using project data:', projectToExport.id);
 
-  const exportData = buildProjectExportEnvelope(projectToExport, diagramTypes);
+  if (includeTrace) await loadProjectTrace(projectToExport.id);
+  const exportData = buildProjectExportEnvelope(projectToExport, diagramTypes, { includeTrace });
 
   const filename = `${projectToExport.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
   downloadJson(exportData, filename);
@@ -26,7 +29,8 @@ export async function exportProjectAsJson(
 // Main export function - directly exports the current project as JSON
 export async function exportProjectById(
   project: BesserProject,
-  diagramTypes?: SupportedDiagramType[]
+  diagramTypes?: SupportedDiagramType[],
+  includeTrace = false,
 ) {
-  await exportProjectAsJson(project, diagramTypes);
+  await exportProjectAsJson(project, diagramTypes, includeTrace);
 }

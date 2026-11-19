@@ -5,6 +5,10 @@ import { useGenerateCode } from '../useGenerateCode';
 import { promptForGitHubStarOnce } from '../../../../shared/services/githubStarPrompt';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { createDefaultProject } from '../../../../shared/types/project';
+import type { BesserProject } from '../../../../shared/types/project';
+
+/** These tests are about the plain endpoints: the project does not record traces (see the traceability test). */
+const untraced = (project: BesserProject): BesserProject => ({ ...project, settings: { ...project.settings, traceabilityEnabled: false } });
 import type { GenerationOptions, GenerationResult } from '../../types';
 
 vi.mock('react-toastify', () => ({
@@ -41,7 +45,7 @@ const generate = async (opts?: GenerationOptions): Promise<GenerationResult> => 
 describe('useGenerateCode GitHub star prompt', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(createDefaultProject('My Project', '', ''));
+    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(untraced(createDefaultProject('My Project', '', '')));
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
