@@ -5018,5 +5018,148 @@
       "showTraceability": "Mostra la traçabilitat",
       "viewTrace": "Mostra la traça"
     }
+  },
+  "lab": {
+    "title": "BESSER Lab",
+    "description": "Canvis al codi propi de BESSER, en branques lab.",
+    "loading": "S’està carregant el lab…",
+    "disabled": "BESSER Lab no està activat en aquesta instància.",
+    "signInPrompt": "Inicia la sessió amb GitHub per fer servir BESSER Lab.",
+    "signIn": "Inicia la sessió amb GitHub",
+    "loadingState": "S’està llegint la còpia de treball…",
+    "chatLabel": "Xat del lab",
+    "chatEmpty": "Descriu un canvi a BESSER, a l’editor web o a l’agent de modelització. L’agent del lab primer el planifica.",
+    "composerPlaceholder": "Descriu el canvi…",
+    "unreachable": "No s’ha pogut contactar amb el servidor, així que no se sap si BESSER Lab funciona aquí.",
+    "retry": "Torna-ho a provar",
+    "loadStateFailed": "No s’ha pogut llegir l’estat del lab: {{error}}",
+    "actions": {
+      "openPullRequest": "Obre una pull request",
+      "park": "Aparca",
+      "drop": "Descarta",
+      "resume": "Reprèn",
+      "resumeChange": "Reprèn {{title}}",
+      "resetPreview": "Restableix l’editor a development",
+      "stopRun": "Atura l’execució"
+    },
+    "drop": {
+      "confirmTitle": "Vols descartar aquest canvi?",
+      "confirmDescription": "Les seves branques i notes s’eliminen de la còpia de treball. La feina que no sigui en una pull request es perd."
+    },
+    "errors": {
+      "actionFailed": "Ha fallat «{{action}}»: {{error}}",
+      "applyResult": "No s’ha pogut aplicar al projecte el resultat de l’execució del lab.",
+      "stopNotAccepted": "el servidor no ha acceptat la sol·licitud."
+    },
+    "state": {
+      "signedInAs": "Sessió iniciada com a {{user}}",
+      "activeChange": "Canvi actiu",
+      "noFiles": "Encara no hi ha cap fitxer modificat.",
+      "noChange": "No hi ha cap canvi actiu. Descriu-ne un al xat per començar.",
+      "pullRequests": "Pull requests",
+      "parked": "Canvis aparcats",
+      "noParked": "No hi ha cap canvi aparcat.",
+      "preview": "Previsualització",
+      "running": "en execució",
+      "stopped": "aturat",
+      "previewOff": "La previsualització està desactivada en aquesta instància.",
+      "runInProgress": "Hi ha una execució de BESSER Lab en curs (iniciada a les {{time}})."
+    },
+    "repos": {
+      "besser": "BESSER",
+      "frontend": "Editor web",
+      "modeling_agent": "Agent de modelització"
+    },
+    "fileStatus": {
+      "added": "afegit",
+      "modified": "modificat",
+      "deleted": "eliminat",
+      "renamed": "canviat de nom"
+    },
+    "kinds": {
+      "generator": "generador",
+      "metamodel": "metamodel",
+      "diagram_type": "tipus de diagrama",
+      "editor_element": "element de l’editor",
+      "backend": "backend",
+      "agent": "agent",
+      "bugfix": "correcció d’errors",
+      "other": "altre"
+    },
+    "stopReasons": {
+      "cost_cap": "Ha arribat al límit de cost. El que ha fet fins ara és a la còpia de treball.",
+      "timeout": "Ha arribat al límit de temps. El que ha fet fins ara és a la còpia de treball.",
+      "max_turns": "Ha arribat al límit de torns. El que ha fet fins ara és a la còpia de treball.",
+      "api_error": "El proveïdor del model ha fallat durant l’execució. El que ha fet fins ara és a la còpia de treball.",
+      "cancelled": "S’ha aturat. El que ha fet fins ara és a la còpia de treball."
+    },
+    "chat": {
+      "alreadyRunning": "BESSER Lab ja s’està executant: espera que acabi o fes clic a Atura.",
+      "notActiveChange": "No s’ha obert cap pull request: el canvi d’aquesta targeta no és l’actiu. Reprèn-lo primer a la pàgina del lab.",
+      "startFailed": "BESSER Lab no s’ha pogut iniciar: {{error}}",
+      "streamClosed": "El flux de l’execució del lab s’ha tancat abans de donar un resultat.",
+      "stalled": "el flux de progrés en directe ha deixat d’enviar esdeveniments (cap en {{seconds}} s) i s’ha tancat. Pot ser que l’execució continuï al servidor.",
+      "streamError": "Error del flux de BESSER Lab: {{error}}",
+      "stopped": "Execució de BESSER Lab aturada per l’usuari.",
+      "runError": "Error de BESSER Lab ({{code}}): {{message}}",
+      "refused": {
+        "sessionExpired": "La teva sessió de GitHub ha caducat. Torna a iniciar la sessió i envia de nou el missatge.",
+        "notAllowed": "El teu usuari de GitHub no té permís per fer servir BESSER Lab en aquesta instància.",
+        "busy": "BESSER Lab està ocupat amb una altra execució o acció sobre un canvi. Torna a enviar el missatge quan acabi.",
+        "unavailable": "BESSER Lab no està disponible en aquest servidor: {{detail}}"
+      },
+      "signInPrompt": "Inicia la sessió amb GitHub per fer servir BESSER Lab i torna a enviar el missatge.",
+      "noAttachments": "BESSER Lab només llegeix text: descriu el canvi al missatge.",
+      "voiceUnavailable": "BESSER Lab no accepta missatges de veu: escriu el canvi.",
+      "noPullRequests": "No s’ha obert cap pull request: el canvi no té fitxers modificats.",
+      "pullRequestsOpened": "S’han obert les pull requests en esborrany:",
+      "pullRequestFailed": "No s’han pogut obrir les pull requests: {{error}}"
+    },
+    "runCard": {
+      "titlePlan": "Pla a punt",
+      "titlePlanStopped": "La planificació s’ha aturat abans d’hora",
+      "titleQuestion": "L’agent del lab té una pregunta",
+      "titleBuilt": "Canvi construït",
+      "titleChecksFailing": "Canvi construït, comprovacions fallides",
+      "titleNoChanges": "Construcció acabada sense canvis",
+      "titleBuildStopped": "La construcció s’ha aturat abans d’hora",
+      "planRegion": "Pla",
+      "steps": "Passos",
+      "questions": "Preguntes obertes",
+      "replyHint": "Respon amb el que cal canviar i l’agent del lab revisa el pla, o construeix-lo tal com és.",
+      "answerHint": "Respon-la; després l’agent del lab planifica el canvi.",
+      "buildPlan": "Construeix aquest pla",
+      "buildPlanMessage": "Construeix aquest pla.",
+      "manageChanges": "Gestiona els canvis",
+      "agentAccount": "En paraules de l’agent del lab",
+      "filesRegion": "Fitxers modificats",
+      "noChanges": "No s’ha modificat cap fitxer.",
+      "showAll": "Mostra’ls tots ({{count}})",
+      "checksRegion": "Comprovacions",
+      "checkPassed": "Superada",
+      "checkFailed": "Fallida",
+      "checkSkipped": "Omesa",
+      "checklistRegion": "Llista de comprovació",
+      "checklistDone": "Fet",
+      "checklistMissing": "Falta",
+      "checklistNotJudged": "No es pot avaluar a partir dels fitxers",
+      "openPullRequest": "Obre una pull request"
+    },
+    "proposal": {
+      "label": "Model proposat",
+      "title": "L’agent proposa aquest model per a l’extensió",
+      "hint": "Edita el que no sigui correcte i després conserva’l o descarta’l.",
+      "keep": "Conserva",
+      "discard": "Descarta",
+      "discardConfirmTitle": "Vols descartar el model proposat?",
+      "discardConfirmDescription": "Es tanca la pestanya amb el diagrama de classes que ha proposat l’agent del lab. El canvi en si queda tal com és.",
+      "errors": {
+        "noProject": "Obre un projecte per veure el diagrama de classes que proposa l’agent del lab.",
+        "invalidModel": "L’agent del lab ha proposat un model que l’editor no pot obrir com a diagrama de classes.",
+        "limitReached": "No s’ha obert el model proposat: el projecte ja té {{max}} diagrames de classes.",
+        "failed": "No s’ha pogut obrir el model proposat.",
+        "settleFailed": "No s’ha pogut actualitzar el model proposat."
+      }
+    }
   }
 }

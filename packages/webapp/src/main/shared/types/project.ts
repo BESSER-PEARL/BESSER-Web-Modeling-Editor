@@ -283,7 +283,7 @@ export interface ProjectDiagram {
   model?: UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
   lastUpdate: string;
   description?: string;
-  config?: Record<string, unknown>;  // agent LLM/platform/IC config
+  config?: Record<string, unknown>;  // agent LLM/platform/IC config; on a ClassDiagram, `labProposalChangeId` marks a BESSER Lab model proposal awaiting Keep/Discard and `labChangeId` a kept one
   configYaml?: string;  // generated agent config.yaml (derived from agentConfigForm + agentConfigCustomYaml)
   agentConfigForm?: Record<string, unknown>;  // structured form state for the yaml editor
   agentConfigCustomYaml?: string;  // extra YAML appended at the end of config.yaml

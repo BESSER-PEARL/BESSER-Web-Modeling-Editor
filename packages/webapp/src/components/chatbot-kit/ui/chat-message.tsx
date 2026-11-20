@@ -69,6 +69,7 @@ import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl
 import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
+import { LabRunResult, labRunTitle, type LabChangeAction } from "@/components/chatbot-kit/ui/lab-run-result"
 import {
   fixAttemptCount,
   repairTimeline,
@@ -226,6 +227,14 @@ export interface ChatMessageProps extends Message {
    * When omitted, the expired card only explains what happened.
    */
   onGenerateAgain?: () => void
+  /**
+   * A BESSER Lab build card's "Open pull request", called with the card's
+   * change id. The button stays disabled while the returned promise is
+   * pending and is hidden when omitted.
+   */
+  onOpenPullRequest?: LabChangeAction
+  /** A BESSER Lab plan card's "Build this plan", called with the card's change id; hidden when omitted. */
+  onBuildPlan?: LabChangeAction
 }
 
 /* ------------------------------------------------------------------ */
@@ -343,6 +352,8 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
     specDriven,
     onPushToGithub,
     onGenerateAgain,
+    onOpenPullRequest,
+    onBuildPlan,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -500,6 +511,8 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
             isStreaming={isStreaming === true}
             onPushToGithub={onPushToGithub}
             onGenerateAgain={onGenerateAgain}
+            onOpenPullRequest={onOpenPullRequest}
+            onBuildPlan={onBuildPlan}
           />
         ) : (
           <SpecDrivenCard
@@ -507,6 +520,8 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
             isStreaming={isStreaming === true}
             onPushToGithub={onPushToGithub}
             onGenerateAgain={onGenerateAgain}
+            onOpenPullRequest={onOpenPullRequest}
+            onBuildPlan={onBuildPlan}
           />
         )}
         {showTimeStamp && createdAt ? (
@@ -1521,12 +1536,16 @@ function LiveSpecDrivenCard({
   isStreaming,
   onPushToGithub,
   onGenerateAgain,
+  onOpenPullRequest,
+  onBuildPlan,
 }: {
   liveKey: string
   fallback: SpecDrivenMessageState
   isStreaming: boolean
   onPushToGithub?: (runId: string) => void
   onGenerateAgain?: () => void
+  onOpenPullRequest?: LabChangeAction
+  onBuildPlan?: LabChangeAction
 }) {
   const live = useAppSelector((state) => selectLiveSpecDrivenRun(state, liveKey))
   const specDriven = live ?? fallback
@@ -1536,6 +1555,8 @@ function LiveSpecDrivenCard({
       isStreaming={isStreaming || specDriven.status === "running"}
       onPushToGithub={onPushToGithub}
       onGenerateAgain={onGenerateAgain}
+      onOpenPullRequest={onOpenPullRequest}
+      onBuildPlan={onBuildPlan}
     />
   )
 }
@@ -1546,6 +1567,8 @@ function SpecDrivenCard({
   onStop,
   onPushToGithub,
   onGenerateAgain,
+  onOpenPullRequest,
+  onBuildPlan,
 }: {
   specDriven: SpecDrivenMessageState
   isStreaming: boolean
@@ -1567,6 +1590,10 @@ function SpecDrivenCard({
   onPushToGithub?: (runId: string) => void
   /** Offered on a card whose result has expired. */
   onGenerateAgain?: () => void
+  /** A lab build card's "Open pull request"; hidden when omitted. */
+  onOpenPullRequest?: LabChangeAction
+  /** A lab plan card's "Build this plan"; hidden when omitted. */
+  onBuildPlan?: LabChangeAction
 }) {
   const { t } = useTranslation()
   // costUsd is rendered in the finished-run summary only and explicitly marked
@@ -1603,6 +1630,8 @@ function SpecDrivenCard({
     tokenUsage,
     deterministic,
     deterministicBlob,
+    lab,
+    isLabRun,
   } = specDriven
 
   const [stopRequested, setStopRequested] = useState(false)
@@ -1711,8 +1740,10 @@ function SpecDrivenCard({
   const lastAction = lastCall
     ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
     : null
+  // A lab run changes branches on the server; it has no artifact to download, view or push.
   const serverResult =
     status === "done" &&
+    !lab &&
     typeof runId === "string" &&
     typeof fileName === "string"
   // From the run's end the server serves its download for the archive
@@ -1763,7 +1794,9 @@ function SpecDrivenCard({
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
           <span className="text-sm font-medium text-foreground">
-            {unenforcedCount > 0
+            {lab
+              ? labRunTitle(t, lab)
+              : unenforcedCount > 0
               ? "Delivered — rules not enforced"
               : isIncomplete
                 ? "Generated — incomplete"
@@ -1924,7 +1957,8 @@ function SpecDrivenCard({
             ) : null}
           </span>
         </div>
-        {runMode === "modify" ? (
+        {lab ? <LabRunResult lab={lab} onOpenPullRequest={onOpenPullRequest} onBuildPlan={onBuildPlan} /> : null}
+        {runMode === "modify" && !lab ? (
           <RunChangesSummary
             modelChanges={modelChanges ?? []}
             changedFiles={changedFiles ?? []}
@@ -2093,7 +2127,9 @@ function SpecDrivenCard({
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
         <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Spec-Driven Agent</span>
+        <span className="font-medium text-foreground">
+          {isLabRun || lab ? t("lab.title", { defaultValue: "BESSER Lab" }) : "Spec-Driven Agent"}
+        </span>
         {runId ? (
           <span className="font-mono text-[11px] text-muted-foreground">
             {runId.slice(0, 8)}…

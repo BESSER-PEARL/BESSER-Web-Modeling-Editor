@@ -1886,6 +1886,153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/lab/message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Message
+         * @description Run one step of the lab agent (plan or build) for the user's message, as Spec-Driven SSE events.
+         *
+         *     The ``start`` event carries the run id that ``POST /spec-driven/cancel/{run_id}`` stops; the ``done``
+         *     event carries the step's result in ``lab``. The run goes on when the stream drops, until no one has
+         *     followed it for ``BESSER_LLM_DISCONNECTED_GRACE_SECONDS``; ``/spec-driven/runs/{run_id}/events`` replays it.
+         */
+        post: operations["lab_message_besser_api_lab_message_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab State
+         * @description The signed-in user, the active change with its changed files, the parked changes and the preview.
+         */
+        get: operations["lab_state_besser_api_lab_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/pull-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Pull Request
+         * @description Push the active change and open a draft pull request in each repository it touched, editor first.
+         *
+         *     409 when ``changeId`` is not the active change. The full test suites are not run first; ``checksNote``
+         *     tells the user which checks the change passed.
+         */
+        post: operations["lab_pull_request_besser_api_lab_pull_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/change/park": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Park
+         * @description Commit the active change's work in progress and check out the base branches.
+         */
+        post: operations["lab_park_besser_api_lab_change_park_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/change/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Resume
+         * @description Check out a parked change again; 409 while another change is active.
+         */
+        post: operations["lab_resume_besser_api_lab_change_resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/change/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Drop
+         * @description Discard the active change: its uncommitted work, its lab branches and its notes.
+         */
+        post: operations["lab_drop_besser_api_lab_change_drop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/preview/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lab Preview Reset
+         * @description Check out the base branches in the working copy; 409 while a change is active.
+         */
+        post: operations["lab_preview_reset_besser_api_lab_preview_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2035,6 +2182,12 @@ export interface components {
             /** Models */
             models: components["schemas"]["CatalogModelResponse"][];
         };
+        /**
+         * ChangeKind
+         * @description What a change adds; selects its checklist and its guidance.
+         * @enum {string}
+         */
+        ChangeKind: "generator" | "metamodel" | "diagram_type" | "editor_element" | "backend" | "agent" | "bugfix" | "other";
         /**
          * CodeAnalysisResponse
          * @description What a repo's code holds: ``CodeAnalysis.to_dict()`` (reverse_engineering).
@@ -2868,6 +3021,192 @@ export interface components {
             warning: number;
             /** Violation */
             violation: number;
+        };
+        /**
+         * LabChangeView
+         * @description A change as ``GET /lab/state`` shows it: its files now, and the checks of its last build.
+         */
+        LabChangeView: {
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "plan" | "build";
+            /** Changeid */
+            changeId: string;
+            /** Title */
+            title: string;
+            kind: components["schemas"]["ChangeKind"];
+            /** Repochanges */
+            repoChanges: components["schemas"]["LabRepoChange"][];
+            /** Checks */
+            checks: components["schemas"]["LabCheck"][];
+            /** Checklist */
+            checklist: components["schemas"]["LabChecklistItem"][];
+            /** Summary */
+            summary: string;
+            /**
+             * Stopreason
+             * @enum {string}
+             */
+            stopReason: "completed" | "cancelled" | "timeout" | "cost_cap" | "max_turns" | "api_error";
+        };
+        /**
+         * LabCheck
+         * @description One of a repository's own checks, as the build step last ran it.
+         */
+        LabCheck: {
+            /** Id */
+            id: string;
+            /** Repo */
+            repo: string;
+            /** Title */
+            title: string;
+            /** Passed */
+            passed: boolean;
+            /** Skipped */
+            skipped: boolean;
+            /** Summary */
+            summary: string;
+        };
+        /** LabChecklistItem */
+        LabChecklistItem: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Done */
+            done: boolean | null;
+        };
+        /** LabFileChange */
+        LabFileChange: {
+            /** Path */
+            path: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "added" | "modified" | "deleted" | "renamed";
+        };
+        /**
+         * LabMessageRequest
+         * @description Body of ``POST /besser_api/lab/message``.
+         */
+        LabMessageRequest: {
+            /** Message */
+            message: string;
+            /**
+             * Action
+             * @default auto
+             * @enum {string}
+             */
+            action: "auto" | "plan" | "build";
+            project?: components["schemas"]["ProjectInput"] | null;
+        };
+        /** LabParkedChange */
+        LabParkedChange: {
+            /** Changeid */
+            changeId: string;
+            /** Title */
+            title: string;
+            kind: components["schemas"]["ChangeKind"];
+            /** Createdat */
+            createdAt: number;
+        };
+        /** LabPreview */
+        LabPreview: {
+            /** Enabled */
+            enabled: boolean;
+            /** Services */
+            services: components["schemas"]["LabPreviewService"][];
+        };
+        /** LabPreviewService */
+        LabPreviewService: {
+            /** Name */
+            name: string;
+            /** Running */
+            running: boolean;
+            /** Detail */
+            detail: string;
+        };
+        /** LabPullRequest */
+        LabPullRequest: {
+            /** Repo */
+            repo: string;
+            /** Number */
+            number: number;
+            /** Url */
+            url: string;
+            /** Branch */
+            branch: string;
+            /** Base */
+            base: string;
+        };
+        /**
+         * LabPullRequestRequest
+         * @description Body of ``POST /besser_api/lab/pull-request``; null fields take their defaults.
+         */
+        LabPullRequestRequest: {
+            /** Changeid */
+            changeId?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Body */
+            body?: string | null;
+        };
+        /** LabPullRequestsResponse */
+        LabPullRequestsResponse: {
+            /** Pullrequests */
+            pullRequests: components["schemas"]["LabPullRequest"][];
+            /** Checksnote */
+            checksNote: string;
+        };
+        /**
+         * LabRepoChange
+         * @description What the change touched in one repository, against its base branch.
+         */
+        LabRepoChange: {
+            /** Repo */
+            repo: string;
+            /** Branch */
+            branch: string;
+            /** Base */
+            base: string;
+            /** Files */
+            files: components["schemas"]["LabFileChange"][];
+        };
+        /**
+         * LabResumeRequest
+         * @description Body of ``POST /besser_api/lab/change/resume``.
+         */
+        LabResumeRequest: {
+            /** Changeid */
+            changeId: string;
+        };
+        /**
+         * LabRun
+         * @description The lab run in progress: ``/spec-driven/runs/{runId}/events`` follows it, the cancel route stops it.
+         */
+        LabRun: {
+            /** Runid */
+            runId: string;
+            /** Startedat */
+            startedAt: number;
+        };
+        /**
+         * LabStateResponse
+         * @description Response of ``GET /lab/state`` and of every change action.
+         */
+        LabStateResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** User */
+            user: string;
+            change: components["schemas"]["LabChangeView"] | null;
+            /** Parked */
+            parked: components["schemas"]["LabParkedChange"][];
+            preview: components["schemas"]["LabPreview"];
+            run: components["schemas"]["LabRun"] | null;
         };
         /**
          * LoadProjectFromCommitResponse
@@ -3753,6 +4092,7 @@ export interface components {
                 [key: string]: string;
             };
             free_tier: components["schemas"]["FreeTierResponse"];
+            lab: components["schemas"]["SpecDrivenLabResponse"];
         };
         /** SpecDrivenFeaturesResponse */
         SpecDrivenFeaturesResponse: {
@@ -3776,6 +4116,14 @@ export interface components {
             cancel_abandoned_runs: boolean;
             /** Disconnected Grace Seconds */
             disconnected_grace_seconds: number;
+        };
+        /** SpecDrivenLabResponse */
+        SpecDrivenLabResponse: {
+            /**
+             * Enabled
+             * @description This instance is a BESSER Lab (BESSER_LAB_ENABLED).
+             */
+            enabled: boolean;
         };
         /**
          * SyncStatusResponse
@@ -6512,6 +6860,233 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TracedGenerationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_message_besser_api_lab_message_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_state_besser_api_lab_state_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_pull_request_besser_api_lab_pull_request_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabPullRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabPullRequestsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_park_besser_api_lab_change_park_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_resume_besser_api_lab_change_resume_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabResumeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_drop_besser_api_lab_change_drop_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_preview_reset_besser_api_lab_preview_reset_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStateResponse"];
                 };
             };
             /** @description Validation Error */

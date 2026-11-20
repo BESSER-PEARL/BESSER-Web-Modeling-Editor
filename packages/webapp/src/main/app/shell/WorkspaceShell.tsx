@@ -22,6 +22,7 @@ import { ModelFocusLayer } from '../../features/assistant/components/ModelFocusL
 import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
 import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
+import { LabModelProposalBanner } from '../../features/lab/LabModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
 import {
   OPEN_HELP_GUIDE_EVENT,
@@ -1288,6 +1289,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
             <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
               <ModelProposalBanner />
+              {location.pathname === '/' && <LabModelProposalBanner />}
               {location.pathname === '/' && <ModelAttributionBanner />}
             </div>
           </div>

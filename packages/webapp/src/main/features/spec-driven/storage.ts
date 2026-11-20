@@ -70,6 +70,8 @@ export interface ActiveSpecDrivenRunV2 {
   projectId: string;
   lastSequence: number;
   startedAt: number;
+  /** A BESSER Lab run (`/lab/message`); absent for a Spec-Driven run. */
+  kind?: 'lab';
 }
 
 export type ActiveSpecDrivenRun = ActiveSpecDrivenRunV1 | ActiveSpecDrivenRunV2;
@@ -103,6 +105,7 @@ function _parseActiveSpecDrivenRun(
       projectId: parsed.projectId,
       lastSequence: Math.trunc(parsed.lastSequence),
       startedAt: parsed.startedAt,
+      ...(expectedVersion === 2 && (parsed as Partial<ActiveSpecDrivenRunV2>).kind === 'lab' ? { kind: 'lab' } : {}),
     } as ActiveSpecDrivenRun;
   } catch {
     return null;
@@ -163,6 +166,7 @@ export function writeActiveSpecDrivenRun(
         projectId: record.projectId.slice(0, 256),
         lastSequence: Math.trunc(record.lastSequence),
         startedAt: record.startedAt,
+        ...(record.kind === 'lab' ? { kind: 'lab' as const } : {}),
       } satisfies ActiveSpecDrivenRunV2),
     );
     const legacy = _parseActiveSpecDrivenRun(

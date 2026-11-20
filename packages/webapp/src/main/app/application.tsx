@@ -49,6 +49,8 @@ const TraceabilityPage = React.lazy(() =>
   import('../features/traceability/TraceabilityPage').then((m) => ({ default: m.TraceabilityPage })),
 );
 
+const LabPage = React.lazy(() => import('../features/lab/LabPage').then((m) => ({ default: m.LabPage })));
+
 const AgentSimulationPage = React.lazy(() =>
   import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
 );
@@ -203,6 +205,7 @@ function AppContentInner() {
             <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
             <Route path="/traceability" element={<TraceabilityPage />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
+            <Route path="/lab" element={<LabPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

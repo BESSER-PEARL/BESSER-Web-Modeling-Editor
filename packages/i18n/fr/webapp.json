@@ -5018,5 +5018,148 @@
       "showTraceability": "Afficher la traçabilité",
       "viewTrace": "Voir la trace"
     }
+  },
+  "lab": {
+    "title": "BESSER Lab",
+    "description": "Modifications du code de BESSER lui-même, sur des branches lab.",
+    "loading": "Chargement du lab…",
+    "disabled": "BESSER Lab n’est pas activé sur cette instance.",
+    "signInPrompt": "Connectez-vous avec GitHub pour utiliser BESSER Lab.",
+    "signIn": "Se connecter avec GitHub",
+    "loadingState": "Lecture de la copie de travail…",
+    "chatLabel": "Chat du lab",
+    "chatEmpty": "Décrivez une modification de BESSER, de l’éditeur web ou de l’agent de modélisation. L’agent du lab la planifie d’abord.",
+    "composerPlaceholder": "Décrivez la modification…",
+    "unreachable": "Le serveur est injoignable : impossible de savoir si BESSER Lab tourne ici.",
+    "retry": "Réessayer",
+    "loadStateFailed": "L’état du lab n’a pas pu être lu : {{error}}",
+    "actions": {
+      "openPullRequest": "Ouvrir une pull request",
+      "park": "Mettre de côté",
+      "drop": "Abandonner",
+      "resume": "Reprendre",
+      "resumeChange": "Reprendre {{title}}",
+      "resetPreview": "Remettre l’éditeur sur development",
+      "stopRun": "Arrêter l’exécution"
+    },
+    "drop": {
+      "confirmTitle": "Abandonner cette modification ?",
+      "confirmDescription": "Ses branches et ses notes sont supprimées de la copie de travail. Le travail qui n’est pas dans une pull request est perdu."
+    },
+    "errors": {
+      "actionFailed": "Échec de l’action « {{action}} » : {{error}}",
+      "applyResult": "Le résultat de l’exécution du lab n’a pas pu être appliqué au projet.",
+      "stopNotAccepted": "le serveur n’a pas accepté la demande."
+    },
+    "state": {
+      "signedInAs": "Connecté en tant que {{user}}",
+      "activeChange": "Modification active",
+      "noFiles": "Aucun fichier modifié pour l’instant.",
+      "noChange": "Aucune modification active. Décrivez-en une dans le chat pour commencer.",
+      "pullRequests": "Pull requests",
+      "parked": "Modifications mises de côté",
+      "noParked": "Aucune modification mise de côté.",
+      "preview": "Aperçu",
+      "running": "en cours",
+      "stopped": "arrêté",
+      "previewOff": "L’aperçu est désactivé sur cette instance.",
+      "runInProgress": "Une exécution BESSER Lab est en cours (démarrée à {{time}})."
+    },
+    "repos": {
+      "besser": "BESSER",
+      "frontend": "Éditeur web",
+      "modeling_agent": "Agent de modélisation"
+    },
+    "fileStatus": {
+      "added": "ajouté",
+      "modified": "modifié",
+      "deleted": "supprimé",
+      "renamed": "renommé"
+    },
+    "kinds": {
+      "generator": "générateur",
+      "metamodel": "métamodèle",
+      "diagram_type": "type de diagramme",
+      "editor_element": "élément de l’éditeur",
+      "backend": "backend",
+      "agent": "agent",
+      "bugfix": "correction de bug",
+      "other": "autre"
+    },
+    "stopReasons": {
+      "cost_cap": "Le plafond de coût a été atteint. Ce qui a été fait jusque-là se trouve dans la copie de travail.",
+      "timeout": "La limite de temps a été atteinte. Ce qui a été fait jusque-là se trouve dans la copie de travail.",
+      "max_turns": "La limite de tours a été atteinte. Ce qui a été fait jusque-là se trouve dans la copie de travail.",
+      "api_error": "Le fournisseur du modèle a échoué pendant l’exécution. Ce qui a été fait jusque-là se trouve dans la copie de travail.",
+      "cancelled": "L’exécution a été arrêtée. Ce qui a été fait jusque-là se trouve dans la copie de travail."
+    },
+    "chat": {
+      "alreadyRunning": "BESSER Lab est déjà en cours d’exécution — attendez la fin ou cliquez sur Arrêter.",
+      "notActiveChange": "Aucune pull request n’a été ouverte : la modification de cette carte n’est pas la modification active. Reprenez-la d’abord sur la page du lab.",
+      "startFailed": "BESSER Lab n’a pas pu démarrer : {{error}}",
+      "streamClosed": "Le flux de l’exécution du lab s’est fermé avant de donner un résultat.",
+      "stalled": "le flux de progression en direct est resté muet (aucun événement depuis {{seconds}} s) et a été fermé. L’exécution continue peut-être sur le serveur.",
+      "streamError": "Erreur du flux BESSER Lab : {{error}}",
+      "stopped": "Exécution BESSER Lab arrêtée par l’utilisateur.",
+      "runError": "Erreur BESSER Lab ({{code}}) : {{message}}",
+      "refused": {
+        "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous, puis renvoyez votre message.",
+        "notAllowed": "Votre identifiant GitHub n’est pas autorisé à utiliser BESSER Lab sur cette instance.",
+        "busy": "BESSER Lab est occupé par une autre exécution ou action sur une modification. Renvoyez votre message quand elle sera terminée.",
+        "unavailable": "BESSER Lab n’est pas disponible sur ce serveur : {{detail}}"
+      },
+      "signInPrompt": "Connectez-vous avec GitHub pour utiliser BESSER Lab, puis renvoyez votre message.",
+      "noAttachments": "BESSER Lab ne lit que du texte : décrivez la modification dans votre message.",
+      "voiceUnavailable": "BESSER Lab n’accepte pas les messages vocaux : tapez plutôt la modification.",
+      "noPullRequests": "Aucune pull request n’a été ouverte : la modification ne contient aucun fichier modifié.",
+      "pullRequestsOpened": "Pull requests en brouillon ouvertes :",
+      "pullRequestFailed": "Les pull requests n’ont pas pu être ouvertes : {{error}}"
+    },
+    "runCard": {
+      "titlePlan": "Plan prêt",
+      "titlePlanStopped": "Planification arrêtée avant la fin",
+      "titleQuestion": "L’agent du lab a une question",
+      "titleBuilt": "Modification construite",
+      "titleChecksFailing": "Modification construite, vérifications en échec",
+      "titleNoChanges": "Construction terminée sans modification",
+      "titleBuildStopped": "Construction arrêtée avant la fin",
+      "planRegion": "Plan",
+      "steps": "Étapes",
+      "questions": "Questions ouvertes",
+      "replyHint": "Répondez avec ce qu’il faut changer et l’agent du lab révise le plan, ou construisez-le tel quel.",
+      "answerHint": "Répondez-y ; l’agent du lab planifie ensuite la modification.",
+      "buildPlan": "Construire ce plan",
+      "buildPlanMessage": "Construis ce plan.",
+      "manageChanges": "Gérer les changements",
+      "agentAccount": "Selon l’agent du lab",
+      "filesRegion": "Fichiers modifiés",
+      "noChanges": "Aucun fichier modifié.",
+      "showAll": "Tout afficher ({{count}})",
+      "checksRegion": "Vérifications",
+      "checkPassed": "Réussie",
+      "checkFailed": "Échouée",
+      "checkSkipped": "Ignorée",
+      "checklistRegion": "Liste de contrôle",
+      "checklistDone": "Fait",
+      "checklistMissing": "Manquant",
+      "checklistNotJudged": "Impossible à évaluer à partir des fichiers",
+      "openPullRequest": "Ouvrir une pull request"
+    },
+    "proposal": {
+      "label": "Modèle proposé",
+      "title": "L’agent propose ce modèle pour l’extension",
+      "hint": "Corrigez ce qui ne va pas, puis conservez-le ou abandonnez-le.",
+      "keep": "Conserver",
+      "discard": "Abandonner",
+      "discardConfirmTitle": "Abandonner le modèle proposé ?",
+      "discardConfirmDescription": "L’onglet contenant le diagramme de classes proposé par l’agent du lab est fermé. La modification elle-même reste telle quelle.",
+      "errors": {
+        "noProject": "Ouvrez un projet pour voir le diagramme de classes que propose l’agent du lab.",
+        "invalidModel": "L’agent du lab a proposé un modèle que l’éditeur ne peut pas ouvrir comme diagramme de classes.",
+        "limitReached": "Le modèle proposé n’a pas été ouvert : le projet contient déjà {{max}} diagrammes de classes.",
+        "failed": "Le modèle proposé n’a pas pu être ouvert.",
+        "settleFailed": "Le modèle proposé n’a pas pu être mis à jour."
+      }
+    }
   }
 }

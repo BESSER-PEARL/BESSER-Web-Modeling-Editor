@@ -28,6 +28,7 @@ import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit
 import type {
   SpecDrivenErrorCode,
   SpecDrivenEvent,
+  SpecDrivenLabView,
   SpecDrivenMessageState,
   SpecDrivenPhase,
   SpecDrivenPhaseView,
@@ -48,6 +49,9 @@ export const SPEC_DRIVEN_PHASE_LABELS: Record<SpecDrivenPhase, string> = {
   gap: 'Analysing gaps',
   customize: 'Customising output',
   validate: 'Validating',
+  plan: 'Planning the change',
+  build: 'Building the change',
+  check: 'Running the checks',
 };
 
 const VALID_PHASES: ReadonlySet<SpecDrivenPhase> = new Set<SpecDrivenPhase>([
@@ -56,6 +60,9 @@ const VALID_PHASES: ReadonlySet<SpecDrivenPhase> = new Set<SpecDrivenPhase>([
   'gap',
   'customize',
   'validate',
+  'plan',
+  'build',
+  'check',
 ]);
 
 export const isValidSpecDrivenPhase = (value: unknown): value is SpecDrivenPhase =>
@@ -198,6 +205,73 @@ export function extractVerification(
     return undefined;
   }
   return { verified, notVerified, shippedUnenforced, counts };
+}
+
+const labRecords = (raw: unknown): Record<string, unknown>[] =>
+  Array.isArray(raw)
+    ? raw.filter((e): e is Record<string, unknown> => !!e && typeof e === 'object')
+    : [];
+const labText = (v: unknown): string => (typeof v === 'string' ? v : '');
+const labTexts = (raw: unknown): string[] =>
+  Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string' && s.trim() !== '') : [];
+
+/**
+ * The done event's `lab` payload as the card keeps it, or undefined when the
+ * run is not a lab run. Malformed entries are dropped rather than rendered;
+ * the proposed model is left out (it is applied to the project, not stored
+ * in the chat history).
+ */
+export function extractLabRun(raw: unknown): SpecDrivenLabView | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  if (r.step !== 'plan' && r.step !== 'build') return undefined;
+  const plan = r.plan && typeof r.plan === 'object' ? (r.plan as Record<string, unknown>) : null;
+  return {
+    step: r.step === 'plan' ? 'plan' : 'build',
+    changeId: labText(r.changeId),
+    title: labText(r.title),
+    kind: labText(r.kind),
+    plan: plan
+      ? {
+          kind: labText(plan.kind),
+          title: labText(plan.title),
+          summary: labText(plan.summary),
+          steps: labTexts(plan.steps),
+          repos: labTexts(plan.repos),
+          questions: labTexts(plan.questions),
+        }
+      : null,
+    repoChanges: labRecords(r.repoChanges)
+      .filter((c) => typeof c.repo === 'string' && c.repo)
+      .map((c) => ({
+        repo: c.repo as string,
+        branch: labText(c.branch),
+        base: labText(c.base),
+        files: labRecords(c.files)
+          .filter((f) => typeof f.path === 'string' && f.path)
+          .map((f) => ({ path: f.path as string, status: labText(f.status) })),
+      })),
+    checks: labRecords(r.checks)
+      .filter((c) => typeof c.title === 'string' && c.title)
+      .map((c) => ({
+        id: labText(c.id),
+        repo: labText(c.repo),
+        title: c.title as string,
+        passed: c.passed === true,
+        skipped: c.skipped === true,
+        summary: labText(c.summary),
+      })),
+    checklist: labRecords(r.checklist)
+      .filter((c) => typeof c.text === 'string' && c.text)
+      .map((c) => ({
+        id: labText(c.id),
+        text: c.text as string,
+        done: typeof c.done === 'boolean' ? c.done : null,
+      })),
+    summary: labText(r.summary),
+    stopReason: labText(r.stopReason),
+    finalText: labText(r.finalText),
+  };
 }
 
 /** A phase event's run totals at its start, or undefined from an older backend. */
@@ -438,6 +512,7 @@ export function applySpecDrivenEvent(
         changedFiles: Array.isArray(event.changedFiles) ? event.changedFiles : undefined,
         changedFileCount: typeof event.changedFileCount === 'number' ? event.changedFileCount : undefined,
         modelChanges: Array.isArray(event.modelChanges) ? event.modelChanges : undefined,
+        lab: extractLabRun(event.lab),
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.
@@ -615,9 +690,12 @@ const specDrivenSlice = createSlice({
      * paint. Keyed by the client-generated run key the message carries.
      */
     /** `notice` is shown on the card from its first paint (how the run was set up). */
-    liveRunStarted(state, action: PayloadAction<{ key: string; notice?: SpecDrivenWarningView }>) {
-      const { key, notice } = action.payload;
-      state.runs[key] = { ...EMPTY_CARD, warnings: notice ? [notice] : [] };
+    liveRunStarted(
+      state,
+      action: PayloadAction<{ key: string; notice?: SpecDrivenWarningView; isLabRun?: boolean }>,
+    ) {
+      const { key, notice, isLabRun } = action.payload;
+      state.runs[key] = { ...EMPTY_CARD, warnings: notice ? [notice] : [], ...(isLabRun ? { isLabRun } : {}) };
     },
     /**
      * Apply ONE SSE event (or a synthetic terminal event from the trigger

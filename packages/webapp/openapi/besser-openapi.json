@@ -4131,6 +4131,379 @@
         }
       }
     },
+    "/besser_api/lab/message": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Message",
+        "description": "Run one step of the lab agent (plan or build) for the user's message, as Spec-Driven SSE events.\n\nThe ``start`` event carries the run id that ``POST /spec-driven/cancel/{run_id}`` stops; the ``done``\nevent carries the step's result in ``lab``. The run goes on when the stream drops, until no one has\nfollowed it for ``BESSER_LLM_DISCONNECTED_GRACE_SECONDS``; ``/spec-driven/runs/{run_id}/events`` replays it.",
+        "operationId": "lab_message_besser_api_lab_message_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/state": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab State",
+        "description": "The signed-in user, the active change with its changed files, the parked changes and the preview.",
+        "operationId": "lab_state_besser_api_lab_state_get",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/pull-request": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Pull Request",
+        "description": "Push the active change and open a draft pull request in each repository it touched, editor first.\n\n409 when ``changeId`` is not the active change. The full test suites are not run first; ``checksNote``\ntells the user which checks the change passed.",
+        "operationId": "lab_pull_request_besser_api_lab_pull_request_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabPullRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabPullRequestsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/change/park": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Park",
+        "description": "Commit the active change's work in progress and check out the base branches.",
+        "operationId": "lab_park_besser_api_lab_change_park_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/change/resume": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Resume",
+        "description": "Check out a parked change again; 409 while another change is active.",
+        "operationId": "lab_resume_besser_api_lab_change_resume_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabResumeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/change/drop": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Drop",
+        "description": "Discard the active change: its uncommitted work, its lab branches and its notes.",
+        "operationId": "lab_drop_besser_api_lab_change_drop_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview/reset": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Preview Reset",
+        "description": "Check out the base branches in the working copy; 409 while a change is active.",
+        "operationId": "lab_preview_reset_besser_api_lab_preview_reset_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -4440,6 +4813,21 @@
         ],
         "title": "CatalogProviderResponse",
         "description": "A model-catalog provider as the key dialog shows it (``public_providers``)."
+      },
+      "ChangeKind": {
+        "type": "string",
+        "enum": [
+          "generator",
+          "metamodel",
+          "diagram_type",
+          "editor_element",
+          "backend",
+          "agent",
+          "bugfix",
+          "other"
+        ],
+        "title": "ChangeKind",
+        "description": "What a change adds; selects its checklist and its guidance."
       },
       "CodeAnalysisResponse": {
         "properties": {
@@ -6413,6 +6801,496 @@
         ],
         "title": "KGSeverityCountsResponse",
         "description": "How many issues of each severity a consistency report holds."
+      },
+      "LabChangeView": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "build"
+            ],
+            "title": "Step"
+          },
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "repoChanges": {
+            "items": {
+              "$ref": "#/components/schemas/LabRepoChange"
+            },
+            "type": "array",
+            "title": "Repochanges"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/LabCheck"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/LabChecklistItem"
+            },
+            "type": "array",
+            "title": "Checklist"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "stopReason": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "cancelled",
+              "timeout",
+              "cost_cap",
+              "max_turns",
+              "api_error"
+            ],
+            "title": "Stopreason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "changeId",
+          "title",
+          "kind",
+          "repoChanges",
+          "checks",
+          "checklist",
+          "summary",
+          "stopReason"
+        ],
+        "title": "LabChangeView",
+        "description": "A change as ``GET /lab/state`` shows it: its files now, and the checks of its last build."
+      },
+      "LabCheck": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "skipped": {
+            "type": "boolean",
+            "title": "Skipped"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "repo",
+          "title",
+          "passed",
+          "skipped",
+          "summary"
+        ],
+        "title": "LabCheck",
+        "description": "One of a repository's own checks, as the build step last ran it."
+      },
+      "LabChecklistItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "done": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "done"
+        ],
+        "title": "LabChecklistItem"
+      },
+      "LabFileChange": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "added",
+              "modified",
+              "deleted",
+              "renamed"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "status"
+        ],
+        "title": "LabFileChange"
+      },
+      "LabMessageRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 64000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "plan",
+              "build"
+            ],
+            "title": "Action",
+            "default": "auto"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "LabMessageRequest",
+        "description": "Body of ``POST /besser_api/lab/message``."
+      },
+      "LabParkedChange": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "title",
+          "kind",
+          "createdAt"
+        ],
+        "title": "LabParkedChange"
+      },
+      "LabPreview": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "services": {
+            "items": {
+              "$ref": "#/components/schemas/LabPreviewService"
+            },
+            "type": "array",
+            "title": "Services"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "services"
+        ],
+        "title": "LabPreview"
+      },
+      "LabPreviewService": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "running": {
+            "type": "boolean",
+            "title": "Running"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "running",
+          "detail"
+        ],
+        "title": "LabPreviewService"
+      },
+      "LabPullRequest": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "base": {
+            "type": "string",
+            "title": "Base"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "number",
+          "url",
+          "branch",
+          "base"
+        ],
+        "title": "LabPullRequest"
+      },
+      "LabPullRequestRequest": {
+        "properties": {
+          "changeId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changeid"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 65536
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "title": "LabPullRequestRequest",
+        "description": "Body of ``POST /besser_api/lab/pull-request``; null fields take their defaults."
+      },
+      "LabPullRequestsResponse": {
+        "properties": {
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "checksNote": {
+            "type": "string",
+            "title": "Checksnote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pullRequests",
+          "checksNote"
+        ],
+        "title": "LabPullRequestsResponse"
+      },
+      "LabRepoChange": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "base": {
+            "type": "string",
+            "title": "Base"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/LabFileChange"
+            },
+            "type": "array",
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "branch",
+          "base",
+          "files"
+        ],
+        "title": "LabRepoChange",
+        "description": "What the change touched in one repository, against its base branch."
+      },
+      "LabResumeRequest": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Changeid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId"
+        ],
+        "title": "LabResumeRequest",
+        "description": "Body of ``POST /besser_api/lab/change/resume``."
+      },
+      "LabRun": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "startedAt": {
+            "type": "number",
+            "title": "Startedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "startedAt"
+        ],
+        "title": "LabRun",
+        "description": "The lab run in progress: ``/spec-driven/runs/{runId}/events`` follows it, the cancel route stops it."
+      },
+      "LabStateResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "user": {
+            "type": "string",
+            "title": "User"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabChangeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parked": {
+            "items": {
+              "$ref": "#/components/schemas/LabParkedChange"
+            },
+            "type": "array",
+            "title": "Parked"
+          },
+          "preview": {
+            "$ref": "#/components/schemas/LabPreview"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "user",
+          "change",
+          "parked",
+          "preview",
+          "run"
+        ],
+        "title": "LabStateResponse",
+        "description": "Response of ``GET /lab/state`` and of every change action."
       },
       "LoadProjectFromCommitResponse": {
         "properties": {
@@ -8468,6 +9346,9 @@
           },
           "free_tier": {
             "$ref": "#/components/schemas/FreeTierResponse"
+          },
+          "lab": {
+            "$ref": "#/components/schemas/SpecDrivenLabResponse"
           }
         },
         "type": "object",
@@ -8481,7 +9362,8 @@
           "supported_providers",
           "providers",
           "default_models",
-          "free_tier"
+          "free_tier",
+          "lab"
         ],
         "title": "SpecDrivenConfigResponse",
         "description": "Response of ``GET /besser_api/spec-driven/config``: public caps and feature flags."
@@ -8543,6 +9425,20 @@
           "disconnected_grace_seconds"
         ],
         "title": "SpecDrivenFeaturesResponse"
+      },
+      "SpecDrivenLabResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "This instance is a BESSER Lab (BESSER_LAB_ENABLED)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "SpecDrivenLabResponse"
       },
       "SyncStatusResponse": {
         "properties": {

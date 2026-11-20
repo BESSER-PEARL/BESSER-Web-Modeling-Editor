@@ -1,0 +1,357 @@
+/** The finished run card of a BESSER Lab run: the plan, or the change with its checks and checklist. */
+
+import React from 'react';
+import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { ChatMessage } from '../chat-message';
+import { LabRunResult } from '../lab-run-result';
+import { store } from '@/main/app/store/store';
+import {
+  applySpecDrivenEvent,
+  extractLabRun,
+  liveRunEnded,
+  liveRunStarted,
+} from '@/main/features/spec-driven/state/specDrivenSlice';
+import type { SpecDrivenEvent, SpecDrivenLabView, SpecDrivenMessageState } from '@/main/features/spec-driven/types';
+
+const RUN_ID = 'b'.repeat(32);
+
+/** A `done` event's `lab` payload as the HTTP contract states it. */
+const BUILD_PAYLOAD = {
+  step: 'build',
+  changeId: 'c1',
+  title: 'Add a note element',
+  kind: 'editor_element',
+  plan: null,
+  modelProposal: null,
+  repoChanges: [
+    {
+      repo: 'frontend',
+      branch: 'lab/jordi/note-element',
+      base: 'develop',
+      files: [
+        { path: 'packages/editor/src/main/packages/components.ts', status: 'modified' },
+        { path: 'packages/editor/src/main/packages/uml-class-diagram/note/note.ts', status: 'added' },
+      ],
+    },
+    {
+      repo: 'besser',
+      branch: 'lab/jordi/note-element',
+      base: 'development',
+      files: [{ path: 'besser/old.py', status: 'deleted' }],
+    },
+  ],
+  checks: [
+    { id: 'frontend:vitest', repo: 'frontend', title: 'Tests of the touched areas', passed: true, skipped: false, summary: '12 passed' },
+    { id: 'frontend:lint', repo: 'frontend', title: 'Lint', passed: false, skipped: false, summary: '2 errors in note.ts' },
+    { id: 'frontend:i18n', repo: 'frontend', title: 'Translations', passed: false, skipped: true, summary: 'no tests found for x' },
+  ],
+  checklist: [
+    { id: 'editor_element.components', text: 'Registered in components.ts', done: true },
+    { id: 'editor_element.popups', text: 'Registered in popups.ts', done: false },
+    { id: 'every.i18n', text: 'New strings in webapp.json', done: null },
+  ],
+  summary: 'frontend: 2 files',
+  stopReason: 'completed',
+};
+
+const PLAN_PAYLOAD = {
+  step: 'plan',
+  changeId: 'c2',
+  title: 'Add a TOML generator',
+  kind: 'generator',
+  plan: {
+    kind: 'generator',
+    title: 'Add a TOML generator',
+    summary: 'A deterministic generator that writes the class diagram as TOML.',
+    steps: ['Create besser/generators/toml', 'Register it in registry.py'],
+    repos: ['besser'],
+    questions: ['Should enumerations become TOML tables?'],
+  },
+  modelProposal: { title: 'TOML', diagramType: 'ClassDiagram', model: { elements: {} } },
+  repoChanges: [],
+  checks: [],
+  checklist: [],
+  summary: '',
+  stopReason: 'completed',
+};
+
+const startCard = (): SpecDrivenMessageState => ({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID });
+
+/** A card after the backend's `done` event, through the real reducer. */
+function cardAfterDone(lab: unknown): SpecDrivenMessageState {
+  const done = {
+    event: 'done',
+    runId: RUN_ID,
+    downloadUrl: '',
+    fileName: '',
+    isZip: false,
+    recipe: {},
+    mode: 'modify',
+    changedFiles: ['frontend/packages/editor/src/main/packages/components.ts'],
+    changedFileCount: 1,
+    lab,
+  } as unknown as SpecDrivenEvent;
+  return applySpecDrivenEvent(startCard(), done);
+}
+
+const renderCard = (specDriven: SpecDrivenMessageState, onPushToGithub?: (runId: string) => void) =>
+  render(
+    <ChatMessage id="m1" role="assistant" content="" specDriven={specDriven} isStreaming={false} onPushToGithub={onPushToGithub} />,
+  );
+
+afterEach(cleanup);
+
+describe('lab payload on the card state', () => {
+  it('keeps the plan or change and leaves the proposed model out of the chat history', () => {
+    const lab = cardAfterDone(PLAN_PAYLOAD).lab;
+    expect(lab?.step).toBe('plan');
+    expect(lab?.plan?.questions).toEqual(['Should enumerations become TOML tables?']);
+    expect(lab).not.toHaveProperty('modelProposal');
+  });
+
+  it('drops malformed entries instead of rendering them', () => {
+    const lab = extractLabRun({
+      ...BUILD_PAYLOAD,
+      repoChanges: [{ repo: 'besser', branch: 'b', base: 'development', files: [{ status: 'added' }, null, { path: 'a.py', status: 'added' }] }, { files: [] }],
+      checks: [{ id: 'x', passed: true }, 'nope'],
+      checklist: [{ id: 'y', text: 'Docs page', done: 'yes' }],
+    }) as SpecDrivenLabView;
+    expect(lab.repoChanges).toEqual([{ repo: 'besser', branch: 'b', base: 'development', files: [{ path: 'a.py', status: 'added' }] }]);
+    expect(lab.checks).toEqual([]);
+    expect(lab.checklist).toEqual([{ id: 'y', text: 'Docs page', done: null }]);
+  });
+
+  it('marks nothing as a lab run when the done event carries no lab payload', () => {
+    expect(cardAfterDone(undefined).lab).toBeUndefined();
+    // The backend sends `"lab": null` on every ordinary Spec-Driven run's done event.
+    expect(cardAfterDone(null).lab).toBeUndefined();
+    expect(extractLabRun({ step: 'deploy' })).toBeUndefined();
+  });
+});
+
+describe('lab run card: plan', () => {
+  it('shows the summary, the steps and the open questions', () => {
+    renderCard(cardAfterDone(PLAN_PAYLOAD));
+    expect(screen.getByText('Plan ready')).toBeTruthy();
+    const plan = within(screen.getByRole('region', { name: 'Plan' }));
+    expect(plan.getByText(/writes the class diagram as TOML/)).toBeTruthy();
+    expect(plan.getByText('Register it in registry.py')).toBeTruthy();
+    expect(plan.getByText('Should enumerations become TOML tables?')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
+  });
+
+  it('says planning stopped when the model never submitted a plan', () => {
+    renderCard(cardAfterDone({ ...PLAN_PAYLOAD, plan: null, stopReason: 'cost_cap' }));
+    expect(screen.getByText('Planning stopped early')).toBeTruthy();
+  });
+
+  it('shows a plan step that ended with a question as a question to answer, not as a stop', () => {
+    // session.py: no submit_plan and a completed loop is "often a question back to the user".
+    const question = { ...PLAN_PAYLOAD, changeId: '', plan: null, modelProposal: null, summary: 'Which file format: TOML or YAML?' };
+    renderCard(cardAfterDone(question));
+    expect(screen.getByText('The lab agent has a question')).toBeTruthy();
+    expect(screen.queryByText('Planning stopped early')).toBeNull();
+    expect(screen.getByText('Which file format: TOML or YAML?')).toBeTruthy();
+    expect(screen.getByText(/Reply to answer it/)).toBeTruthy();
+  });
+
+  it('offers "Build this plan" for the card\'s change, and says a reply revises the plan', () => {
+    const onBuildPlan = vi.fn();
+    render(
+      <Provider store={store}>
+        <LabRunResult lab={extractLabRun(PLAN_PAYLOAD) as SpecDrivenLabView} onBuildPlan={onBuildPlan} />
+      </Provider>,
+    );
+    expect(screen.getByText(/the lab agent revises the plan/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Build this plan/ }));
+    expect(onBuildPlan).toHaveBeenCalledWith('c2');
+  });
+
+  it('disables "Build this plan" while a run is in flight', () => {
+    const onBuildPlan = vi.fn();
+    store.dispatch(liveRunStarted({ key: 'another-run', isLabRun: true }));
+    try {
+      render(
+        <Provider store={store}>
+          <LabRunResult lab={extractLabRun(PLAN_PAYLOAD) as SpecDrivenLabView} onBuildPlan={onBuildPlan} />
+        </Provider>,
+      );
+      const button = screen.getByRole('button', { name: /Build this plan/ }) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+      fireEvent.click(button);
+      expect(onBuildPlan).not.toHaveBeenCalled();
+    } finally {
+      act(() => {
+        store.dispatch(liveRunEnded({ key: 'another-run' }));
+      });
+    }
+    expect((screen.getByRole('button', { name: /Build this plan/ }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('has no "Build this plan" without a handler (an older card) or without a plan', () => {
+    render(<LabRunResult lab={extractLabRun(PLAN_PAYLOAD) as SpecDrivenLabView} />);
+    expect(screen.queryByRole('button', { name: /Build this plan/ })).toBeNull();
+    cleanup();
+    render(<LabRunResult lab={extractLabRun({ ...PLAN_PAYLOAD, plan: null }) as SpecDrivenLabView} onBuildPlan={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Build this plan/ })).toBeNull();
+  });
+});
+
+describe('lab run card: header', () => {
+  const inRouter = (path: string, payload: unknown) =>
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <LabRunResult lab={extractLabRun(payload) as SpecDrivenLabView} />
+      </MemoryRouter>,
+    );
+
+  it.each([
+    ['plan', PLAN_PAYLOAD],
+    ['build', BUILD_PAYLOAD],
+  ])('names the change of a %s card and links to the lab page to manage changes', (_step, payload) => {
+    inRouter('/', payload);
+    expect(screen.getByText((payload as { title: string }).title)).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Manage changes/ }).getAttribute('href')).toBe('/lab');
+  });
+
+  it('leaves the link out on the lab page itself', () => {
+    inRouter('/lab', BUILD_PAYLOAD);
+    expect(screen.getByText('Add a note element')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /Manage changes/ })).toBeNull();
+  });
+
+  it('names the change kind in words, as the lab page does', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    expect(screen.getByText('editor element')).toBeTruthy();
+    expect(screen.queryByText('editor_element')).toBeNull();
+  });
+
+  it('says why a run stopped early: a cost cap is not a time limit', () => {
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, stopReason: 'cost_cap' }));
+    expect(screen.getByRole('status').textContent).toMatch(/reached its cost cap/);
+    cleanup();
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, stopReason: 'timeout' }));
+    expect(screen.getByRole('status').textContent).toMatch(/reached its time limit/);
+    cleanup();
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('names BESSER Lab, not the Spec-Driven Agent, while a lab run streams', () => {
+    renderCard({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID, isLabRun: true });
+    expect(screen.getByText('BESSER Lab')).toBeTruthy();
+    expect(screen.queryByText('Spec-Driven Agent')).toBeNull();
+    cleanup();
+    renderCard({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID });
+    expect(screen.getByText('Spec-Driven Agent')).toBeTruthy();
+  });
+});
+
+describe('lab run card: build', () => {
+  it('groups the changed files by repository with their status', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    const files = within(screen.getByRole('region', { name: 'Changed files' }));
+    expect(files.getByText('Web editor')).toBeTruthy();
+    expect(files.getByText('BESSER')).toBeTruthy();
+    expect(files.getByText(/lab\/jordi\/note-element → develop$/)).toBeTruthy();
+    const added = files.getByText('packages/editor/src/main/packages/uml-class-diagram/note/note.ts');
+    expect(added.parentElement?.textContent).toMatch(/^added/);
+    expect(files.getByText('besser/old.py').parentElement?.textContent).toMatch(/^deleted/);
+  });
+
+  it('shows each check as passed, failed or skipped, and titles the card by the failure', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    expect(screen.getByText('Change built, checks failing')).toBeTruthy();
+    const checks = within(screen.getByRole('region', { name: 'Checks' }));
+    expect(checks.getAllByRole('img', { name: 'Passed' })).toHaveLength(1);
+    expect(checks.getAllByRole('img', { name: 'Failed' })).toHaveLength(1);
+    expect(checks.getAllByRole('img', { name: 'Skipped' })).toHaveLength(1);
+    expect(checks.getByText('2 errors in note.ts')).toBeTruthy();
+  });
+
+  it('shows the checklist, including rules that could not be judged', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    const list = within(screen.getByRole('region', { name: 'Checklist' }));
+    expect(list.getByText('Registered in popups.ts')).toBeTruthy();
+    expect(list.getAllByRole('img', { name: 'Done' })).toHaveLength(1);
+    expect(list.getAllByRole('img', { name: 'Missing' })).toHaveLength(1);
+    expect(list.getAllByRole('img', { name: 'Could not be judged from the files' })).toHaveLength(1);
+  });
+
+  it('titles a clean build as built', () => {
+    const allPass = { ...BUILD_PAYLOAD, checks: [BUILD_PAYLOAD.checks[0], BUILD_PAYLOAD.checks[2]] };
+    renderCard(cardAfterDone(allPass));
+    expect(screen.getByText('Change built')).toBeTruthy();
+  });
+
+  it('titles a build without changes and one the loop cut short', () => {
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, repoChanges: [] }));
+    expect(screen.getByText('Build finished without changes')).toBeTruthy();
+    cleanup();
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, stopReason: 'max_turns' }));
+    expect(screen.getByText('Build stopped early')).toBeTruthy();
+  });
+
+  it("shows the agent's own account above the files, as plain text with its line breaks", () => {
+    const finalText = 'Added the note element.\nRegistered it in <b>components.ts</b>.';
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, finalText }));
+    const account = screen.getByRole('region', { name: "In the lab agent's words" });
+    const text = within(account).getByText(/Added the note element/);
+    expect(text.textContent).toBe(finalText);
+    expect(text.className).toContain('whitespace-pre-line');
+    // The model's text is never parsed as HTML.
+    expect(account.querySelector('b')).toBeNull();
+    const files = screen.getByRole('region', { name: 'Changed files' });
+    expect(account.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows no account when the agent's final text is empty", () => {
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, finalText: '  \n' }));
+    expect(screen.queryByRole('region', { name: "In the lab agent's words" })).toBeNull();
+    expect(cardAfterDone(BUILD_PAYLOAD).lab?.finalText).toBe('');
+  });
+
+  it('hides the application parts of the done card', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD), vi.fn());
+    expect(screen.queryByText('Application ready')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Download/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /View files/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Save to GitHub/ })).toBeNull();
+    // The done event is `mode: "modify"` for the card's sake; the app's "What changed" block stays out.
+    expect(screen.queryByRole('region', { name: 'What changed' })).toBeNull();
+  });
+});
+
+describe('Open pull request', () => {
+  const build = (payload: unknown) => extractLabRun(payload) as SpecDrivenLabView;
+
+  it('calls the handler once until it settles', async () => {
+    let settle: () => void = () => undefined;
+    const open = vi.fn(() => new Promise<void>((resolve) => { settle = resolve; }));
+    render(<LabRunResult lab={build(BUILD_PAYLOAD)} onOpenPullRequest={open} />);
+    const button = screen.getByRole('button', { name: /Open pull request/ }) as HTMLButtonElement;
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(open).toHaveBeenCalledTimes(1);
+    // The card's own change: the server refuses to act on another one.
+    expect(open).toHaveBeenCalledWith('c1');
+    expect(button.disabled).toBe(true);
+    await act(async () => settle());
+    expect(button.disabled).toBe(false);
+  });
+
+  it('is hidden when the build changed no files', () => {
+    render(<LabRunResult lab={build({ ...BUILD_PAYLOAD, repoChanges: [] })} onOpenPullRequest={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
+    expect(screen.getByText('No files changed.')).toBeTruthy();
+  });
+
+  it('is hidden when the surface supplies no handler', () => {
+    render(<LabRunResult lab={build(BUILD_PAYLOAD)} />);
+    expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
+  });
+});

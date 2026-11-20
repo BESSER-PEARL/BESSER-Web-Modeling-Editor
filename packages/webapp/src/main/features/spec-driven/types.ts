@@ -6,6 +6,7 @@
  * and renders them into the existing assistant chat message list.
  */
 
+import type { LabDone } from '../../shared/api/lab';
 import type { LlmProviderId } from '../../shared/services/llmKeyStorage';
 
 // Every provider a run can use (LLM_PROVIDERS); the SSE client maps 'local' to
@@ -35,7 +36,11 @@ export type SpecDrivenPhase =
   | 'generate'
   | 'gap'
   | 'customize'
-  | 'validate';
+  | 'validate'
+  // BESSER Lab run steps
+  | 'plan'
+  | 'build'
+  | 'check';
 
 /**
  * UI-facing run-phase superset: the backend SSE phases plus the three
@@ -248,6 +253,8 @@ export interface DoneEvent {
    *  Absent from an older backend; untrusted, checked and migrated before it is merged (cross-repo traceability
    *  contract, section 2). */
   trace?: unknown;
+  /** Set only by a BESSER Lab run (`POST /lab/message`): what the plan or build step produced; null on any other run. */
+  lab?: LabDone | null;
 }
 
 export interface SpecDrivenErrorEvent {
@@ -412,6 +419,45 @@ export interface SpecDrivenVerificationView {
   };
 }
 
+/**
+ * A BESSER Lab run's result as the card keeps it: the done event's `lab` payload, checked, without the
+ * proposed model (that goes into the project, not into the chat history).
+ */
+export interface SpecDrivenLabView {
+  step: 'plan' | 'build';
+  changeId: string;
+  title: string;
+  kind: string;
+  plan: {
+    kind: string;
+    title: string;
+    summary: string;
+    steps: string[];
+    repos: string[];
+    questions: string[];
+  } | null;
+  repoChanges: {
+    repo: string;
+    branch: string;
+    base: string;
+    files: { path: string; status: string }[];
+  }[];
+  checks: {
+    id: string;
+    repo: string;
+    title: string;
+    passed: boolean;
+    skipped: boolean;
+    summary: string;
+  }[];
+  /** `done` is null when the rule could not be judged from the files. */
+  checklist: { id: string; text: string; done: boolean | null }[];
+  summary: string;
+  stopReason: string;
+  /** The model's own closing account of a build; "" for a plan and on a card saved before it existed. */
+  finalText: string;
+}
+
 export interface SpecDrivenMessageState {
   /**
    * Live-run subscription key (client-generated, assigned before the
@@ -518,4 +564,8 @@ export interface SpecDrivenMessageState {
   deterministic?: boolean;
   /** The generated artifact for a deterministic run's manual Download button. */
   deterministicBlob?: Blob;
+  /** A BESSER Lab run: the card shows the plan or the change instead of an application. */
+  lab?: SpecDrivenLabView;
+  /** Set from a lab run's start, so the card names BESSER Lab before its `done` brings `lab`. */
+  isLabRun?: boolean;
 }

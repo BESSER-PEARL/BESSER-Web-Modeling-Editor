@@ -88,7 +88,7 @@ Webapp (`packages/webapp/src/main/`):
 
 Editor (`packages/editor/src/main/`): `apollon-editor.ts` (public `ApollonEditor` API), `index.ts` (public
 surface), `packages/<diagram-family>/` plus the registries `components.ts`, `uml-elements.ts`,
-`compose-preview.ts`, `popups.ts`, `diagram-type.ts`; `services/` (CRUD, undo, layout, patcher, settings),
+`popups.ts`, `diagram-type.ts` (`compose-preview.ts` only declares the preview types); `services/` (CRUD, undo, layout, patcher, settings),
 `scenes/`, `components/`. Translation strings for both packages live in
 `packages/i18n/<locale>/{editor,webapp}.json` (`en`, `lb`, `de`, `fr`, `es`, `ca`), not inside the editor.
 
@@ -291,13 +291,13 @@ The editor draws custom SVG (not React-Flow). Theme-aware wrappers (`ThemedRect`
 (`components/controls/text/text.tsx`) forwards unknown props to `<text>` (e.g. `textDecoration="underline"`).
 
 ## Adding a Diagram Element
-Register it in all four registries in `packages/editor/src/main/packages/`: `components.ts` (render component),
-`uml-elements.ts` (model class), `compose-preview.ts` (palette preview), `popups.ts` (property popup). The
+Register it in `packages/editor/src/main/packages/`: `components.ts` (render component),
+`uml-elements.ts` (model class) and `popups.ts` (property popup); its palette entry goes in the diagram package's preview (e.g. `uml-class-diagram/class-preview.ts`), which `components/create-pane/create-pane.tsx` picks per diagram type. The
 implementation (model class extending `UMLElement` / `UMLRelationship`, React component, update function) goes in
 the diagram package, e.g. `packages/uml-class-diagram/your-element/`.
 
 ## Adding a Diagram Type
-1. Add it to `diagram-type.ts` (`UMLDiagramType`), create its package, register its elements in the four registries
+1. Add it to `diagram-type.ts` (`UMLDiagramType`), create its package, register its elements as in Adding a Diagram Element
 2. Add it to `SupportedDiagramType`, `ALL_DIAGRAM_TYPES` and `BesserProject.diagrams` in `shared/types/project.ts`,
    and bump `PROJECT_SCHEMA_VERSION` with a migration
 3. Sidebar/nav in `app/shell/workspace-navigation.tsx`; an editor branch in `features/editors/EditorView.tsx` if it

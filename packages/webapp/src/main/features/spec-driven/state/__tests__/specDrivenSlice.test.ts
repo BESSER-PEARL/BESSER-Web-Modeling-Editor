@@ -373,6 +373,17 @@ describe('specDrivenSlice — applySpecDrivenEvent (pure card reducer)', () => {
     expect(late.warnings[0].severity).toBe('warning');
   });
 
+  it('labels the BESSER Lab steps instead of showing their raw names', () => {
+    let card = applySpecDrivenEvent(CARD, { event: 'phase', phase: 'plan', message: '' });
+    card = applySpecDrivenEvent(card, { event: 'phase', phase: 'build', message: '' });
+    card = applySpecDrivenEvent(card, { event: 'phase', phase: 'check', message: '' });
+    expect(card.phases.map((p) => p.label)).toEqual([
+      'Planning the change',
+      'Building the change',
+      'Running the checks',
+    ]);
+  });
+
   it('COST_CAP is silent (no notice, status unchanged)', () => {
     const next = applySpecDrivenEvent(CARD, {
       event: 'error',

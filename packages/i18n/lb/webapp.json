@@ -5018,5 +5018,148 @@
       "showTraceability": "Réckverfolgbarkeet weisen",
       "viewTrace": "Trace kucken"
     }
+  },
+  "lab": {
+    "title": "BESSER Lab",
+    "description": "Ännerungen um eegene Code vu BESSER, op Lab-Branchen.",
+    "loading": "Lab gëtt gelueden…",
+    "disabled": "BESSER Lab ass op dëser Instanz net aktivéiert.",
+    "signInPrompt": "Mell dech mat GitHub un, fir BESSER Lab ze benotzen.",
+    "signIn": "Mat GitHub umellen",
+    "loadingState": "D’Aarbechtskopie gëtt gelies…",
+    "chatLabel": "Lab-Chat",
+    "chatEmpty": "Beschreif eng Ännerung u BESSER, um Web-Editor oder um Modelléierungsagent. De Lab-Agent plangt se als éischt.",
+    "composerPlaceholder": "Beschreif d’Ännerung…",
+    "unreachable": "De Server war net z’erreechen, dofir ass net bekannt, ob BESSER Lab hei leeft.",
+    "retry": "Nach eng Kéier probéieren",
+    "loadStateFailed": "Den Zoustand vum Lab konnt net gelies ginn: {{error}}",
+    "actions": {
+      "openPullRequest": "Pull-Request opmaachen",
+      "park": "Parken",
+      "drop": "Verwerfen",
+      "resume": "Weidermaachen",
+      "resumeChange": "{{title}} weidermaachen",
+      "resetPreview": "Den Editor op development zrécksetzen",
+      "stopRun": "Laf stoppen"
+    },
+    "drop": {
+      "confirmTitle": "Dës Ännerung verwerfen?",
+      "confirmDescription": "Hir Branchen an Notize ginn aus der Aarbechtskopie geläscht. Aarbecht, déi net an engem Pull-Request ass, geet verluer."
+    },
+    "errors": {
+      "actionFailed": "{{action}} ass feelgeschloen: {{error}}",
+      "applyResult": "D’Resultat vum Lab-Laf konnt net op de Projet ugewannt ginn.",
+      "stopNotAccepted": "de Server huet d’Ufro net ugeholl."
+    },
+    "state": {
+      "signedInAs": "Ugemellt als {{user}}",
+      "activeChange": "Aktiv Ännerung",
+      "noFiles": "Nach keng Fichieren geännert.",
+      "noChange": "Keng aktiv Ännerung. Beschreif eng am Chat, fir unzefänken.",
+      "pullRequests": "Pull-Requesten",
+      "parked": "Geparkt Ännerungen",
+      "noParked": "Keng geparkt Ännerungen.",
+      "preview": "Virschau",
+      "running": "leeft",
+      "stopped": "gestoppt",
+      "previewOff": "D’Virschau ass op dëser Instanz aus.",
+      "runInProgress": "E BESSER-Lab-Laf leeft (ugefaangen um {{time}})."
+    },
+    "repos": {
+      "besser": "BESSER",
+      "frontend": "Web-Editor",
+      "modeling_agent": "Modelléierungsagent"
+    },
+    "fileStatus": {
+      "added": "derbäigesat",
+      "modified": "geännert",
+      "deleted": "geläscht",
+      "renamed": "ëmbenannt"
+    },
+    "kinds": {
+      "generator": "Generator",
+      "metamodel": "Metamodell",
+      "diagram_type": "Diagrammtyp",
+      "editor_element": "Editor-Element",
+      "backend": "Backend",
+      "agent": "Agent",
+      "bugfix": "Feelerkorrektur",
+      "other": "aner"
+    },
+    "stopReasons": {
+      "cost_cap": "D’Käschtegrenz gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
+      "timeout": "D’Zäitlimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
+      "max_turns": "D’Ronnelimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
+      "api_error": "De Modellubidder ass wärend dem Laf ausgefall. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
+      "cancelled": "De Laf gouf gestoppt. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie."
+    },
+    "chat": {
+      "alreadyRunning": "BESSER Lab leeft schonn – waart w.e.g., bis e fäerdeg ass, oder klick op Stopp.",
+      "notActiveChange": "Kee Pull-Request gouf opgemaach: d’Ännerung vun dëser Kaart ass net déi aktiv. Fuer se fir d’éischt op der Lab-Säit weider.",
+      "startFailed": "BESSER Lab konnt net starten: {{error}}",
+      "streamClosed": "De Stream vum Lab-Laf gouf zougemaach, ier e Resultat koum.",
+      "stalled": "de Live-Fortschrëtt ass roueg bliwwen (zënter {{seconds}} s keng Evenementer) a gouf zougemaach. De Laf kann um Server nach weiderlafen.",
+      "streamError": "Streamfeeler vu BESSER Lab: {{error}}",
+      "stopped": "BESSER-Lab-Laf vum Benotzer gestoppt.",
+      "runError": "BESSER-Lab-Feeler ({{code}}): {{message}}",
+      "refused": {
+        "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Mell dech nees un a schéck däi Message dann nach eng Kéier.",
+        "notAllowed": "Däi GitHub-Login däerf BESSER Lab op dëser Instanz net benotzen.",
+        "busy": "BESSER Lab ass mat engem anere Laf oder enger Ännerungsaktioun beschäftegt. Schéck däi Message nach eng Kéier, wann dat fäerdeg ass.",
+        "unavailable": "BESSER Lab ass op dësem Server net disponibel: {{detail}}"
+      },
+      "signInPrompt": "Mell dech mat GitHub un, fir BESSER Lab ze benotzen, a schéck däi Message dann nach eng Kéier.",
+      "noAttachments": "BESSER Lab liest just Text: beschreif d’Ännerung an dengem Message.",
+      "voiceUnavailable": "BESSER Lab hëlt keng Sproochmessagen: tipp d’Ännerung amplaz.",
+      "noPullRequests": "Kee Pull-Request gouf opgemaach: d’Ännerung huet keng geännert Fichieren.",
+      "pullRequestsOpened": "D’Draft-Pull-Requesten goufen opgemaach:",
+      "pullRequestFailed": "D’Pull-Requesten konnten net opgemaach ginn: {{error}}"
+    },
+    "runCard": {
+      "titlePlan": "Plang fäerdeg",
+      "titlePlanStopped": "Plangen ze fréi gestoppt",
+      "titleQuestion": "De Lab-Agent huet eng Fro",
+      "titleBuilt": "Ännerung gebaut",
+      "titleChecksFailing": "Ännerung gebaut, Kontrollen feelen",
+      "titleNoChanges": "Build ouni Ännerungen ofgeschloss",
+      "titleBuildStopped": "Build ze fréi gestoppt",
+      "planRegion": "Plang",
+      "steps": "Schrëtt",
+      "questions": "Oppe Froen",
+      "replyHint": "Äntwer mat deem, wat geännert soll ginn, an de Lab-Agent iwwerschafft de Plang, oder bau en esou, wéi en ass.",
+      "answerHint": "Äntwer drop; de Lab-Agent plangt dann d’Ännerung.",
+      "buildPlan": "Dëse Plang bauen",
+      "buildPlanMessage": "Bau dëse Plang.",
+      "manageChanges": "Ännerunge verwalten",
+      "agentAccount": "A de Wierder vum Lab-Agent",
+      "filesRegion": "Geännert Fichieren",
+      "noChanges": "Keng Fichieren geännert.",
+      "showAll": "All {{count}} weisen",
+      "checksRegion": "Kontrollen",
+      "checkPassed": "Bestanen",
+      "checkFailed": "Feelgeschloen",
+      "checkSkipped": "Iwwersprongen",
+      "checklistRegion": "Checklëscht",
+      "checklistDone": "Erleedegt",
+      "checklistMissing": "Feelt",
+      "checklistNotJudged": "Konnt net aus de Fichieren beurteelt ginn",
+      "openPullRequest": "Pull-Request opmaachen"
+    },
+    "proposal": {
+      "label": "Proposéiert Modell",
+      "title": "Den Agent proposéiert dëse Modell fir d’Erweiderung",
+      "hint": "Änner alles, wat net stëmmt, an da behal en oder verwerf en.",
+      "keep": "Behalen",
+      "discard": "Verwerfen",
+      "discardConfirmTitle": "De proposéierte Modell verwerfen?",
+      "discardConfirmDescription": "Den Tab mam Klassendiagramm, deen de Lab-Agent proposéiert huet, gëtt zougemaach. D’Ännerung selwer bleift, wéi se ass.",
+      "errors": {
+        "noProject": "Maach e Projet op, fir de Klassendiagramm ze gesinn, deen de Lab-Agent proposéiert.",
+        "invalidModel": "De Lab-Agent huet e Modell proposéiert, deen den Editor net als Klassendiagramm opmaache kann.",
+        "limitReached": "De proposéierte Modell gouf net opgemaach: de Projet huet schonn {{max}} Klassendiagrammer.",
+        "failed": "De proposéierte Modell konnt net opgemaach ginn.",
+        "settleFailed": "De proposéierte Modell konnt net aktualiséiert ginn."
+      }
+    }
   }
 }

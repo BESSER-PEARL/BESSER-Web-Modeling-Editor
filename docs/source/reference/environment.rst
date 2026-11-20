@@ -52,7 +52,9 @@ These are exactly the seven names in the ``define`` block.
    GitHub OAuth endpoints — is built from it.
 
    In a **development** build the value is ignored and hardcoded to
-   ``http://localhost:9000/besser_api``. In a production build it must be set
+   ``http://localhost:9000/besser_api``, unless ``VITE_DEV_BACKEND_URL`` is set,
+   in which case a dev build uses that address (the BESSER Lab preview sets
+   it). In a production build it must be set
    explicitly; if it is missing the derived endpoint URLs become
    ``undefined/...`` and every backend call fails.
 
@@ -182,6 +184,7 @@ Common
 
 ``NODE_ENV`` / Vite mode
    ``npm run dev`` runs Vite in development mode, which forces ``BACKEND_URL``
-   to ``http://localhost:9000/besser_api`` and defaults the assistant socket to
+   to ``http://localhost:9000/besser_api`` (unless ``VITE_DEV_BACKEND_URL`` is
+   set, in which case a dev build uses that address) and defaults the assistant socket to
    ``ws://localhost:8765``. ``npm run build`` runs in production mode, where the
    explicit values are used.

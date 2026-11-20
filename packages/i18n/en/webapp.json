@@ -5018,5 +5018,148 @@
       "showTraceability": "Show traceability",
       "viewTrace": "View trace"
     }
+  },
+  "lab": {
+    "title": "BESSER Lab",
+    "description": "Changes to BESSER's own code, on lab branches.",
+    "loading": "Loading the lab…",
+    "disabled": "BESSER Lab is not enabled on this instance.",
+    "signInPrompt": "Sign in with GitHub to use BESSER Lab.",
+    "signIn": "Sign in with GitHub",
+    "loadingState": "Reading the working copy…",
+    "chatLabel": "Lab chat",
+    "chatEmpty": "Describe a change to BESSER, the web editor or the modeling agent. The lab agent plans it first.",
+    "composerPlaceholder": "Describe the change…",
+    "unreachable": "The server could not be reached, so it is not known whether BESSER Lab runs here.",
+    "retry": "Try again",
+    "loadStateFailed": "The lab state could not be read: {{error}}",
+    "actions": {
+      "openPullRequest": "Open pull request",
+      "park": "Park",
+      "drop": "Drop",
+      "resume": "Resume",
+      "resumeChange": "Resume {{title}}",
+      "resetPreview": "Reset the editor to development",
+      "stopRun": "Stop the run"
+    },
+    "drop": {
+      "confirmTitle": "Drop this change?",
+      "confirmDescription": "Its branches and notes are deleted from the working copy. Work not in a pull request is lost."
+    },
+    "errors": {
+      "actionFailed": "{{action}} failed: {{error}}",
+      "applyResult": "The result of the lab run could not be applied to the project.",
+      "stopNotAccepted": "the server did not accept the request."
+    },
+    "state": {
+      "signedInAs": "Signed in as {{user}}",
+      "activeChange": "Active change",
+      "noFiles": "No files changed yet.",
+      "noChange": "No active change. Describe one in the chat to start.",
+      "pullRequests": "Pull requests",
+      "parked": "Parked changes",
+      "noParked": "No parked changes.",
+      "preview": "Preview",
+      "running": "running",
+      "stopped": "stopped",
+      "previewOff": "The preview is off on this instance.",
+      "runInProgress": "A lab run is in progress (started {{time}})."
+    },
+    "repos": {
+      "besser": "BESSER",
+      "frontend": "Web editor",
+      "modeling_agent": "Modeling agent"
+    },
+    "fileStatus": {
+      "added": "added",
+      "modified": "modified",
+      "deleted": "deleted",
+      "renamed": "renamed"
+    },
+    "kinds": {
+      "generator": "generator",
+      "metamodel": "metamodel",
+      "diagram_type": "diagram type",
+      "editor_element": "editor element",
+      "backend": "backend",
+      "agent": "agent",
+      "bugfix": "bug fix",
+      "other": "other"
+    },
+    "stopReasons": {
+      "cost_cap": "It reached its cost cap. What it did so far is in the working copy.",
+      "timeout": "It reached its time limit. What it did so far is in the working copy.",
+      "max_turns": "It reached its turn limit. What it did so far is in the working copy.",
+      "api_error": "The model provider failed during the run. What it did so far is in the working copy.",
+      "cancelled": "It was stopped. What it did so far is in the working copy."
+    },
+    "chat": {
+      "alreadyRunning": "BESSER Lab is already running — please wait for it to finish or click Stop.",
+      "notActiveChange": "No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.",
+      "startFailed": "BESSER Lab failed to start: {{error}}",
+      "streamClosed": "The lab run stream closed before reporting a result.",
+      "stalled": "the live progress stream went quiet (no events for {{seconds}} s) and was closed. The run may still be going on the server.",
+      "streamError": "BESSER Lab stream error: {{error}}",
+      "stopped": "BESSER Lab run stopped by user.",
+      "runError": "BESSER Lab error ({{code}}): {{message}}",
+      "refused": {
+        "sessionExpired": "Your GitHub session has expired. Sign in again, then send your message again.",
+        "notAllowed": "Your GitHub login is not allowed to use BESSER Lab on this instance.",
+        "busy": "BESSER Lab is busy with another run or change action. Send your message again when it has finished.",
+        "unavailable": "BESSER Lab is not available on this server: {{detail}}"
+      },
+      "signInPrompt": "Sign in with GitHub to use BESSER Lab, then send your message again.",
+      "noAttachments": "BESSER Lab reads text only: describe the change in your message.",
+      "voiceUnavailable": "BESSER Lab does not take voice messages: type the change instead.",
+      "noPullRequests": "No pull request was opened: the change has no changed files.",
+      "pullRequestsOpened": "Opened the draft pull requests:",
+      "pullRequestFailed": "The pull requests could not be opened: {{error}}"
+    },
+    "runCard": {
+      "titlePlan": "Plan ready",
+      "titlePlanStopped": "Planning stopped early",
+      "titleQuestion": "The lab agent has a question",
+      "titleBuilt": "Change built",
+      "titleChecksFailing": "Change built, checks failing",
+      "titleNoChanges": "Build finished without changes",
+      "titleBuildStopped": "Build stopped early",
+      "planRegion": "Plan",
+      "steps": "Steps",
+      "questions": "Open questions",
+      "replyHint": "Reply with what to change and the lab agent revises the plan, or build it as it is.",
+      "answerHint": "Reply to answer it; the lab agent then plans the change.",
+      "buildPlan": "Build this plan",
+      "buildPlanMessage": "Build this plan.",
+      "manageChanges": "Manage changes",
+      "agentAccount": "In the lab agent's words",
+      "filesRegion": "Changed files",
+      "noChanges": "No files changed.",
+      "showAll": "Show all {{count}}",
+      "checksRegion": "Checks",
+      "checkPassed": "Passed",
+      "checkFailed": "Failed",
+      "checkSkipped": "Skipped",
+      "checklistRegion": "Checklist",
+      "checklistDone": "Done",
+      "checklistMissing": "Missing",
+      "checklistNotJudged": "Could not be judged from the files",
+      "openPullRequest": "Open pull request"
+    },
+    "proposal": {
+      "label": "Proposed model",
+      "title": "The agent proposes this model for the extension",
+      "hint": "Edit anything that is off, then keep it or discard it.",
+      "keep": "Keep",
+      "discard": "Discard",
+      "discardConfirmTitle": "Discard the proposed model?",
+      "discardConfirmDescription": "The tab with the class diagram the lab agent proposed is closed. The change itself stays as it is.",
+      "errors": {
+        "noProject": "Open a project to see the class diagram the lab agent proposes.",
+        "invalidModel": "The lab agent proposed a model the editor cannot open as a class diagram.",
+        "limitReached": "The proposed model was not opened: the project already has {{max}} class diagrams.",
+        "failed": "The proposed model could not be opened.",
+        "settleFailed": "The proposed model could not be updated."
+      }
+    }
   }
 }

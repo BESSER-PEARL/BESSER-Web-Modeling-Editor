@@ -5018,5 +5018,148 @@
       "showTraceability": "Rückverfolgbarkeit anzeigen",
       "viewTrace": "Trace ansehen"
     }
+  },
+  "lab": {
+    "title": "BESSER Lab",
+    "description": "Änderungen am eigenen Code von BESSER, auf Lab-Branches.",
+    "loading": "Lab wird geladen…",
+    "disabled": "BESSER Lab ist auf dieser Instanz nicht aktiviert.",
+    "signInPrompt": "Melde dich mit GitHub an, um BESSER Lab zu nutzen.",
+    "signIn": "Mit GitHub anmelden",
+    "loadingState": "Arbeitskopie wird gelesen…",
+    "chatLabel": "Lab-Chat",
+    "chatEmpty": "Beschreibe eine Änderung an BESSER, am Web-Editor oder am Modellierungsagenten. Der Lab-Agent plant sie zuerst.",
+    "composerPlaceholder": "Beschreibe die Änderung…",
+    "unreachable": "Der Server war nicht erreichbar, daher ist unklar, ob BESSER Lab hier läuft.",
+    "retry": "Erneut versuchen",
+    "loadStateFailed": "Der Zustand des Labs konnte nicht gelesen werden: {{error}}",
+    "actions": {
+      "openPullRequest": "Pull-Request öffnen",
+      "park": "Parken",
+      "drop": "Verwerfen",
+      "resume": "Fortsetzen",
+      "resumeChange": "{{title}} fortsetzen",
+      "resetPreview": "Editor auf development zurücksetzen",
+      "stopRun": "Lauf stoppen"
+    },
+    "drop": {
+      "confirmTitle": "Diese Änderung verwerfen?",
+      "confirmDescription": "Ihre Branches und Notizen werden aus der Arbeitskopie gelöscht. Arbeit, die nicht in einem Pull-Request ist, geht verloren."
+    },
+    "errors": {
+      "actionFailed": "{{action}} fehlgeschlagen: {{error}}",
+      "applyResult": "Das Ergebnis des Lab-Laufs konnte nicht auf das Projekt angewendet werden.",
+      "stopNotAccepted": "der Server hat die Anfrage nicht angenommen."
+    },
+    "state": {
+      "signedInAs": "Angemeldet als {{user}}",
+      "activeChange": "Aktive Änderung",
+      "noFiles": "Noch keine Dateien geändert.",
+      "noChange": "Keine aktive Änderung. Beschreibe eine im Chat, um zu beginnen.",
+      "pullRequests": "Pull-Requests",
+      "parked": "Geparkte Änderungen",
+      "noParked": "Keine geparkten Änderungen.",
+      "preview": "Vorschau",
+      "running": "läuft",
+      "stopped": "gestoppt",
+      "previewOff": "Die Vorschau ist auf dieser Instanz aus.",
+      "runInProgress": "Ein BESSER-Lab-Lauf läuft (gestartet um {{time}})."
+    },
+    "repos": {
+      "besser": "BESSER",
+      "frontend": "Web-Editor",
+      "modeling_agent": "Modellierungsagent"
+    },
+    "fileStatus": {
+      "added": "hinzugefügt",
+      "modified": "geändert",
+      "deleted": "gelöscht",
+      "renamed": "umbenannt"
+    },
+    "kinds": {
+      "generator": "Generator",
+      "metamodel": "Metamodell",
+      "diagram_type": "Diagrammtyp",
+      "editor_element": "Editor-Element",
+      "backend": "Backend",
+      "agent": "Agent",
+      "bugfix": "Fehlerbehebung",
+      "other": "Sonstiges"
+    },
+    "stopReasons": {
+      "cost_cap": "Die Kostengrenze wurde erreicht. Was bis dahin gemacht wurde, liegt in der Arbeitskopie.",
+      "timeout": "Das Zeitlimit wurde erreicht. Was bis dahin gemacht wurde, liegt in der Arbeitskopie.",
+      "max_turns": "Das Rundenlimit wurde erreicht. Was bis dahin gemacht wurde, liegt in der Arbeitskopie.",
+      "api_error": "Der Modellanbieter ist während des Laufs ausgefallen. Was bis dahin gemacht wurde, liegt in der Arbeitskopie.",
+      "cancelled": "Der Lauf wurde gestoppt. Was bis dahin gemacht wurde, liegt in der Arbeitskopie."
+    },
+    "chat": {
+      "alreadyRunning": "BESSER Lab läuft bereits – warte bitte, bis der Lauf fertig ist, oder klicke auf Stopp.",
+      "notActiveChange": "Es wurde kein Pull-Request geöffnet: Die Änderung dieser Karte ist nicht die aktive. Setze sie zuerst auf der Lab-Seite fort.",
+      "startFailed": "BESSER Lab konnte nicht starten: {{error}}",
+      "streamClosed": "Der Stream des Lab-Laufs wurde geschlossen, bevor ein Ergebnis kam.",
+      "stalled": "der Live-Fortschritt blieb still (seit {{seconds}} s keine Ereignisse) und wurde geschlossen. Der Lauf kann auf dem Server noch weiterlaufen.",
+      "streamError": "Stream-Fehler von BESSER Lab: {{error}}",
+      "stopped": "BESSER-Lab-Lauf vom Nutzer gestoppt.",
+      "runError": "BESSER-Lab-Fehler ({{code}}): {{message}}",
+      "refused": {
+        "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Melde dich erneut an und sende deine Nachricht dann noch einmal.",
+        "notAllowed": "Dein GitHub-Login darf BESSER Lab auf dieser Instanz nicht nutzen.",
+        "busy": "BESSER Lab ist mit einem anderen Lauf oder einer Änderungsaktion beschäftigt. Sende deine Nachricht erneut, wenn sie beendet ist.",
+        "unavailable": "BESSER Lab ist auf diesem Server nicht verfügbar: {{detail}}"
+      },
+      "signInPrompt": "Melde dich mit GitHub an, um BESSER Lab zu nutzen, und sende deine Nachricht dann erneut.",
+      "noAttachments": "BESSER Lab liest nur Text: Beschreibe die Änderung in deiner Nachricht.",
+      "voiceUnavailable": "BESSER Lab nimmt keine Sprachnachrichten an: Tippe die Änderung stattdessen ein.",
+      "noPullRequests": "Es wurde kein Pull-Request geöffnet: Die Änderung hat keine geänderten Dateien.",
+      "pullRequestsOpened": "Die Draft-Pull-Requests wurden geöffnet:",
+      "pullRequestFailed": "Die Pull-Requests konnten nicht geöffnet werden: {{error}}"
+    },
+    "runCard": {
+      "titlePlan": "Plan fertig",
+      "titlePlanStopped": "Planung vorzeitig gestoppt",
+      "titleQuestion": "Der Lab-Agent hat eine Frage",
+      "titleBuilt": "Änderung gebaut",
+      "titleChecksFailing": "Änderung gebaut, Prüfungen schlagen fehl",
+      "titleNoChanges": "Build ohne Änderungen beendet",
+      "titleBuildStopped": "Build vorzeitig gestoppt",
+      "planRegion": "Plan",
+      "steps": "Schritte",
+      "questions": "Offene Fragen",
+      "replyHint": "Antworte mit dem, was geändert werden soll, und der Lab-Agent überarbeitet den Plan, oder baue ihn so, wie er ist.",
+      "answerHint": "Antworte darauf; der Lab-Agent plant die Änderung dann.",
+      "buildPlan": "Diesen Plan bauen",
+      "buildPlanMessage": "Baue diesen Plan.",
+      "manageChanges": "Änderungen verwalten",
+      "agentAccount": "In den Worten des Lab-Agenten",
+      "filesRegion": "Geänderte Dateien",
+      "noChanges": "Keine Dateien geändert.",
+      "showAll": "Alle {{count}} anzeigen",
+      "checksRegion": "Prüfungen",
+      "checkPassed": "Bestanden",
+      "checkFailed": "Fehlgeschlagen",
+      "checkSkipped": "Übersprungen",
+      "checklistRegion": "Checkliste",
+      "checklistDone": "Erledigt",
+      "checklistMissing": "Fehlt",
+      "checklistNotJudged": "Aus den Dateien nicht beurteilbar",
+      "openPullRequest": "Pull-Request öffnen"
+    },
+    "proposal": {
+      "label": "Vorgeschlagenes Modell",
+      "title": "Der Agent schlägt dieses Modell für die Erweiterung vor",
+      "hint": "Bearbeite, was nicht stimmt, und behalte oder verwirf es dann.",
+      "keep": "Behalten",
+      "discard": "Verwerfen",
+      "discardConfirmTitle": "Das vorgeschlagene Modell verwerfen?",
+      "discardConfirmDescription": "Der Tab mit dem Klassendiagramm, das der Lab-Agent vorgeschlagen hat, wird geschlossen. Die Änderung selbst bleibt, wie sie ist.",
+      "errors": {
+        "noProject": "Öffne ein Projekt, um das Klassendiagramm zu sehen, das der Lab-Agent vorschlägt.",
+        "invalidModel": "Der Lab-Agent hat ein Modell vorgeschlagen, das der Editor nicht als Klassendiagramm öffnen kann.",
+        "limitReached": "Das vorgeschlagene Modell wurde nicht geöffnet: Das Projekt hat bereits {{max}} Klassendiagramme.",
+        "failed": "Das vorgeschlagene Modell konnte nicht geöffnet werden.",
+        "settleFailed": "Das vorgeschlagene Modell konnte nicht aktualisiert werden."
+      }
+    }
   }
 }

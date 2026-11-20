@@ -112,6 +112,10 @@ import {
 } from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
 import { getGitHubSession } from '../../../shared/services/github/githubAuth';
+import { openLabPullRequests, type LabAction } from '../../../shared/api/lab';
+import { useLabMode } from '../../../shared/hooks/useLabMode';
+import { getLabEnabled } from '../../../shared/services/labConfig';
+import { describeNetworkError } from '../../../shared/utils/describeNetworkError';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
@@ -235,6 +239,13 @@ export interface UseAssistantLogicReturn {
   generateAgain: () => void;
   /** Run id of the conversation's latest run card. */
   latestRunId: string | undefined;
+  /**
+   * BESSER Lab: push change `changeId`, open its draft pull requests and post their links in the chat;
+   * says so instead when it is not the active change.
+   */
+  openPullRequest: (changeId: string) => Promise<void>;
+  /** BESSER Lab: build the plan of change `changeId` (a plan card's "Build this plan"). */
+  buildLabPlan: (changeId: string) => void;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
@@ -355,6 +366,22 @@ const onSpecDrivenKeyCancelled = () => {
 };
 let keyCancelledSubscribers = 0;
 
+/** Repository keys of the lab (`REPO_ORDER` in the lab contracts) as the chat names them. */
+const LAB_REPO_NAMES: Record<string, string> = {
+  besser: 'BESSER',
+  frontend: 'Web editor',
+  modeling_agent: 'Modeling agent',
+};
+
+/** What the conversation's latest lab run card produced: the step a typed reply continues. */
+const latestLabResult = (messages: ChatKitMessage[]) => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const lab = messages[index].specDriven?.lab;
+    if (lab) return lab;
+  }
+  return undefined;
+};
+
 const waitForSwitchRender = (): Promise<void> =>
   new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
@@ -422,6 +449,8 @@ export function useAssistantLogic({
   const hasActiveSpecRun = useAppSelector(
     (s) => s.specDriven.runStatus === 'running' || selectHasLiveSpecDrivenRun(s),
   );
+  // On a BESSER Lab instance the chat talks to the lab agent, not the modeling agent.
+  const labMode = useLabMode();
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
@@ -1454,6 +1483,54 @@ export function useAssistantLogic({
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+  const labSignInPrompt = useCallback(
+    () =>
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage(
+          'assistant',
+          t('lab.chat.signInPrompt', {
+            defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.',
+          }),
+        ),
+      ]),
+    [setMessages, t],
+  );
+
+  /**
+   * BESSER Lab: the user's text goes to the lab agent as one run, or a sign-in prompt answers it.
+   * Typed after a plan card, it revises that plan (`plan`); building it is the card's button.
+   */
+  const sendToLab = (message: string, explicit?: { action: LabAction; changeId: string }) => {
+    const state = store.getState();
+    if (state.specDriven.runStatus !== 'idle' || selectHasLiveSpecDrivenRun(state)) {
+      // Refused before the message is shown or the composer cleared: the text stays to send later.
+      reportError(
+        t('lab.chat.alreadyRunning', {
+          defaultValue: 'BESSER Lab is already running — please wait for it to finish or click Stop.',
+        }),
+      );
+      return;
+    }
+    const latest = latestLabResult(conversationStore.getMessages());
+    const action = explicit?.action ?? (latest?.step === 'plan' ? 'plan' : 'auto');
+    const changeId = explicit?.changeId ?? latest?.changeId;
+    setMessages((prev) => [...prev, toKitMessage('user', message)]);
+    setInputValue('');
+    setLastSentMessage(message);
+    const githubSession = getGitHubSession();
+    if (!githubSession) {
+      labSignInPrompt();
+      return;
+    }
+    // Fire-and-forget like a Spec-Driven run: the hook owns the run's lifecycle and its errors.
+    specDriven.handleLabMessage({ message, githubSession, action, changeId: changeId || undefined }).catch((err) => {
+      console.error('[useAssistantLogic] specDriven.handleLabMessage rejected', err);
+    });
+  };
+  const sendToLabRef = useRef(sendToLab);
+  sendToLabRef.current = sendToLab;
+
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList; overrideText?: string },
@@ -1468,6 +1545,21 @@ export function useAssistantLogic({
     isSendingRef.current = true;
 
     try {
+      // Until the server config has answered, `labMode` is false: wait for it (a failed load is
+      // retried here) rather than send a lab instance's message to the modeling agent.
+      if (labMode || (await getLabEnabled())) {
+        if (hasFiles) {
+          reportError(
+            t('lab.chat.noAttachments', {
+              defaultValue: 'BESSER Lab reads text only: describe the change in your message.',
+            }),
+          );
+          return;
+        }
+        sendToLab(normalizedInput);
+        return;
+      }
+
       // --- File size validation ---
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
@@ -1605,6 +1697,20 @@ export function useAssistantLogic({
 
   const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
     if (isSendingRef.current || streaming.isGenerating) return;
+    // Speech is transcribed by the modeling agent, which a lab message never reaches.
+    if (labMode || (await getLabEnabled())) {
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage(
+          'assistant',
+          t('lab.chat.voiceUnavailable', {
+            defaultValue: 'BESSER Lab does not take voice messages: type the change instead.',
+          }),
+          { isError: true },
+        ),
+      ]);
+      return;
+    }
 
     isSendingRef.current = true;
     try {
@@ -1943,6 +2049,54 @@ export function useAssistantLogic({
     })();
   }, [currentProjectRef, t]);
 
+  // A lab run card's "Open pull request", for that card's change. Stable, so memoised chat messages skip re-rendering.
+  const openPullRequest = useCallback(async (changeId: string): Promise<void> => {
+    const githubSession = getGitHubSession();
+    if (!githubSession) {
+      labSignInPrompt();
+      return;
+    }
+    try {
+      const opened = await openLabPullRequests(githubSession, changeId);
+      const text =
+        opened === null
+          ? t('lab.chat.notActiveChange', {
+              defaultValue:
+                'No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.',
+            })
+          : opened.pullRequests.length === 0
+          ? t('lab.chat.noPullRequests', { defaultValue: 'No pull request was opened: the change has no changed files.' })
+          : [
+              t('lab.chat.pullRequestsOpened', { defaultValue: 'Opened the draft pull requests:' }),
+              ...opened.pullRequests.map((pr) => {
+                const repo = t(`lab.repos.${pr.repo}`, { defaultValue: LAB_REPO_NAMES[pr.repo] ?? pr.repo });
+                return `- [${repo} #${pr.number}](${pr.url}): \`${pr.branch}\` into \`${pr.base}\``;
+              }),
+              // Which checks the change passed before the push (the server's words).
+              ...(opened.checksNote ? ['', opened.checksNote] : []),
+            ].join('\n');
+      setMessages((prev) => [...prev, toKitMessage('assistant', text)]);
+    } catch (error) {
+      reportError(
+        t('lab.chat.pullRequestFailed', {
+          defaultValue: 'The pull requests could not be opened: {{error}}',
+          error: describeNetworkError(error),
+        }),
+        { error },
+      );
+    }
+  }, [labSignInPrompt, setMessages, t]);
+
+  // A lab plan card's "Build this plan": an explicit build of that card's change.
+  const buildLabPlan = useCallback(
+    (changeId: string): void =>
+      sendToLabRef.current(t('lab.runCard.buildPlanMessage', { defaultValue: 'Build this plan.' }), {
+        action: 'build',
+        changeId,
+      }),
+    [t],
+  );
+
   // Only the latest run's card offers "Generate again": on an older card it
   // would rebuild over the newer result.
   const latestRunId = (() => {
@@ -1975,6 +2129,8 @@ export function useAssistantLogic({
     handleSubmit,
     generateAgain,
     latestRunId,
+    openPullRequest,
+    buildLabPlan,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,

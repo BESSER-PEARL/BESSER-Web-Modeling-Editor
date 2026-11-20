@@ -73,6 +73,8 @@ export interface SpecDrivenConfig {
    * to its built-in minimal lists.
    */
   providers: SpecDrivenCatalogProvider[];
+  /** Whether this instance is a BESSER Lab; a backend without the field is not. Always set by the normaliser. */
+  lab?: { enabled: boolean };
 }
 
 /**
@@ -105,6 +107,7 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   // surface a free option that would 500.
   free_tier: { available: false, model: null, models: [] },
   providers: [],
+  lab: { enabled: false },
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
@@ -164,6 +167,7 @@ function _normalize(raw: unknown): SpecDrivenConfig {
           }
         : FALLBACK_SMART_GEN_CONFIG.free_tier,
     providers: _normalizeProviders(data.providers),
+    lab: { enabled: data.lab?.enabled === true },
   };
 }
 

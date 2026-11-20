@@ -16,8 +16,10 @@ const _env = (viteValue: string | undefined, metaValue: string | undefined): str
 
 export const APPLICATION_SERVER_VERSION = _env(process.env.APPLICATION_SERVER_VERSION, import.meta.env.VITE_APPLICATION_SERVER_VERSION);
 export const DEPLOYMENT_URL = _env(process.env.DEPLOYMENT_URL, import.meta.env.VITE_DEPLOYMENT_URL);
+// A dev build talks to the local backend unless `VITE_DEV_BACKEND_URL` names another one: the BESSER Lab
+// preview serves the editor's dev server behind its own backend.
 export const BACKEND_URL = import.meta.env.DEV
-  ? 'http://localhost:9000/besser_api'
+  ? _env(undefined, import.meta.env.VITE_DEV_BACKEND_URL) ?? 'http://localhost:9000/besser_api'
   : _env(process.env.BACKEND_URL, import.meta.env.VITE_BACKEND_URL);
 export const SENTRY_DSN = _env(process.env.SENTRY_DSN, import.meta.env.VITE_SENTRY_DSN);
 export const POSTHOG_HOST = _env(process.env.POSTHOG_HOST, import.meta.env.VITE_POSTHOG_HOST);
@@ -277,6 +279,9 @@ export const specDrivenRunEventsJsonUrl = (
 ): string =>
   `${specDrivenRunStatusUrl(runId)}/events.json` +
   `?after=${Math.max(0, Math.trunc(afterSequence))}&limit=${Math.trunc(limit)}`;
+
+// BESSER Lab run stream (SSE); the lab's JSON routes are called through apiClient in shared/api/lab.ts.
+export const LAB_MESSAGE_ENDPOINT = `${BACKEND_URL}/lab/message`;
 
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';

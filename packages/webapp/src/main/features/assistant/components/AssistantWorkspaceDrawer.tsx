@@ -264,6 +264,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     handleSubmit,
     generateAgain,
     latestRunId,
+    openPullRequest,
+    buildLabPlan,
     sendVoiceMessage,
     stopGenerating,
     requestNewChat,
@@ -382,8 +384,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     (message: ChatKitMessage) => ({
       onPushToGithub: handlePushToGithub,
       onGenerateAgain: message.specDriven?.runId === latestRunId ? generateAgain : undefined,
+      onOpenPullRequest: openPullRequest,
+      // Only the latest card's plan is the one to build.
+      onBuildPlan: message.specDriven?.runId === latestRunId ? buildLabPlan : undefined,
     }),
-    [handlePushToGithub, generateAgain, latestRunId],
+    [handlePushToGithub, generateAgain, latestRunId, openPullRequest, buildLabPlan],
   );
   const closeOverview = useCallback(() => setOverviewOpen(false), []);
 

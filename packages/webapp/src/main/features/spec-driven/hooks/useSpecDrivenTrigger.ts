@@ -49,7 +49,8 @@
  *
  * Non-goals:
  *   - The hook never touches the WebSocket, the modeling agent, or any
- *     modeling state. It only appends messages and consumes the SSE.
+ *     modeling state. It only appends messages and consumes the SSE (a
+ *     BESSER Lab run's result goes to the lab feature's `handleLabDone`).
  *   - The BYOK key is read on demand from sessionStorage. It is never
  *     stored in any React state or Redux action payload.
  */
@@ -64,6 +65,7 @@ import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, ty
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun, wasSpecDrivenRunCancelAccepted } from '../../../shared/api/specDriven';
+import { getLabState, startLabRun, type LabAction, type LabDone } from '../../../shared/api/lab';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { isTraceabilityEnabled, projectRequirements, traceActorName } from '../../../shared/traceability/traceStore';
@@ -114,6 +116,7 @@ import {
 import {
   followSpecDrivenRun,
   startSpecDrivenRun,
+  type SpecDrivenRunHandle,
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
 import {
@@ -130,6 +133,7 @@ import type {
   SpecDrivenEvent,
   SpecDrivenMessageState,
   SpecDrivenProvider,
+  SpecDrivenWarningView,
   TriggerSpecDrivenPayload,
 } from '../types';
 
@@ -145,6 +149,75 @@ const COST_TIMEOUT_FAILSAFE_MS = 45_000;
 // (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800s / 30 min): after this the
 // backend has garbage-collected the run's output, so a rebuild is forced.
 const DEFAULT_DOWNLOAD_TTL_SECONDS = 1800;
+
+/**
+ * A Spec-Driven Agent run (`/spec-driven/generate`) or a BESSER Lab run
+ * (`/lab/message`). Both stream the same events into the same run card and
+ * reattach after a reload the same way; a lab run has no project trace and
+ * reports to nobody.
+ */
+type RunKind = 'spec' | 'lab';
+
+/** A chat line of a lab run's lifecycle, translated; a Spec-Driven run's lines stay in English. */
+const labLine = (key: string, defaultValue: string, values: Record<string, unknown> = {}): string =>
+  i18n.t(`lab.chat.${key}`, { defaultValue, ...values });
+
+/** Why the lab refused a run before it started: the status, and the server's `detail` where it says more. */
+function labRefusal(error: SseHttpError): string {
+  let detail = '';
+  try {
+    const parsed: unknown = JSON.parse(error.body);
+    if (parsed && typeof (parsed as { detail?: unknown }).detail === 'string') detail = (parsed as { detail: string }).detail;
+  } catch {
+    // Not a JSON body: the status alone explains it.
+  }
+  switch (error.status) {
+    case 401:
+      return labLine('refused.sessionExpired', 'Your GitHub session has expired. Sign in again, then send your message again.');
+    case 403:
+      return labLine('refused.notAllowed', 'Your GitHub login is not allowed to use BESSER Lab on this instance.');
+    case 409:
+      return labLine(
+        'refused.busy',
+        'BESSER Lab is busy with another run or change action. Send your message again when it has finished.',
+      );
+    case 503:
+      return labLine('refused.unavailable', 'BESSER Lab is not available on this server: {{detail}}', {
+        detail: detail || error.message,
+      });
+    default:
+      return detail || error.message;
+  }
+}
+
+/** The run whose events are being consumed: its kind, live card and project. */
+interface RunContext {
+  kind: RunKind;
+  liveKey: string;
+  streamingId: string;
+  projectId: string;
+  /** Called with the run id of the `start` event. */
+  onStart?: (runId: string) => void;
+}
+
+/** A run to follow through its durable event log: after a reload, or one the lab says is in progress. */
+interface FollowedRun {
+  runId: string;
+  projectId: string;
+  /** Milliseconds since the epoch. */
+  startedAt: number;
+  kind: RunKind;
+}
+
+/** `events`, noting a 409 refusal of the request before rethrowing it. */
+async function* noteBusyRefusal<E>(events: AsyncGenerator<E, void, void>, onBusy: () => void): AsyncGenerator<E, void, void> {
+  try {
+    yield* events;
+  } catch (error) {
+    if (error instanceof SseHttpError && error.status === 409) onBusy();
+    throw error;
+  }
+}
 
 const isNonTerminalErrorEvent = (event: SpecDrivenEvent): boolean =>
   event.event === 'error' &&
@@ -179,6 +252,24 @@ const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
 export function wasStoppedByUser(event: Extract<SpecDrivenEvent, { event: 'done' }>, runId: string | undefined): boolean {
   if (typeof event.cancelled === 'boolean') return event.cancelled;
   return !!runId && wasSpecDrivenRunCancelAccepted(runId) && event.incomplete === true;
+}
+
+/**
+ * Hand a lab run's result to the lab feature, which puts a proposed model into
+ * the project. Loaded on demand: only a BESSER Lab instance ever needs it.
+ */
+async function applyLabDone(lab: LabDone): Promise<void> {
+  try {
+    const { handleLabDone } = await import('../../lab');
+    await handleLabDone(lab);
+  } catch (error) {
+    reportError(
+      i18n.t('lab.errors.applyResult', {
+        defaultValue: 'The result of the lab run could not be applied to the project.',
+      }),
+      { error },
+    );
+  }
 }
 
 /** The tier and provider this tab runs on now: for a run reattached after a reload, the best guess. */
@@ -236,8 +327,24 @@ export interface UseSpecDrivenTriggerOptions {
   onRunFinished?: (result: SpecDrivenRunResult) => void;
 }
 
+/** One chat message for BESSER Lab. */
+export interface LabMessageParams {
+  message: string;
+  /** The session of the signed-in GitHub user (`X-GitHub-Session`). */
+  githubSession: string;
+  action?: LabAction;
+  /** The change the message continues (the conversation's latest lab card), if any. */
+  changeId?: string;
+}
+
 export interface UseSpecDrivenTriggerReturn {
   handleTrigger: (payload: TriggerSpecDrivenPayload) => Promise<void>;
+  /**
+   * Send a message to BESSER Lab and drive its run in the chat: the same run
+   * slot, live card and event loop as a Spec-Driven run, without the key
+   * dialog, the run-mode decision or the report to the modeling agent.
+   */
+  handleLabMessage: (params: LabMessageParams) => Promise<void>;
   abortActive: () => void;
 }
 
@@ -511,10 +618,7 @@ export function useSpecDrivenTrigger(
    * the run-outcome report, the failsafe timer).
    */
   const handleSseEvent = useCallback(
-    async (
-      event: SpecDrivenEvent,
-      run: { liveKey: string; streamingId: string; projectId: string },
-    ): Promise<void> => {
+    async (event: SpecDrivenEvent, run: RunContext): Promise<void> => {
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
       // gone (failsafe fired, user aborted) the message already holds
@@ -552,8 +656,12 @@ export function useSpecDrivenTrigger(
       if (event.event === 'start') currentRunIdRef.current = event.runId;
       noteRunEvent(runTraceRef.current, event);
       // A run that ended is recorded in the project trace: from the trace its `done` event carries, else from
-      // what its stream said. A warning (COST_CAP, TIMEOUT, INCOMPLETE) is not an end.
-      if (event.event === 'done' || (event.event === 'error' && !['COST_CAP', 'TIMEOUT', 'INCOMPLETE'].includes(event.code))) {
+      // what its stream said. A warning (COST_CAP, TIMEOUT, INCOMPLETE) is not an end. A lab run changes
+      // BESSER's own code, not the project, so it is not part of the project's trace.
+      if (
+        run.kind === 'spec' &&
+        (event.event === 'done' || (event.event === 'error' && !['COST_CAP', 'TIMEOUT', 'INCOMPLETE'].includes(event.code)))
+      ) {
         const endedRunId =
           (event.event === 'done' ? event.runId || extractSpecDrivenRunId(event.downloadUrl) : undefined) ||
           currentRunIdRef.current;
@@ -591,6 +699,7 @@ export function useSpecDrivenTrigger(
           projectId: run.projectId,
           lastSequence: lastSequenceRef.current,
           startedAt: activeRunStartedAtRef.current || Date.now(),
+          ...(run.kind === 'lab' ? { kind: 'lab' as const } : {}),
         });
       }
 
@@ -600,6 +709,7 @@ export function useSpecDrivenTrigger(
             console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
+          run.onStart?.(event.runId);
           return;
         }
         case 'phase': {
@@ -623,6 +733,13 @@ export function useSpecDrivenTrigger(
         case 'done': {
           clearFailsafeTimer();
           if (abortRequestedRef.current) return;
+          if (run.kind === 'lab') {
+            // The card shows the plan or the build; there is no download and no app to announce.
+            clearActiveSpecDrivenRun(event.runId || currentRunIdRef.current);
+            finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt: Date.now() });
+            if (event.lab) await applyLabDone(event.lab);
+            return;
+          }
           const doneRunId =
             event.runId || extractSpecDrivenRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
@@ -793,7 +910,7 @@ export function useSpecDrivenTrigger(
             event.code === 'TIMEOUT' ||
             event.code === 'INCOMPLETE'
           ) {
-            track('spec_run_warning', { code: event.code });
+            if (run.kind === 'spec') track('spec_run_warning', { code: event.code });
             // Non-terminal — the stream continues; the `done` event will
             // follow. The slice reducer already recorded the notice on
             // the card (COST_CAP deliberately silently: its message
@@ -837,7 +954,8 @@ export function useSpecDrivenTrigger(
             }
             return;
           }
-          if (event.code === 'INVALID_KEY') {
+          // A lab run uses the server's key, never the user's.
+          if (event.code === 'INVALID_KEY' && run.kind === 'spec') {
             clearLlmKey();
             dispatch(setApiKeyPresent(false));
           }
@@ -850,6 +968,13 @@ export function useSpecDrivenTrigger(
           if (event.code === 'CANCELLED' && event.reason === 'abandoned') {
             appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
             toast.warning('Generation stopped after the disconnect grace period');
+          } else if (run.kind === 'lab') {
+            const line = labLine('runError', 'BESSER Lab error ({{code}}): {{message}}', {
+              code: event.code,
+              message: event.message,
+            });
+            appendErrorToChat(`❌ ${line}`);
+            reportError(line);
           } else {
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
@@ -899,24 +1024,22 @@ export function useSpecDrivenTrigger(
 
   const recoveryProjectId = currentProjectRef.current?.id;
 
-  // A page reload destroys React state and the old fetch reader, but the
-  // backend worker now continues independently. Recreate a live card and
-  // replay its durable event log. Two assistant surfaces mount this hook;
-  // the global run-slot claim ensures exactly one becomes the subscriber.
-  // The pointer is shared by every tab, so the run is adopted only when no
-  // live tab still owns it (a reload or a closed tab releases ownership).
-  useEffect(() => {
-    const saved = readActiveSpecDrivenRun(recoveryProjectId);
-    if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
-    if (isRunningRef.current) return;
-    void (async () => {
-      const releaseOwnership = await claimSpecDrivenRunOwnership(saved.runId, {
+  /**
+   * Recreate a live card for `target` and replay its durable event log from
+   * the start. The run is adopted only when no live tab still owns it (a
+   * reload or a closed tab releases ownership) and the run slot is free: two
+   * assistant surfaces mount this hook, and exactly one becomes the subscriber.
+   */
+  const followRun = useCallback(
+    async (target: FollowedRun): Promise<void> => {
+      const isLab = target.kind === 'lab';
+      const releaseOwnership = await claimSpecDrivenRunOwnership(target.runId, {
         ifAvailable: true,
       });
       if (!releaseOwnership) return;
       if (
         isRunningRef.current ||
-        currentProjectRef.current?.id !== saved.projectId ||
+        (currentProjectRef.current?.id ?? '') !== target.projectId ||
         !dispatch(tryClaimRunSlot())
       ) {
         releaseOwnership();
@@ -924,37 +1047,41 @@ export function useSpecDrivenTrigger(
       }
 
       const liveKey = createMessageId();
-      dispatch(liveRunStarted({ key: liveKey }));
+      dispatch(liveRunStarted({ key: liveKey, isLabRun: isLab }));
       const streamingId = appendAssistantMessage('', {
         isStreaming: true,
-        specDriven: emptyCard(liveKey),
+        specDriven: isLab ? { ...emptyCard(liveKey), isLabRun: true } : emptyCard(liveKey),
       });
 
       isRunningRef.current = true;
       abortRequestedRef.current = false;
-      runFinishedReportedRef.current = false;
-      currentRunIdRef.current = saved.runId;
-      activeRunStartedAtRef.current = saved.startedAt;
+      // A lab run reports to nobody, reattached or not.
+      runFinishedReportedRef.current = isLab;
+      currentRunIdRef.current = target.runId;
+      activeRunStartedAtRef.current = target.startedAt;
       runProjectNameRef.current = currentProjectRef.current?.name;
-      // After a reload only the tab's current tier choice is known, not the run's own set-up.
-      const tier = currentRunTier();
-      runAnalyticsRef.current = {
-        properties: runProperties({ ...tier, explicitMode: false, reattached: true }),
-        startedAt: saved.startedAt,
-      };
-      track('spec_run_reattached', { ...runAnalyticsRef.current.properties, age_ms: Date.now() - saved.startedAt });
+      if (!isLab) {
+        // After a reload only the tab's current tier choice is known, not the run's own set-up.
+        const tier = currentRunTier();
+        runAnalyticsRef.current = {
+          properties: runProperties({ ...tier, explicitMode: false, reattached: true }),
+          startedAt: target.startedAt,
+        };
+        track('spec_run_reattached', { ...runAnalyticsRef.current.properties, age_ms: Date.now() - target.startedAt });
+      }
       // The running card itself is intentionally not persisted. Replay from the
       // beginning so the new card reconstructs every phase and tool entry.
       lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       setIsGenerating(false);
 
-      const handle = followSpecDrivenRun(saved.runId, 0);
+      const handle = followSpecDrivenRun(target.runId, 0);
       abortRef.current = handle.abort;
-      const runCtx = {
+      const runCtx: RunContext = {
+        kind: target.kind,
         liveKey,
         streamingId,
-        projectId: saved.projectId,
+        projectId: target.projectId,
       };
 
       let terminalEventSeen = false;
@@ -968,7 +1095,9 @@ export function useSpecDrivenTrigger(
           await handleSseEvent(event, runCtx);
         }
         if (!abortRequestedRef.current && !terminalEventSeen) {
-          const message = 'The saved generation run ended without a final result.';
+          const message = isLab
+            ? labLine('streamClosed', 'The lab run stream closed before reporting a result.')
+            : 'The saved generation run ended without a final result.';
           dispatch(
             liveRunEvent({
               key: liveKey,
@@ -979,7 +1108,7 @@ export function useSpecDrivenTrigger(
           appendErrorToChat(message);
           reportRunFinished({
             ok: false,
-            runId: saved.runId,
+            runId: target.runId,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
           }, { stage: 'stream_ended_early' });
@@ -991,7 +1120,7 @@ export function useSpecDrivenTrigger(
             error instanceof SseHttpError &&
             (error.status === 404 || error.status === 410)
           ) {
-            clearActiveSpecDrivenRun(saved.runId);
+            clearActiveSpecDrivenRun(target.runId);
           }
           const message = error instanceof Error ? error.message : String(error);
           dispatch(
@@ -1001,11 +1130,17 @@ export function useSpecDrivenTrigger(
             }),
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
-          appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
-          reportError('Could not reconnect to the active generation', { error });
+          if (isLab) {
+            const line = labLine('streamError', 'BESSER Lab stream error: {{error}}', { error: message });
+            appendErrorToChat(line);
+            reportError(line, { error });
+          } else {
+            appendErrorToChat(`Could not reconnect to generation ${target.runId.slice(0, 8)}: ${message}`);
+            reportError('Could not reconnect to the active generation', { error });
+          }
           reportRunFinished({
             ok: false,
-            runId: saved.runId,
+            runId: target.runId,
             errorCode: 'INTERNAL',
             costUsd: lastCostRef.current,
           }, { stage: 'reattach', error });
@@ -1020,19 +1155,275 @@ export function useSpecDrivenTrigger(
         releaseOwnership();
         if (mountedRef.current) setIsGenerating(false);
       }
-    })();
-  }, [
-    appendAssistantMessage,
-    appendErrorToChat,
-    clearFailsafeTimer,
-    currentProjectRef,
-    dispatch,
-    finalizeLiveRun,
-    handleSseEvent,
-    recoveryProjectId,
-    reportRunFinished,
-    setIsGenerating,
-  ]);
+    },
+    [
+      appendAssistantMessage,
+      appendErrorToChat,
+      clearFailsafeTimer,
+      currentProjectRef,
+      dispatch,
+      finalizeLiveRun,
+      handleSseEvent,
+      reportRunFinished,
+      setIsGenerating,
+    ],
+  );
+
+  // A page reload destroys React state and the old fetch reader, but the
+  // backend worker continues independently: follow the run the saved
+  // pointer names. The pointer is shared by every tab (see `followRun`).
+  useEffect(() => {
+    const saved = readActiveSpecDrivenRun(recoveryProjectId);
+    if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
+    if (isRunningRef.current) return;
+    void followRun({
+      runId: saved.runId,
+      projectId: saved.projectId,
+      startedAt: saved.startedAt,
+      kind: saved.version === 2 && saved.kind === 'lab' ? 'lab' : 'spec',
+    });
+  }, [followRun, recoveryProjectId]);
+
+  /**
+   * Open a run's live card and reset the per-run refs. The caller holds the
+   * run slot. Client-generated run key: created BEFORE the backend assigns
+   * its run id, it links the card message (`specDriven.liveKey`) to the
+   * Redux slice entry every SSE event updates. The slice entry is registered
+   * first so the card's store subscription finds it on its very first paint.
+   */
+  const beginRun = useCallback(
+    (opts: {
+      kind: RunKind;
+      projectId: string;
+      projectName?: string;
+      introText?: string;
+      notice?: SpecDrivenWarningView;
+    }): RunContext => {
+      if (opts.introText) appendAssistantMessage(opts.introText);
+      const liveKey = createMessageId();
+      const isLabRun = opts.kind === 'lab';
+      dispatch(liveRunStarted({ key: liveKey, notice: opts.notice, isLabRun }));
+      const streamingId = appendAssistantMessage('', {
+        isStreaming: true,
+        specDriven: isLabRun ? { ...emptyCard(liveKey), isLabRun } : emptyCard(liveKey),
+      });
+
+      isRunningRef.current = true;
+      abortRequestedRef.current = false;
+      // A lab run reports to nobody: no run analytics, no finish notice and
+      // no `generator_result` to the modeling agent.
+      runFinishedReportedRef.current = opts.kind === 'lab';
+      currentRunIdRef.current = undefined;
+      lastCostRef.current = undefined;
+      activeRunStartedAtRef.current = Date.now();
+      runProjectNameRef.current = opts.projectName;
+      lastSequenceRef.current = 0;
+      activeCardRef.current = { liveKey, streamingId };
+      // The run card is the progress surface from here on — CLEAR the
+      // chat's typing indicator instead of pinning it for the whole run.
+      setIsGenerating(false);
+      return { kind: opts.kind, liveKey, streamingId, projectId: opts.projectId };
+    },
+    [appendAssistantMessage, dispatch, setIsGenerating],
+  );
+
+  /**
+   * Open the run's stream and consume it to its end: every event goes
+   * through `handleSseEvent`; a stream that fails to open, ends without a
+   * result, stalls or is aborted is finalized here. Every exit path
+   * finalizes the card and releases the run slot; `onEnded` runs then too.
+   */
+  const driveRun = useCallback(
+    async (run: RunContext, open: () => SpecDrivenRunHandle, onEnded?: () => void): Promise<void> => {
+      const { liveKey, streamingId } = run;
+      const isLab = run.kind === 'lab';
+      let handle: SpecDrivenRunHandle;
+      try {
+        handle = open();
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        const message = isLab
+          ? labLine('startFailed', 'BESSER Lab failed to start: {{error}}', { error: reason })
+          : `Spec-Driven Agent failed to start: ${reason}`;
+        dispatch(
+          liveRunEvent({
+            key: liveKey,
+            event: { event: 'error', code: 'INTERNAL', message },
+          }),
+        );
+        finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+        appendErrorToChat(message);
+        reportError(isLab ? message : 'Spec-Driven Agent failed to start', { error: err });
+        isRunningRef.current = false;
+        activeCardRef.current = null;
+        setIsGenerating(false);
+        dispatch(releaseRunSlot());
+        reportRunFinished({ ok: false, errorCode: 'INTERNAL' }, { stage: 'start', error: err });
+        return;
+      }
+
+      abortRef.current = handle.abort;
+
+      let terminalEventSeen = false;
+      let eventsReceived = 0;
+      try {
+        // NOTE: the loop deliberately does NOT stop when this hook's
+        // surface unmounts. All run state lives outside React (the Redux
+        // slice + the shared conversation store), so the stream keeps
+        // being consumed and the card keeps updating even if the owning
+        // surface unmounts or remounts mid-run. `mountedRef` only guards
+        // the per-surface `setIsGenerating` below.
+        for await (const event of handle.events) {
+          if (abortRequestedRef.current) break;
+          eventsReceived += 1;
+          if (event.event === 'done' || (event.event === 'error' && !isNonTerminalErrorEvent(event))) {
+            terminalEventSeen = true;
+          }
+          await handleSseEvent(event, run);
+        }
+        if (!abortRequestedRef.current && !terminalEventSeen) {
+          const message = isLab
+            ? labLine('streamClosed', 'The lab run stream closed before reporting a result.')
+            : 'The generation stream closed before reporting a final result.';
+          // Synthetic terminal event through the SAME single write path
+          // as real SSE errors — the card gets the red status + notice.
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          if (isLab) {
+            appendErrorToChat(message);
+            reportError(message);
+          } else {
+            appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
+            reportError('Spec-Driven Agent stream ended early');
+          }
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          }, { stage: 'stream_ended_early', eventsReceived });
+        }
+      } catch (err) {
+        // Expected: user-triggered abort surfaces as an AbortError.
+        // Treat it as a soft stop (no toast) so the chat doesn't look
+        // like an error occurred.
+        const isAbort =
+          err instanceof DOMException && err.name === 'AbortError';
+        if (isAbort) {
+          finalizeLiveRun(liveKey, streamingId);
+          appendAssistantMessage(
+            `⏹ ${isLab ? labLine('stopped', 'BESSER Lab run stopped by user.') : 'Spec-Driven Agent run stopped by user.'}`,
+          );
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'CANCELLED',
+            costUsd: lastCostRef.current,
+          }, { stage: 'stream' });
+        } else {
+          // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
+          // failed run: the backend may well still be generating. Name
+          // the condition honestly, in the card AND on the
+          // console (Report-issue picks up the chat copy; the console
+          // line carries the run id for server-side correlation).
+          const isStall = err instanceof SseStallError;
+          // Cast defeats TS's flow narrowing: it pins `.current` to the
+          // `undefined` assigned at run start and can't see the mutation
+          // inside `handleSseEvent`, so `.slice` would type as `never`.
+          const stallRunId = currentRunIdRef.current as string | undefined;
+          // A lab request the server refused (busy, signed out, not allowed) says why, not a status code.
+          const refusal = isLab && err instanceof SseHttpError ? labRefusal(err) : null;
+          const msg = refusal
+            ? refusal
+            : isLab && isStall
+            ? labLine(
+                'stalled',
+                'the live progress stream went quiet (no events for {{seconds}} s) and was closed. The run may still be going on the server.',
+                { seconds: Math.round((err as SseStallError).silentMs / 1000) },
+              )
+            : isStall
+            ? `the live progress stream went quiet (no events for ${Math.round((err as SseStallError).silentMs / 1000)}s) and was closed. ` +
+              `The run may still be finishing on the server — retry in a minute, or start the run again.` +
+              (stallRunId ? ` (run ${stallRunId.slice(0, 8)})` : '')
+            : err instanceof Error ? err.message : String(err);
+          if (isStall) {
+            console.error('[useSpecDrivenTrigger] SSE stream stalled — closing the run card', {
+              runId: currentRunIdRef.current,
+              liveKey,
+              eventsReceived,
+              silentMs: (err as SseStallError).silentMs,
+            });
+          }
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message: msg },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          if (isLab) {
+            const line = refusal ?? labLine('streamError', 'BESSER Lab stream error: {{error}}', { error: msg });
+            appendErrorToChat(line);
+            reportError(line, { error: err });
+          } else {
+            appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
+            reportError(
+              isStall
+                ? 'Spec-Driven Agent: live progress stream went quiet'
+                : 'Spec-Driven Agent stream error', { error: err },
+            );
+          }
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          }, { stage: isStall ? 'stall' : 'stream', error: err, eventsReceived });
+        }
+      } finally {
+        // Reader-exit trace: names HOW the event loop ended and how many
+        // events it saw, so a frozen-card report can be told apart from a
+        // clean run at a glance in the browser console.
+        console.debug('[useSpecDrivenTrigger] SSE event loop ended', {
+          runId: currentRunIdRef.current,
+          liveKey,
+          eventsReceived,
+          terminalEventSeen,
+          abortRequested: abortRequestedRef.current,
+        });
+        abortRef.current = null;
+        isRunningRef.current = false;
+        clearFailsafeTimer();
+        // Belt-and-braces: any exit path that skipped the terminal
+        // handling above (e.g. the abort break without an AbortError)
+        // still snapshots the card into the message and drops the live
+        // entry — finalizeLiveRun is idempotent.
+        finalizeLiveRun(liveKey, streamingId);
+        activeCardRef.current = null;
+        // Release the global run slot in EVERY exit path — including a
+        // stream that simply ends without a `done` event (backend
+        // closed early), which dispatches nothing else.
+        dispatch(releaseRunSlot());
+        onEnded?.();
+        if (mountedRef.current) setIsGenerating(false);
+      }
+    },
+    [
+      appendAssistantMessage,
+      appendErrorToChat,
+      clearFailsafeTimer,
+      dispatch,
+      finalizeLiveRun,
+      handleSseEvent,
+      reportRunFinished,
+      setIsGenerating,
+    ],
+  );
 
   /**
    * Do the actual SSE run after we know we have a key. Kept separate so
@@ -1248,40 +1639,17 @@ export function useSpecDrivenTrigger(
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message
           : 'Starting the Spec-Driven Agent…';
-      appendAssistantMessage(introText);
-      // Client-generated run key: created BEFORE the backend assigns its
-      // run id, it links the card message (`specDriven.liveKey`) to the
-      // Redux slice entry every SSE event updates. Register the slice
-      // entry first so the card's store subscription finds it on its
-      // very first paint.
-      const liveKey = createMessageId();
-      dispatch(
-        liveRunStarted({
-          key: liveKey,
-          // Said on the run card rather than as a chat line, so it never
-          // repeats what the assistant's own confirmation already said.
-          notice: runDecision.baseExpired
-            ? { code: 'BASE_EXPIRED', severity: 'info', message: i18n.t('assistant.runCard.rebuildAfterExpiry') }
-            : undefined,
-        }),
-      );
-      const streamingId = appendAssistantMessage('', {
-        isStreaming: true,
-        specDriven: emptyCard(liveKey),
+      const run = beginRun({
+        kind: 'spec',
+        projectId: runProject.id,
+        projectName: runProject.name,
+        introText,
+        // Said on the run card rather than as a chat line, so it never
+        // repeats what the assistant's own confirmation already said.
+        notice: runDecision.baseExpired
+          ? { code: 'BASE_EXPIRED', severity: 'info', message: i18n.t('assistant.runCard.rebuildAfterExpiry') }
+          : undefined,
       });
-
-      isRunningRef.current = true;
-      abortRequestedRef.current = false;
-      runFinishedReportedRef.current = false;
-      currentRunIdRef.current = undefined;
-      lastCostRef.current = undefined;
-      activeRunStartedAtRef.current = Date.now();
-      runProjectNameRef.current = runProject.name;
-      lastSequenceRef.current = 0;
-      activeCardRef.current = { liveKey, streamingId };
-      // The run card is the progress surface from here on — CLEAR the
-      // chat's typing indicator instead of pinning it for the whole run.
-      setIsGenerating(false);
 
       // Model-selection priority:
       //   1. User's explicit choice from the BYOK dialog (sessionStorage) —
@@ -1367,166 +1735,77 @@ export function useSpecDrivenTrigger(
       // tab still leaves the application's description behind.
       recordProjectRunRequest(project.id, payload.instructions);
 
-      let handle;
-      try {
-        handle = startSpecDrivenRun(runParams);
-      } catch (err) {
-        const message = `Spec-Driven Agent failed to start: ${err instanceof Error ? err.message : String(err)}`;
-        dispatch(
-          liveRunEvent({
-            key: liveKey,
-            event: { event: 'error', code: 'INTERNAL', message },
-          }),
-        );
-        finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
-        appendErrorToChat(message);
-        reportError('Spec-Driven Agent failed to start', { error: err });
-        isRunningRef.current = false;
-        activeCardRef.current = null;
-        setIsGenerating(false);
-        dispatch(releaseRunSlot());
-        reportRunFinished({ ok: false, errorCode: 'INTERNAL' }, { stage: 'start', error: err });
-        return;
-      }
-
-      abortRef.current = handle.abort;
-
-      const runCtx = { liveKey, streamingId, projectId: runProject.id };
-      let terminalEventSeen = false;
-      let eventsReceived = 0;
-      try {
-        // NOTE: the loop deliberately does NOT stop when this hook's
-        // surface unmounts. All run state lives outside React (the Redux
-        // slice + the shared conversation store), so the stream keeps
-        // being consumed and the card keeps updating even if the owning
-        // surface unmounts or remounts mid-run. `mountedRef` only guards
-        // the per-surface `setIsGenerating` below.
-        for await (const event of handle.events) {
-          if (abortRequestedRef.current) break;
-          eventsReceived += 1;
-          if (event.event === 'done' || (event.event === 'error' && !isNonTerminalErrorEvent(event))) {
-            terminalEventSeen = true;
-          }
-          await handleSseEvent(event, runCtx);
-        }
-        if (!abortRequestedRef.current && !terminalEventSeen) {
-          const message = 'The generation stream closed before reporting a final result.';
-          // Synthetic terminal event through the SAME single write path
-          // as real SSE errors — the card gets the red status + notice.
-          dispatch(
-            liveRunEvent({
-              key: liveKey,
-              event: { event: 'error', code: 'INTERNAL', message },
-            }),
-          );
-          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
-          appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
-          reportError('Spec-Driven Agent stream ended early');
-          reportRunFinished({
-            ok: false,
-            runId: currentRunIdRef.current,
-            errorCode: 'INTERNAL',
-            costUsd: lastCostRef.current,
-          }, { stage: 'stream_ended_early', eventsReceived });
-        }
-      } catch (err) {
-        // Expected: user-triggered abort surfaces as an AbortError.
-        // Treat it as a soft stop (no toast) so the chat doesn't look
-        // like an error occurred.
-        const isAbort =
-          err instanceof DOMException && err.name === 'AbortError';
-        if (isAbort) {
-          finalizeLiveRun(liveKey, streamingId);
-          appendAssistantMessage('⏹ Spec-Driven Agent run stopped by user.');
-          reportRunFinished({
-            ok: false,
-            runId: currentRunIdRef.current,
-            errorCode: 'CANCELLED',
-            costUsd: lastCostRef.current,
-          }, { stage: 'stream' });
-        } else {
-          // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
-          // failed run: the backend may well still be generating. Name
-          // the condition honestly, in the card AND on the
-          // console (Report-issue picks up the chat copy; the console
-          // line carries the run id for server-side correlation).
-          const isStall = err instanceof SseStallError;
-          // Cast defeats TS's flow narrowing: it pins `.current` to the
-          // `undefined` assigned at run start and can't see the mutation
-          // inside `handleSseEvent`, so `.slice` would type as `never`.
-          const stallRunId = currentRunIdRef.current as string | undefined;
-          const msg = isStall
-            ? `the live progress stream went quiet (no events for ${Math.round((err as SseStallError).silentMs / 1000)}s) and was closed. ` +
-              `The run may still be finishing on the server — retry in a minute, or start the run again.` +
-              (stallRunId ? ` (run ${stallRunId.slice(0, 8)})` : '')
-            : err instanceof Error ? err.message : String(err);
-          if (isStall) {
-            console.error('[useSpecDrivenTrigger] SSE stream stalled — closing the run card', {
-              runId: currentRunIdRef.current,
-              liveKey,
-              eventsReceived,
-              silentMs: (err as SseStallError).silentMs,
-            });
-          }
-          dispatch(
-            liveRunEvent({
-              key: liveKey,
-              event: { event: 'error', code: 'INTERNAL', message: msg },
-            }),
-          );
-          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
-          appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
-          reportError(
-            isStall
-              ? 'Spec-Driven Agent: live progress stream went quiet'
-              : 'Spec-Driven Agent stream error', { error: err },
-          );
-          reportRunFinished({
-            ok: false,
-            runId: currentRunIdRef.current,
-            errorCode: 'INTERNAL',
-            costUsd: lastCostRef.current,
-          }, { stage: isStall ? 'stall' : 'stream', error: err, eventsReceived });
-        }
-      } finally {
-        // Reader-exit trace: names HOW the event loop ended and how many
-        // events it saw, so a frozen-card report can be told apart from a
-        // clean run at a glance in the browser console.
-        console.debug('[useSpecDrivenTrigger] SSE event loop ended', {
-          runId: currentRunIdRef.current,
-          liveKey,
-          eventsReceived,
-          terminalEventSeen,
-          abortRequested: abortRequestedRef.current,
-        });
-        abortRef.current = null;
-        isRunningRef.current = false;
-        clearFailsafeTimer();
-        // Belt-and-braces: any exit path that skipped the terminal
-        // handling above (e.g. the abort break without an AbortError)
-        // still snapshots the card into the message and drops the live
-        // entry — finalizeLiveRun is idempotent.
-        finalizeLiveRun(liveKey, streamingId);
-        activeCardRef.current = null;
-        // Release the global run slot in EVERY exit path — including a
-        // stream that simply ends without a `done` event (backend
-        // closed early), which dispatches nothing else.
-        dispatch(releaseRunSlot());
+      await driveRun(run, () => startSpecDrivenRun(runParams), () => {
         void ownership.claim?.then((release) => release?.());
-        if (mountedRef.current) setIsGenerating(false);
-      }
+      });
     },
     [
       appendAssistantMessage,
       appendErrorToChat,
-      clearFailsafeTimer,
+      beginRun,
       currentProjectRef,
       dispatch,
-      finalizeLiveRun,
-      handleSseEvent,
+      driveRun,
       reportRunFinished,
       setIsGenerating,
     ],
+  );
+
+  /**
+   * BESSER Lab: run one step (plan or build) for the user's message. The
+   * request carries the class diagram the lab proposed for `changeId` (pending
+   * or kept), which a build step reads as the model of the extension; never
+   * another diagram of the project.
+   */
+  const handleLabMessage = useCallback(
+    async ({ message, githubSession, action, changeId }: LabMessageParams) => {
+      const project = currentProjectRef.current;
+      let projectPayload: Record<string, unknown> | null = null;
+      if (project && changeId) {
+        // Loaded on demand like `applyLabDone`: only a BESSER Lab instance needs the lab feature.
+        const { labChangeModelPayload } = await import('../../lab');
+        projectPayload = labChangeModelPayload(project, changeId);
+      }
+      if (isRunningRef.current || !dispatch(tryClaimRunSlot())) {
+        appendErrorToChat(
+          labLine('alreadyRunning', 'BESSER Lab is already running — please wait for it to finish or click Stop.'),
+        );
+        return;
+      }
+      const projectId = project?.id ?? '';
+      // This tab's claim on the run, as for a Spec-Driven run, so another tab does not adopt it.
+      const ownership: { claim?: Promise<(() => void) | null> } = {};
+      const run: RunContext = {
+        ...beginRun({ kind: 'lab', projectId, projectName: project?.name }),
+        onStart: (runId) => {
+          ownership.claim = claimSpecDrivenRunOwnership(runId);
+        },
+      };
+      let busy = false;
+      await driveRun(
+        run,
+        () => {
+          const handle = startLabRun<SpecDrivenEvent>({ message, action, project: projectPayload, githubSession });
+          return {
+            ...handle,
+            events: noteBusyRefusal(handle.events, () => {
+              busy = true;
+            }),
+          };
+        },
+        () => {
+          void ownership.claim?.then((release) => release?.());
+        },
+      );
+      if (!busy) return;
+      // Refused because a run is in progress (one this tab lost on a reload elsewhere, or another
+      // tab's): follow it here, so its result and its Stop are in this chat.
+      const inProgress = (await getLabState(githubSession).catch(() => null))?.run;
+      if (inProgress) {
+        await followRun({ runId: inProgress.runId, projectId, startedAt: inProgress.startedAt * 1000, kind: 'lab' });
+      }
+    },
+    [appendErrorToChat, beginRun, currentProjectRef, dispatch, driveRun, followRun],
   );
 
   /**
@@ -1647,5 +1926,5 @@ export function useSpecDrivenTrigger(
   // invoke the same abort logic without circular deps.
   abortActiveInternalRef.current = abortActive;
 
-  return { handleTrigger, abortActive };
+  return { handleTrigger, handleLabMessage, abortActive };
 }
