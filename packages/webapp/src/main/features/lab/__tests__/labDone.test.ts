@@ -7,7 +7,7 @@ import {
   switchDiagramTypeThunk,
   updateDiagramModelThunk,
 } from '../../../app/store/workspaceSlice';
-import type { LabDone } from '../../../shared/api/lab';
+import type { LabDone, LabThreadItem } from '../../../shared/api/lab';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { MAX_DIAGRAMS_PER_TYPE, type BesserProject } from '../../../shared/types/project';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
@@ -20,7 +20,9 @@ import {
   labChangeModelPayload,
   labProposalChangeId,
   labRevisionOf,
+  openLabChangeProject,
 } from '../labDone';
+import { createLabProject, labProjectId } from '../labProject';
 
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn(), update: vi.fn() },
@@ -69,13 +71,20 @@ const stored = (): BesserProject => ProjectStorageRepository.loadProject(store.g
 const classNamesOf = (model: unknown): string[] =>
   Object.values((model as { elements: Record<string, { name: string }> }).elements).map((element) => element.name);
 
-describe('handleLabDone without an open project', () => {
-  it('says the proposal needs a project and saves nothing', async () => {
+describe('handleLabDone in a browser without the change project', () => {
+  it("makes the change's own project and puts the proposal in its empty class diagram", async () => {
+    localStorage.clear();
     // Precondition: nothing has been loaded into the store in this file yet.
     expect(store.getState().workspace.project).toBeNull();
     await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
-    expect(toast.error).toHaveBeenCalledWith('Open a project to see the class diagram the lab agent proposes.');
-    expect(ProjectStorageRepository.getAllProjects()).toEqual([]);
+
+    expect(toast.error).not.toHaveBeenCalled();
+    const project = ProjectStorageRepository.loadProject(labProjectId('c1'))!;
+    expect(project.name).toBe('Note element');
+    expect(project.diagrams.ClassDiagram.map((diagram) => diagram.title)).toEqual(['Note metamodel']);
+    expect(labProposalChangeId(project.diagrams.ClassDiagram[0])).toBe('c1');
+    expect(store.getState().workspace.project?.id).toBe(labProjectId('c1'));
+    expect(store.getState().workspace.activeDiagram?.id).toBe(project.diagrams.ClassDiagram[0].id);
   });
 });
 
@@ -86,7 +95,11 @@ describe('handleLabDone', () => {
     localStorage.clear();
     vi.mocked(toast.error).mockClear();
     consumeAutoLayoutRequest();
-    projectId = ProjectStorageRepository.createNewProject('Lab', '', 'me').id;
+    const project = createLabProject('c1', 'Note element', 'ana');
+    // A diagram the user drew in the change's project: a proposal never replaces it.
+    project.diagrams.ClassDiagram[0] = { ...project.diagrams.ClassDiagram[0], model: classModel('Mine') as never };
+    ProjectStorageRepository.saveProject(project);
+    projectId = project.id;
     await store.dispatch(loadProjectThunk(projectId)).unwrap();
     // The user is elsewhere when the run ends.
     await store.dispatch(switchDiagramTypeThunk({ diagramType: 'StateMachineDiagram' })).unwrap();
@@ -111,20 +124,22 @@ describe('handleLabDone', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("replaces the same change's earlier proposal, and gives another change its own tab", async () => {
+  it("replaces the same change's earlier proposal, and puts another change's in that change's own project", async () => {
     await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
     const firstId = stored().diagrams.ClassDiagram[1].id;
     await handleLabDone(labDone('c1', proposalOf('Note metamodel v2', 'Note', 'Tag')));
 
-    let diagrams = stored().diagrams.ClassDiagram;
+    const diagrams = stored().diagrams.ClassDiagram;
     expect(diagrams).toHaveLength(2);
     expect(diagrams[1]).toMatchObject({ id: firstId, title: 'Note metamodel v2' });
     expect(classNamesOf(diagrams[1].model)).toEqual(['Note', 'Tag']);
 
     await handleLabDone(labDone('c2', proposalOf('Petri net', 'Place')));
-    diagrams = stored().diagrams.ClassDiagram;
-    expect(diagrams.map((diagram) => labProposalChangeId(diagram))).toEqual([null, 'c1', 'c2']);
-    expect(store.getState().workspace.activeDiagramIndex).toBe(2);
+    expect(store.getState().workspace.project?.id).toBe(labProjectId('c2'));
+    const other = ProjectStorageRepository.loadProject(labProjectId('c2'))!.diagrams.ClassDiagram;
+    expect(other.map((diagram) => labProposalChangeId(diagram))).toEqual(['c2']);
+    const own = ProjectStorageRepository.loadProject(projectId)!.diagrams.ClassDiagram;
+    expect(own.map((diagram) => labProposalChangeId(diagram))).toEqual([null, 'c1']);
   });
 
   it("once kept, the diagram is the user's: the change's next proposal opens a new tab", async () => {
@@ -293,5 +308,71 @@ describe('handleLabDone', () => {
     expect(diagrams[0].id).toBe(only.id);
     expect(classNamesOf(diagrams[0].model)).toEqual([]);
     expect(labProposalChangeId(diagrams[0])).toBeNull();
+  });
+});
+
+// D4 test 10 (canvas part): another browser opens the change; its project is rebuilt from the thread.
+describe('openLabChangeProject', () => {
+  const planRun = (at: number, ...classNames: string[]): LabThreadItem => ({
+    type: 'run',
+    runId: `r${at}`,
+    at,
+    login: 'jordi',
+    status: 'done',
+    lab: labDone('c1', proposalOf('Note metamodel', ...classNames)),
+    error: null,
+    costUsd: 0.4,
+    planVersion: 1,
+  });
+  const message = (at: number, ...classNames: string[]): LabThreadItem => ({
+    type: 'message',
+    id: `m${at}`,
+    at,
+    login: 'ana',
+    text: 'Build it',
+    action: 'build',
+    model: classModel(...classNames),
+  });
+  const CHANGE = { changeId: 'c1', title: 'Note element', owner: 'jordi' };
+
+  beforeEach(() => {
+    localStorage.clear();
+    consumeAutoLayoutRequest();
+  });
+
+  it("rebuilds the last plan's proposal, pending, when it is newer than the last message's model", async () => {
+    await openLabChangeProject(CHANGE, [message(100, 'Old'), planRun(200, 'Note', 'Tag')]);
+    const [diagram, ...rest] = ProjectStorageRepository.loadProject(labProjectId('c1'))!.diagrams.ClassDiagram;
+    expect(rest).toEqual([]);
+    expect(diagram.title).toBe('Note metamodel');
+    expect(classNamesOf(diagram.model)).toEqual(['Note', 'Tag']);
+    expect(labProposalChangeId(diagram)).toBe('c1');
+    expect(store.getState().workspace.project?.id).toBe(labProjectId('c1'));
+    expect(consumeAutoLayoutRequest()).toBe(true);
+  });
+
+  it("rebuilds the last message's model, as the change's kept model, when it is newer", async () => {
+    await openLabChangeProject(CHANGE, [planRun(100, 'Note'), message(200, 'Note', 'Mine')]);
+    const project = ProjectStorageRepository.loadProject(labProjectId('c1'))!;
+    const [diagram] = project.diagrams.ClassDiagram;
+    expect(classNamesOf(diagram.model)).toEqual(['Note', 'Mine']);
+    expect(labProposalChangeId(diagram)).toBeNull();
+    expect(diagram.config).toEqual({ labChangeId: 'c1' });
+    // It is what the next build reads.
+    expect(labChangeModelPayload(project, 'c1')).not.toBeNull();
+  });
+
+  it('keeps the project this browser already has, edits and all', async () => {
+    await openLabChangeProject(CHANGE, [planRun(100, 'Note')]);
+    await store.dispatch(updateDiagramModelThunk({ model: classModel('Note', 'Edited') as never })).unwrap();
+    await openLabChangeProject(CHANGE, [planRun(100, 'Note'), planRun(300, 'Other')]);
+    expect(classNamesOf(stored().diagrams.ClassDiagram[0].model)).toEqual(['Note', 'Edited']);
+  });
+
+  it('opens an empty project for a change whose thread has no model', async () => {
+    await openLabChangeProject(CHANGE, []);
+    const project = ProjectStorageRepository.loadProject(labProjectId('c1'))!;
+    expect(project.name).toBe('Note element');
+    expect(labChangeModelPayload(project, 'c1')).toBeNull();
   });
 });

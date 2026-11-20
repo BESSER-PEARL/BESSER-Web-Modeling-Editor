@@ -72,17 +72,18 @@ afterEach(() => {
 });
 
 describe('Push to the pull requests on a lab build card', () => {
-  it('calls the handler the surface passes to ChatMessage on a finished card', () => {
+  it('calls the handler the surface passes to ChatMessage on a finished card', async () => {
     const card = applySpecDrivenEvent({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID }, DONE);
     const onOpenPullRequest = vi.fn();
     render(
       <ChatMessage id="m1" role="assistant" content="" specDriven={card} labRun={PUSHED} onOpenPullRequest={onOpenPullRequest} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Push to the pull requests/ }));
+    // The card's lab module loads on demand.
+    fireEvent.click(await screen.findByRole('button', { name: /Push to the pull requests/ }));
     expect(onOpenPullRequest).toHaveBeenCalledWith('0123456789ab');
   });
 
-  it('calls it on a live card too', () => {
+  it('calls it on a live card too', async () => {
     const liveKey = 'live-lab-card';
     store.dispatch(liveRunStarted({ key: liveKey }));
     store.dispatch(liveRunEvent({ key: liveKey, event: DONE }));
@@ -94,7 +95,7 @@ describe('Push to the pull requests on a lab build card', () => {
           <ChatMessage id="m2" role="assistant" content="" specDriven={stub} labRun={PUSHED} onOpenPullRequest={onOpenPullRequest} />
         </Provider>,
       );
-      fireEvent.click(screen.getByRole('button', { name: /Push to the pull requests/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /Push to the pull requests/ }));
       expect(onOpenPullRequest).toHaveBeenCalledWith('0123456789ab');
     } finally {
       store.dispatch(liveRunEnded({ key: liveKey }));
@@ -116,7 +117,7 @@ describe('Open pull request on a lab build card', () => {
         onOpenPullRequest={onOpenPullRequest}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Open pull request/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Open pull request/ }));
     await waitFor(() => expect(requestLabView).toHaveBeenCalledWith({ kind: 'pullRequest', changeId: '0123456789ab' }));
     expect(onOpenPullRequest).not.toHaveBeenCalled();
   });

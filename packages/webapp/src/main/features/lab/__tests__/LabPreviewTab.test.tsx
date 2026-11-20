@@ -218,6 +218,17 @@ describe('LabPreviewTab services', () => {
     expect(screen.getByTestId('lab-preview-strip')).toHaveTextContent('modeling agent stopped');
   });
 
+  it('does not offer to restart a service the slot does not run (stopped with its reason)', async () => {
+    const reason = 'The assistant is not available in this preview: this modeling agent cannot take its port from the environment.';
+    serve(slot({ services: [service('backend'), service('frontend'), service('modeling_agent', { state: 'stopped', detail: reason })] }));
+    renderTab();
+    await screen.findByTestId('lab-preview-stopped-modeling_agent');
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Restart' }), { key: 'ArrowDown' });
+    expect(await screen.findByRole('menuitem', { name: 'Restart the backend' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Restart the editor' })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'Restart the modeling agent' })).toBeNull();
+  });
+
   it("says the change's environment is being prepared, with the step", async () => {
     const step = 'Preparing the editor environment';
     serve(slot({ detail: step, services: RUNNING.map((s) => ({ ...s, state: 'starting' as const, detail: step, startedAt: null })) }));

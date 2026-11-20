@@ -7,6 +7,7 @@ import { loadProjectThunk, updateDiagramModelThunk } from '../../../app/store/wo
 import type { LabDone } from '../../../shared/api/lab';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { handleLabDone, labProposalChangeId } from '../labDone';
+import { createLabProject } from '../labProject';
 import { LabModelProposalBanner } from '../LabModelProposalBanner';
 
 vi.mock('react-toastify', () => ({
@@ -66,7 +67,12 @@ function renderBanner() {
 beforeEach(async () => {
   localStorage.clear();
   confirm.answer = true;
-  const project = ProjectStorageRepository.createNewProject('Lab', '', 'me');
+  // The change's project, with a diagram the user drew: the proposal opens next to it.
+  const project = createLabProject('c1', 'Note element', 'ana');
+  const drawn = structuredClone(PROPOSAL.modelProposal!.model) as { elements: Record<string, { name: string }> };
+  drawn.elements.n.name = 'Mine';
+  project.diagrams.ClassDiagram[0] = { ...project.diagrams.ClassDiagram[0], model: drawn as never };
+  ProjectStorageRepository.saveProject(project);
   await store.dispatch(loadProjectThunk(project.id)).unwrap();
 });
 

@@ -140,9 +140,10 @@ describe('lab payload on the card state', () => {
 });
 
 describe('lab run card: plan', () => {
-  it('shows the summary, the steps and the open questions', () => {
+  it('shows the summary, the steps and the open questions', async () => {
     renderCard(cardAfterDone(PLAN_PAYLOAD));
-    expect(screen.getByText('Plan ready')).toBeTruthy();
+    // The card's lab module loads on demand, so the public main chunk does not carry it.
+    expect(await screen.findByText('Plan ready')).toBeTruthy();
     const plan = within(screen.getByRole('region', { name: 'Plan' }));
     expect(plan.getByText(/writes the class diagram as TOML/)).toBeTruthy();
     expect(plan.getByText('Register it in registry.py')).toBeTruthy();

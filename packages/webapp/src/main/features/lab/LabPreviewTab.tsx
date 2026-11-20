@@ -382,6 +382,8 @@ const Strip: React.FC<{
   const stateLabel = useStateLabel();
   const started = slot.startedAt !== null ? formatAgo(slot.startedAt, i18n.language) : null;
   const linkable = urlKind(slot.url) !== null;
+  // A service the slot does not run (stopped with its reason, such as the modeling agent) has nothing to restart.
+  const notRun = new Set(slot.services.filter((service) => service.state === 'stopped' && service.detail).map((service) => service.name));
   return (
     <div
       data-testid="lab-preview-strip"
@@ -431,7 +433,7 @@ const Strip: React.FC<{
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {SERVICE_ORDER.map((name) => (
+            {SERVICE_ORDER.filter((name) => !notRun.has(name)).map((name) => (
               <DropdownMenuItem key={name} onSelect={() => onRestart(name)}>
                 {t('lab.preview.restartService', { defaultValue: 'Restart the {{service}}', service: serviceLabel(name) })}
               </DropdownMenuItem>

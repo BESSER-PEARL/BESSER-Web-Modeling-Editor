@@ -255,7 +255,8 @@ describe('sending a message in the lab build', () => {
   it('sends it to the open change, with its id and the GitHub session, not to the modeling agent', async () => {
     const api = renderHarness();
     await openChange(CHANGE_A);
-    await waitFor(() => expect(contents()).toContain('user: Add a note element'));
+    // The first open loads labThread (and the run card it imports) cold, which can take over 1 s under load.
+    await waitFor(() => expect(contents()).toContain('user: Add a note element'), { timeout: 5000 });
     await submit(api, 'Also give it a colour');
     await waitFor(() => expect(startLabRun).toHaveBeenCalledTimes(1));
     expect(vi.mocked(startLabRun).mock.calls[0][0]).toMatchObject({
@@ -432,6 +433,14 @@ describe('in a public build', () => {
 // and showed "Disconnected"; the drawer's pending prompt waited for that socket forever.
 describe("the modeling agent's socket", () => {
   it('is not opened on a lab, and the chat shows the lab backend as connected', async () => {
+    const api = renderHarness();
+    await waitFor(() => expect(api.current!.connectionStatus).toBe('connected'));
+    expect(lab.connectCalls).toBe(0);
+  });
+
+  // One switch decides lab mode: the build (LAB_BUILD), not the server config read at run time.
+  it('is not opened by a lab build even before the server config says lab', async () => {
+    lab.serverEnabled = false;
     const api = renderHarness();
     await waitFor(() => expect(api.current!.connectionStatus).toBe('connected'));
     expect(lab.connectCalls).toBe(0);

@@ -22,7 +22,6 @@ import { ModelFocusLayer } from '../../features/assistant/components/ModelFocusL
 import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
 import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
-import { LabModelProposalBanner } from '../../features/lab/LabModelProposalBanner';
 import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
 import {
   OPEN_HELP_GUIDE_EVENT,
@@ -1281,8 +1280,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               userModelValidationStatusById={userModelValidationStatusById}
             />
           )}
-          {/* Above the canvas, not over it: the proposed classes it asks about stay visible. */}
-          {location.pathname === '/' && <LabModelProposalBanner className="mx-3 mt-2 max-w-none shadow-none" />}
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {children}
             {location.pathname === '/' && <ModelAttributionLayer />}

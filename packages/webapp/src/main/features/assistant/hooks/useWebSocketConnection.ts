@@ -7,15 +7,15 @@
  *  - Initial `connect()` call and teardown on unmount
  *  - Sync of connection status when the panel reopens
  *
- * On a BESSER Lab instance the chat talks to the lab backend, so the modeling
- * agent's socket is never opened: the status is then the lab backend's, which
- * answered the config request that made this instance a lab.
+ * In the BESSER Lab build (`LAB_BUILD`) the chat talks to the lab backend, so the
+ * modeling agent's socket is never opened: the status is then the lab backend's,
+ * which the lab shell already reached before any chat shows.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LAB_BUILD } from '../../../shared/constants/constant';
 import { reportError } from '../../../shared/services/errors/reportError';
-import { getLabEnabled } from '../../../shared/services/labConfig';
 import type { AssistantClient } from '../services';
 
 /* ------------------------------------------------------------------ */
@@ -52,17 +52,11 @@ export function useWebSocketConnection({
   isActive,
 }: UseWebSocketConnectionOptions): UseWebSocketConnectionReturn {
   const { t } = useTranslation();
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-
-  // Track active state in a ref so handlers (which are registered once) can
-  // check it synchronously without needing to re-register on every toggle.
-  const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
-  const labRef = useRef(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(LAB_BUILD ? 'connected' : 'disconnected');
 
   // Sync connection status when drawer reopens
   useEffect(() => {
-    if (isActive && !labRef.current) {
+    if (isActive && !LAB_BUILD) {
       setConnectionStatus(
         (assistantClient.connectionState as ConnectionStatus) ||
           (assistantClient.connected ? 'connected' : 'disconnected'),
@@ -73,6 +67,7 @@ export function useWebSocketConnection({
   // Register the onConnection handler and initiate the connection once.
   // Keep alive for the lifetime of the hook; disconnect on unmount.
   useEffect(() => {
+    if (LAB_BUILD) return undefined;
     const unsubConnection = assistantClient.onConnection((connected) => {
       let next: ConnectionStatus;
       if (connected) {
@@ -91,19 +86,12 @@ export function useWebSocketConnection({
     });
 
     setConnectionStatus('connecting');
-    void getLabEnabled().then((lab) => {
-      if (lab) {
-        labRef.current = true;
-        setConnectionStatus('connected');
-        return;
-      }
-      // connect() is idempotent \u2014 if the other surface already opened the shared
-      // client, this resolves immediately.
-      assistantClient.connect().catch(() => {
-        setConnectionStatus('disconnected');
-        // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
-        reportError(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
-      });
+    // connect() is idempotent \u2014 if the other surface already opened the shared
+    // client, this resolves immediately.
+    assistantClient.connect().catch(() => {
+      setConnectionStatus('disconnected');
+      // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
+      reportError(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
     });
 
     // The client is SHARED between the widget and the drawer, so a single

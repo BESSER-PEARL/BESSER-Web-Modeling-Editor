@@ -1,24 +1,25 @@
 /**
  * The class diagram the lab agent proposes for a metamodel or diagram-type change.
  *
- * It opens as its own ClassDiagram tab of the current project, marked as a proposal of
- * its change (`config.labProposalChangeId`, stored with the project), until the user
- * keeps or discards it. A later proposal of the same change replaces that tab, unless
- * the user edited the tab while the run was in progress: then the user's version stays
- * and the revision waits in `config.labRevision` for the banner. Once kept, the diagram
- * is the user's (`config.labChangeId` remembers its change) and a later proposal opens
- * a new tab.
+ * It opens as a ClassDiagram tab of the change's own project (`lab-<changeId>`, see
+ * `labProject.ts`), marked as a proposal of its change (`config.labProposalChangeId`,
+ * stored with the project), until the user keeps or discards it. A later proposal of the
+ * same change replaces that tab, unless the user edited the tab while the run was in
+ * progress: then the user's version stays and the revision waits in `config.labRevision`
+ * for the banner. Once kept, the diagram is the user's (`config.labChangeId` remembers its
+ * change) and a later proposal opens a new tab.
  */
 import { UMLDiagramType } from '@besser/wme';
 import { store } from '../../app/store/store';
 import { loadProjectThunk, refreshProjectStateThunk, removeDiagramThunk } from '../../app/store/workspaceSlice';
-import type { LabDone } from '../../shared/api/lab';
+import type { LabDone, LabThreadItem } from '../../shared/api/lab';
 import i18n from '../../shared/i18n';
 import { reportError } from '../../shared/services/errors/reportError';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { recordDiagramCreated, recordDiagramRenamed, recordDiagramUpdate } from '../../shared/traceability/traceStore';
 import {
   createEmptyDiagram,
+  diagramHasContent,
   isUMLModel,
   MAX_DIAGRAMS_PER_TYPE,
   type BesserProject,
@@ -26,6 +27,7 @@ import {
 } from '../../shared/types/project';
 import { requestAutoLayoutOnNextSetup } from '../../shared/utils/autoLayoutSignal';
 import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
+import { createLabProject, latestThreadModel, loadLabProject } from './labProject';
 
 const PROPOSAL_MARKER = 'labProposalChangeId';
 /** A kept proposal: still its change's model (BESSER `model_proposal._change_diagram` reads both markers). */
@@ -101,6 +103,10 @@ function placed(diagram: ProjectDiagram, proposal: ModelProposal, changeId: stri
   };
 }
 
+/** An empty diagram of no change: a new project's first tab, or a discarded proposal. */
+const isBlank = (diagram: ProjectDiagram): boolean =>
+  !diagramHasContent(diagram) && marker(diagram, PROPOSAL_MARKER) === null && marker(diagram, KEPT_MARKER) === null;
+
 /**
  * Whether the user changed `diagram` while the run was in progress: since `sentModel`, the
  * model the request carried, or, when that is unknown (the run was followed after a reload),
@@ -113,16 +119,27 @@ function editedDuringRun(diagram: ProjectDiagram, sentModel: unknown): boolean {
   return placedContent !== null && current !== placedContent;
 }
 
+/** The class diagram of change `changeId` in `project`: its pending proposal, else the one the user kept last. */
+function changeDiagram(project: BesserProject, changeId: string): ProjectDiagram | undefined {
+  if (!changeId) return undefined;
+  const diagrams = project.diagrams.ClassDiagram ?? [];
+  return (
+    diagrams.find((candidate) => marker(candidate, PROPOSAL_MARKER) === changeId) ??
+    [...diagrams].reverse().find((candidate) => marker(candidate, KEPT_MARKER) === changeId)
+  );
+}
+
+/** Whether `project` holds a class diagram of change `changeId` (pending or kept). */
+export function hasLabChangeModel(project: BesserProject | null | undefined, changeId: string): boolean {
+  return Boolean(project && changeDiagram(project, changeId));
+}
+
 /**
  * The project reduced to the class diagram of change `changeId` (its pending proposal,
  * else the one the user kept), as the lab's build step reads it; null when there is none.
  */
 export function labChangeModelPayload(project: BesserProject, changeId: string): Record<string, unknown> | null {
-  if (!changeId) return null;
-  const diagrams = project.diagrams.ClassDiagram ?? [];
-  const diagram =
-    diagrams.find((candidate) => marker(candidate, PROPOSAL_MARKER) === changeId) ??
-    [...diagrams].reverse().find((candidate) => marker(candidate, KEPT_MARKER) === changeId);
+  const diagram = changeDiagram(project, changeId);
   if (!diagram) return null;
   const reduced: BesserProject = {
     ...project,
@@ -139,9 +156,10 @@ function openProject(): BesserProject | null {
 }
 
 /**
- * Handles the `lab` payload of a lab run's `done` event: a model proposal opens as a
- * ClassDiagram tab titled with its title (the same change's earlier proposal is
- * replaced), becomes the active diagram and is laid out when the canvas opens. When the
+ * Handles the `lab` payload of a lab run's `done` event: a model proposal opens in the
+ * change's project (made when this browser has none) as a ClassDiagram tab titled with its
+ * title (the same change's earlier proposal is replaced; an empty, unmarked only diagram
+ * is reused), becomes the active diagram and is laid out when the canvas opens. When the
  * user edited that tab while the run was in progress, their version stays and the
  * proposal waits as a revision the banner offers. `sentModel` is the change's model
  * the run's request carried, when known. Failures are reported to the user; this never throws.
@@ -149,15 +167,6 @@ function openProject(): BesserProject | null {
 export async function handleLabDone(lab: LabDone, sentModel?: unknown): Promise<void> {
   const proposal = lab.modelProposal;
   if (!proposal) return;
-  const project = openProject();
-  if (!project) {
-    reportError(
-      i18n.t('lab.proposal.errors.noProject', {
-        defaultValue: 'Open a project to see the class diagram the lab agent proposes.',
-      }),
-    );
-    return;
-  }
   if (!isUMLModel(proposal.model) || proposal.model.type !== UMLDiagramType.ClassDiagram) {
     reportError(
       i18n.t('lab.proposal.errors.invalidModel', {
@@ -166,6 +175,7 @@ export async function handleLabDone(lab: LabDone, sentModel?: unknown): Promise<
     );
     return;
   }
+  const project = loadLabProject(lab.changeId) ?? createLabProject(lab.changeId, lab.title, '');
 
   const diagrams = project.diagrams.ClassDiagram;
   let index = diagrams.findIndex((diagram) => labProposalChangeId(diagram) === lab.changeId);
@@ -174,6 +184,7 @@ export async function handleLabDone(lab: LabDone, sentModel?: unknown): Promise<
     await holdRevision(project, index, proposal);
     return;
   }
+  if (index < 0 && diagrams.length === 1 && isBlank(diagrams[0])) index = 0;
   if (index < 0) {
     if (diagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
       reportError(
@@ -218,6 +229,44 @@ async function openProposal(
   // The proposal has no layout of its own: ELK arranges it when the canvas opens.
   requestAutoLayoutOnNextSetup();
   await store.dispatch(loadProjectThunk(project.id)).unwrap();
+}
+
+/**
+ * Opens change `change`'s project in the editor. A browser that has none yet (another
+ * browser, a teammate) makes it and rebuilds its class diagram from the thread: the
+ * newest of the last plan's model proposal (pending again) and the model the last
+ * message carried (the change's model, as kept). Rejects when the project cannot be loaded.
+ */
+export async function openLabChangeProject(
+  change: { changeId: string; title: string; owner: string },
+  thread: LabThreadItem[],
+): Promise<void> {
+  let project = loadLabProject(change.changeId);
+  const created = !project;
+  if (!project) {
+    project = createLabProject(change.changeId, change.title, change.owner);
+    const found = latestThreadModel(thread);
+    if (found) {
+      const blank = project.diagrams.ClassDiagram[0];
+      project.diagrams.ClassDiagram[0] =
+        found.source === 'proposal'
+          ? placed(blank, found.proposal, change.changeId)
+          : {
+              ...blank,
+              title: change.title || blank.title,
+              model: found.model as ProjectDiagram['model'],
+              config: { [KEPT_MARKER]: change.changeId },
+              lastUpdate: new Date().toISOString(),
+            };
+      const saved = project;
+      ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(saved));
+      // A proposal has no layout of its own; a message's model keeps the user's.
+      if (found.source === 'proposal') requestAutoLayoutOnNextSetup();
+    }
+  }
+  if (created || store.getState().workspace.project?.id !== project.id) {
+    await store.dispatch(loadProjectThunk(project.id)).unwrap();
+  }
 }
 
 /**

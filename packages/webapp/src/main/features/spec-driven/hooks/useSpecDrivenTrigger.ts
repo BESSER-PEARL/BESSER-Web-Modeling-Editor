@@ -64,7 +64,6 @@ import { track, type SpecRunStopReason, type SpecRunTier } from '../../../shared
 import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
-import { labRunDetails } from '@/components/chatbot-kit/ui/lab-run-result';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun, wasSpecDrivenRunCancelAccepted } from '../../../shared/api/specDriven';
 import type { LabAction, LabDone, LabIssueRef, LabReviewTask } from '../../../shared/api/lab';
@@ -801,6 +800,8 @@ export function useSpecDrivenTrigger(
             finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt: Date.now() });
             if (event.lab) {
               const lab = event.lab;
+              // Loaded here so the lab card stays out of the public main chunk.
+              const { labRunDetails } = await import('@/components/chatbot-kit/ui/lab-run-result');
               setMessages((prev) => {
                 // The change's plans so far, as its thread numbers them (first plan 1).
                 const planVersion =

@@ -38,6 +38,7 @@ import {
   turnOnRunNotification,
 } from "@/main/features/spec-driven/runFinishNotice"
 import type {
+  SpecDrivenLabView,
   SpecDrivenMessageState,
   SpecDrivenPhaseView,
   SpecDrivenRunTotals,
@@ -71,13 +72,8 @@ import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl
 import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
-import {
-  LabRunResult,
-  labRunTitle,
-  showLabView,
-  type LabChangeAction,
-  type LabRunDetails,
-} from "@/components/chatbot-kit/ui/lab-run-result"
+import type { LabChangeAction, LabRunDetails } from "@/components/chatbot-kit/ui/lab-run-result"
+import type { LabViewRequest } from "@/main/shared/services/labSession"
 import type { LabReviewResponse } from "@/main/shared/api/lab"
 import {
   fixAttemptCount,
@@ -237,10 +233,24 @@ export type LabReviewAction =
 /** Carries out a review card's action on change `changeId`; a rejection is shown on the card. */
 export type LabReviewActionHandler = (changeId: string, action: LabReviewAction) => Promise<void>
 
-// Lazy: only the lab build shows review cards, and the card's lab module stays out of the public main chunk.
+// Lazy: only the lab build shows review cards and run cards, and their lab modules stay out of the public main chunk.
 const LabReviewCard = React.lazy(() =>
   import("@/components/chatbot-kit/ui/lab-review-card").then((module) => ({ default: module.LabReviewCard })),
 )
+const loadLabRunResult = () => import("@/components/chatbot-kit/ui/lab-run-result")
+const LabRunResult = React.lazy(() => loadLabRunResult().then((module) => ({ default: module.LabRunResult })))
+/** A lab run card's title (`labRunTitle`), loaded with the card. */
+const LabRunTitle = React.lazy(() =>
+  loadLabRunResult().then((module) => ({
+    default: function LabRunTitle({ lab }: { lab: SpecDrivenLabView }) {
+      const { t } = useTranslation()
+      return <>{module.labRunTitle(t, lab)}</>
+    },
+  })),
+)
+const showLabView = (request: LabViewRequest): void => {
+  void loadLabRunResult().then((module) => module.showLabView(request))
+}
 
 export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
@@ -1914,9 +1924,11 @@ function SpecDrivenCard({
             </span>
           ) : null}
           <span className="text-sm font-medium text-foreground">
-            {lab
-              ? labRunTitle(t, lab)
-              : unenforcedCount > 0
+            {lab ? (
+              <Suspense fallback={t("lab.title", { defaultValue: "BESSER Lab" })}>
+                <LabRunTitle lab={lab} />
+              </Suspense>
+            ) : unenforcedCount > 0
               ? "Delivered — rules not enforced"
               : isIncomplete
                 ? "Generated — incomplete"
@@ -2078,7 +2090,9 @@ function SpecDrivenCard({
           </span>
         </div>
         {lab ? (
-          <LabRunResult lab={lab} details={labRun} onOpenPullRequest={onOpenPullRequest} onBuildPlan={onBuildPlan} />
+          <Suspense fallback={null}>
+            <LabRunResult lab={lab} details={labRun} onOpenPullRequest={onOpenPullRequest} onBuildPlan={onBuildPlan} />
+          </Suspense>
         ) : null}
         {runMode === "modify" && !lab ? (
           <RunChangesSummary
