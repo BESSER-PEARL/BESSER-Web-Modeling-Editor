@@ -1417,6 +1417,7 @@ export function useSpecDrivenTrigger(
         primaryKindOverride: payload.primaryKindOverride,
         targetGeneratorOverride: payload.targetGeneratorOverride,
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
+        followupStatesNothingNew: payload.rememberNewest === false,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
           recordRunSeedModel(runId, seedModel, seedContext());
@@ -1438,7 +1439,7 @@ export function useSpecDrivenTrigger(
 
       // Kept from the start, so a run that fails, is stopped or outlives the
       // tab still leaves the application's description behind.
-      recordProjectRunRequest(project.id, payload.instructions);
+      recordProjectRunRequest(project.id, payload.instructions, payload.rememberNewest !== false);
 
       let handle;
       try {
