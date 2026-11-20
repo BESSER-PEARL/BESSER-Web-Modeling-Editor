@@ -355,3 +355,35 @@ describe('a run whose previous result expired', () => {
     expect(notices()).toEqual([]);
   });
 });
+
+describe('the summary after a run', () => {
+  const summary = () => conversationStore.getMessages().filter((m) => !m.specDriven).map((m) => m.content).pop();
+
+  it.each([
+    [3, 'Updated **3** files of your application'],
+    [1, 'Updated **1** file of your application'],
+    [0, 'Changed no files of your application'],
+    [undefined, 'Updated your application'],
+  ])('an edit of the app with %s changed files says what it changed', async (changed, lead) => {
+    const id = '8'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'modify', fileCount: 40, changedFileCount: changed, recipe: { generator_used: 'fastapi' } }, id)],
+      'Fix the save button.',
+      id,
+    );
+    expect(summary()?.startsWith(`✅ ${lead}.`)).toBe(true);
+    expect(summary()).not.toContain('Generated');
+  });
+
+  it('an edit that stopped early says so after what it changed', async () => {
+    const id = '9'.repeat(32);
+    await runWith([start(id), done({ mode: 'modify', changedFileCount: 2, incomplete: true }, id)], 'Fix the save button.', id);
+    expect(summary()).toMatch(/^⚠️ Updated \*\*2\*\* files of your application, but the run \*\*stopped early/);
+  });
+
+  it('a generation keeps saying what it generated', async () => {
+    const id = 'a'.repeat(32);
+    await runWith([start(id), done({ mode: 'create', fileCount: 40, changedFileCount: 40 }, id)], 'Build a task board.', id);
+    expect(summary()).toMatch(/^✅ Generated \*\*40\*\* files\./);
+  });
+});
