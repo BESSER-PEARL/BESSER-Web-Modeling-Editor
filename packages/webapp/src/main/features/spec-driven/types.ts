@@ -344,6 +344,13 @@ export interface TriggerSpecDrivenPayload {
   /** Deterministic Phase-1 generator selected by the approved preview plan. */
   targetGeneratorOverride?: string;
   /**
+   * `false` (the agent's `remember_newest`) when the last "## Subsequent user
+   * request, verbatim" section of `instructions` states nothing new (a retry,
+   * a fix): it is not kept as part of the project's request, and the run is
+   * told so.
+   */
+  rememberNewest?: boolean;
+  /**
    * Internal UI attestation that the approved preview explicitly selected an
    * LLM-from-scratch run. Incoming agent payloads are rebuilt by
    * `useAssistantLogic` and never copy this field.

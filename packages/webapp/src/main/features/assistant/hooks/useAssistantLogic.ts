@@ -1176,6 +1176,7 @@ export function useAssistantLogic({
           payload.targetGeneratorOverride.trim()
             ? payload.targetGeneratorOverride.trim()
             : undefined,
+        rememberNewest: payload.remember_newest === false ? false : undefined,
       };
       if (!smartPayload.instructions) {
         setMessages((prev) => [

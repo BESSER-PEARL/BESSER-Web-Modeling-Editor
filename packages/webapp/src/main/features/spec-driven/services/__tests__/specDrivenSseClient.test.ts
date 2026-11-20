@@ -87,6 +87,17 @@ describe('startSpecDrivenRun request serialization', () => {
     expect(body.skip_deterministic_generator).toBeUndefined();
   });
 
+  it('says when the newest message states nothing new, and only then', () => {
+    const start = (followupStatesNothingNew?: boolean) =>
+      startSpecDrivenRun({ project: {}, instructions: 'x', provider: 'openai', apiKey: 'sk-test', followupStatesNothingNew });
+    start(true);
+    start(false);
+    start();
+
+    const bodies = vi.mocked(streamSse).mock.calls.map((call) => call[1] as Record<string, unknown>);
+    expect(bodies.map((body) => body.followup_states_nothing_new)).toEqual([true, undefined, undefined]);
+  });
+
   it('tags the request with the telemetry session + participant in pilot mode', () => {
     vi.mocked(getPilotParticipant).mockReturnValue('P3');
     vi.mocked(getOrCreateAssistantSessionId).mockReturnValue('session-abc');
