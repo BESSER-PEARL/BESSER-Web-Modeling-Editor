@@ -1286,6 +1286,33 @@
         "connected": "Mat GitHub verbonnen",
         "connect": "GitHub verbannen"
       }
+    },
+    "storageCleanup": {
+      "title": "Browserspäicher fräimaachen",
+      "description": "Projeten ginn am lokale Späicher vun dësem Browser ofgeluecht, deen ongeféier 5 MB faasst. Wielt eeler Projeten aus, fir se ze läschen. Exportéiert virdrun all Projet, deen Dir behale wëllt.",
+      "usage": "{{used}} vun ongeféier {{limit}} benotzt",
+      "empty": "Keng gespäichert Projete fonnt.",
+      "openBadge": "Op",
+      "lastModified": "Lescht Ännerung {{date}}",
+      "selectAria": "Projet {{name}} fir ze läschen auswielen",
+      "export": "Exportéieren",
+      "exportAria": "Projet {{name}} als JSON exportéieren",
+      "hint": "De Projet, deen elo op ass, kann hei net geläscht ginn. Dir kënnt Projeten och eenzel ënner Datei › Projet opmaachen… läschen (Dreckskëscht-Ikon op all Kaart).",
+      "deleteNone": "Auswiel läschen",
+      "deleteSelected_one": "{{count}} Projet läschen ({{size}})",
+      "deleteSelected_other": "{{count}} Projeten läschen ({{size}})",
+      "confirm": {
+        "title_one": "{{count}} Projet läschen?",
+        "title_other": "{{count}} Projeten läschen?",
+        "description_one": "{{names}} aus dësem Browser läschen? Dat mécht ongeféier {{size}} fräi a kann net réckgängeg gemaach ginn. Exportéiert e virdrun, wann Dir eng Kopie behale wëllt.",
+        "description_other": "{{names}} aus dësem Browser läschen? Dat mécht ongeféier {{size}} fräi a kann net réckgängeg gemaach ginn. Exportéiert se virdrun, wann Dir eng Kopie behale wëllt."
+      },
+      "toasts": {
+        "deleted_one": "{{count}} Projet geläscht, {{size}} fräigemaach.",
+        "deleted_other": "{{count}} Projete geläscht, {{size}} fräigemaach.",
+        "deleteFailed": "Déi ausgewielte Projete konnten net geläscht ginn.",
+        "exportFailed": "De Projet „{{name}}“ konnt net exportéiert ginn."
+      }
     }
   },
   "github": {
@@ -2497,6 +2524,11 @@
         "freeDefaultModel": "dat abegraffent gratis Modell",
         "keyRemoved": "API-Schlëssel aus dësem Tab ewechgeholl."
       }
+    },
+    "storageQuota": {
+      "title": "De Browserspäicher ass bal voll ({{used}} MB vun {{limit}} MB).",
+      "instructions": "Är Projeten ginn an dësem Browser gespäichert. Läscht Projeten, déi Dir net méi braucht, fir Plaz fräi ze maachen, soss ginn nei Ännerunge vläicht net gespäichert. Klickt op „Plaz fräimaachen“, fir d'Gréisst vun all Projet ze gesinn an eeler Projeten ze läschen, oder maacht Datei › Projet opmaachen… op a benotzt d'Dreckskëscht-Ikon op enger Projetskaart. Exportéiert e Projet virdrun (Datei › Projet exportéieren…), fir eng Kopie ze behalen.",
+      "action": "Plaz fräimaachen"
     }
   },
   "shell": {
