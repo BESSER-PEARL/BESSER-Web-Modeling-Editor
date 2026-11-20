@@ -5,6 +5,7 @@ import express, { RequestHandler } from 'express';
 import * as Sentry from '@sentry/node';
 import { indexHtml, webappPath } from './constants';
 import { register } from './routes';
+import { listen } from './utils';
 import { securityHeaders } from './security-headers';
 
 const port = 8080;
@@ -59,6 +60,6 @@ app.get('/*', (req, res) => {
   res.sendFile(indexHtml);
 });
 
-const server = app.listen(port, () => {
-  console.log('BESSER Standalone Server listening at http://localhost:%s', port);
+const server = listen(app, port, process.env.HOST, () => {
+  console.log('BESSER Standalone Server listening at http://%s:%s', process.env.HOST || 'localhost', port);
 });

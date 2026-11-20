@@ -59,7 +59,6 @@ import { useLabChange } from './useLabChange';
 
 export type LabChangeTab = 'model' | 'changes' | 'try';
 const TABS: readonly LabChangeTab[] = ['model', 'changes', 'try'];
-const REPO_KEYS: readonly string[] = ['besser', 'frontend', 'modeling_agent'];
 /** Width from which chat and tabs sit side by side (Tailwind `lg`); below it one segmented control switches. */
 const WIDE_QUERY = '(min-width: 1024px)';
 
@@ -297,14 +296,10 @@ export const LabChangeView: React.FC = () => {
     }
   };
 
-  const updateFromBase = (repo: string) =>
+  const updateFromBase = (repo: LabRepoKey) =>
     runAction(`update:${repo}`, async () => {
-      if (!REPO_KEYS.includes(repo)) {
-        console.warn(`[lab] change ${ready.changeId} has a base of unknown repository ${repo}; not updated`);
-        return;
-      }
       try {
-        const result = await updateLabChangeFromBase(session, ready.changeId, repo as LabRepoKey);
+        const result = await updateLabChangeFromBase(session, ready.changeId, repo);
         if (result.outcome === 'refused') reportError(result.message);
         else toast.info(result.message || t('lab.change.updated', { defaultValue: 'The change is up to date with its base.' }));
       } catch (error) {

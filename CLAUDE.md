@@ -318,16 +318,16 @@ Walkthrough: `docs/source/contributing/new-diagram-guide/`.
   and it has no UML form, so SVG/PNG/UML-JSON exports do not apply to it (see below).
 
 ## Environment Variables
-All configuration is **build time** — no runtime config endpoint. `vite.config.ts` passes exactly seven names to
+All configuration is **build time** — no runtime config endpoint. `vite.config.ts` passes exactly eight names to
 `define` (`BACKEND_URL`, `DEPLOYMENT_URL`, `UML_BOT_WS_URL`, `POSTHOG_HOST`, `POSTHOG_KEY`, `SENTRY_DSN`,
-`APPLICATION_SERVER_VERSION`), plus `EDITOR_VERSION`, which is not an env var but the webapp `package.json`
+`APPLICATION_SERVER_VERSION`, `LAB_BUILD`), plus `EDITOR_VERSION`, which is not an env var but the webapp `package.json`
 version (stamped into JSON exports); `shared/constants/constant.ts` is the only reader. For local dev none are needed.
 Full reference: `docs/source/reference/environment.rst`.
 - **`define` is a text substitution**: `process.env[name]` is never replaced. A new variable needs a static name
   added to both `vite.config.ts` and `constant.ts`.
 - **`GITHUB_CLIENT_ID` does nothing here** (declared in the Dockerfile, read by nothing). GitHub OAuth runs in the
   BESSER backend (`services/deployment/github_oauth.py`); set the OAuth variables there.
-- `packages/server` reads only `DEPLOYMENT_URL` and `SENTRY_DSN` at runtime; its port is hardcoded to 8080. Its
+- `packages/server` reads only `DEPLOYMENT_URL`, `SENTRY_DSN` and `HOST` (listen address; every interface when unset) at runtime; its port is hardcoded to 8080. Its
   webpack bundle bakes in `BACKEND_URL`, `UML_BOT_WS_URL` and `POSTHOG_HOST` for the Content-Security-Policy
   (from the environment, then `packages/webapp/.env`), so it allows what the webapp was built with.
 

@@ -3741,8 +3741,11 @@ export interface components {
          * @description An issue a change started from.
          */
         LabIssue: {
-            /** Repo */
-            repo: string;
+            /**
+             * Repo
+             * @enum {string}
+             */
+            repo: "besser" | "frontend" | "modeling_agent";
             /** Number */
             number: number;
             /** Title */
@@ -4179,8 +4182,11 @@ export interface components {
          * @description Where a change's repository started, and how far its base moved since.
          */
         LabRepoBaseStatus: {
-            /** Repo */
-            repo: string;
+            /**
+             * Repo
+             * @enum {string}
+             */
+            repo: "besser" | "frontend" | "modeling_agent";
             /** Upstream */
             upstream: string;
             /** Branch */
@@ -8451,7 +8457,7 @@ export interface operations {
                     "application/json": components["schemas"]["LabPullRequestsResponse"];
                 };
             };
-            /** @description A ``closesIssues`` entry is not one of the change's issues. */
+            /** @description A ``closesIssues`` entry is not one of the change's issues: ``{"detail": {"code": "bad_request", "message"}}``. */
             400: {
                 headers: {
                     [name: string]: unknown;

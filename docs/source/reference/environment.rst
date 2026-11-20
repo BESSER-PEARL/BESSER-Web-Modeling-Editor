@@ -113,7 +113,7 @@ Server (runtime)
 
 ``packages/server`` is a thin Express app that serves the built webapp and two
 small endpoints (``POST /api/uml-agent/rate-limit/check`` and ``POST /api/svg``).
-It reads only two variables at runtime:
+It reads only three variables at runtime:
 
 ``DEPLOYMENT_URL``
    Rewrites literal ``http://localhost:8080`` occurrences inside
@@ -122,6 +122,10 @@ It reads only two variables at runtime:
 ``SENTRY_DSN``
    Optional DSN for server-side error reporting. Its origin also goes into the
    Content-Security-Policy, so set the same DSN here as for the webapp build.
+
+``HOST``
+   The address to listen on, e.g. ``127.0.0.1`` behind a proxy on the same
+   machine (the BESSER Lab host). Unset, the server listens on every interface.
 
 The listening port is hardcoded to ``8080`` in ``packages/server/src/main/server.ts``.
 

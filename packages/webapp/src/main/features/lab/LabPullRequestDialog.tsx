@@ -12,13 +12,7 @@ import {
   type LabIssue,
   type LabIssueRef,
   type LabPullRequestsResponse,
-  type LabRepoKey,
 } from '../../shared/api/lab';
-
-const REPO_KEYS: readonly LabRepoKey[] = ['besser', 'frontend', 'modeling_agent'];
-
-/** `LabIssue.repo` is a plain string in the API model; the request takes the repository key. */
-const repoKey = (repo: string): LabRepoKey | null => (REPO_KEYS as readonly string[]).includes(repo) ? (repo as LabRepoKey) : null;
 
 const issueKey = (issue: { repo: string; number: number }) => `${issue.repo}#${issue.number}`;
 
@@ -67,13 +61,9 @@ export const LabPullRequestDialog: React.FC<LabPullRequestDialogProps> = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const closesIssues: LabIssueRef[] = [];
-    for (const issue of issues) {
-      if (!ticked.has(issueKey(issue))) continue;
-      const repo = repoKey(issue.repo);
-      if (repo) closesIssues.push({ repo, number: issue.number });
-      else console.warn(`[lab] issue ${issueKey(issue)} names an unknown repository; it is not sent as closed`);
-    }
+    const closesIssues: LabIssueRef[] = issues
+      .filter((issue) => ticked.has(issueKey(issue)))
+      .map(({ repo, number }) => ({ repo, number }));
     setBusy(true);
     setFailure(null);
     try {

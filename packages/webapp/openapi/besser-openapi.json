@@ -4607,7 +4607,7 @@
             }
           },
           "400": {
-            "description": "A ``closesIssues`` entry is not one of the change's issues."
+            "description": "A ``closesIssues`` entry is not one of the change's issues: ``{\"detail\": {\"code\": \"bad_request\", \"message\"}}``."
           },
           "422": {
             "description": "Validation Error",
@@ -9458,6 +9458,11 @@
         "properties": {
           "repo": {
             "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
             "title": "Repo"
           },
           "number": {
@@ -10575,6 +10580,11 @@
         "properties": {
           "repo": {
             "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
             "title": "Repo"
           },
           "upstream": {
