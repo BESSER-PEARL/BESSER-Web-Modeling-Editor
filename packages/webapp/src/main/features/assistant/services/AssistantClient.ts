@@ -152,6 +152,7 @@ const KNOWN_ACTIONS = new Set([
   'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
+  'trigger_github_save',
   'auto_generate_gui',
   'agent_error',
   'progress',
@@ -179,6 +180,7 @@ const SIDE_EFFECT_ACTIONS = new Set([
   'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
+  'trigger_github_save',
   'auto_generate_gui',
 ]);
 
