@@ -714,7 +714,7 @@ export function useAssistantLogic({
           unenforced > 0
             ? ` ${unenforced} rule${unenforced === 1 ? '' : 's'} the user asked for ${unenforced === 1 ? 'is' : 'are'} NOT enforced in the delivered code; the run card lists ${unenforced === 1 ? 'it' : 'them'} with the reason.`
             : '';
-        // Blockers apart from findings not confirmed, on a complete run of a newer backend.
+        // The real blockers of a complete run of a newer backend (its blockerCount is padded).
         const unresolved = unresolvedBlockerCount(result) ?? 0;
         const readyFor = result.fileName ? `; ${result.fileName} is ready for the user to download` : '';
         const messageText = result.ok
@@ -727,7 +727,11 @@ export function useAssistantLogic({
               : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
             : result.unverified
               ? // A whole class of checks left no evidence: not a success.
-                `Spec-Driven Agent ${result.mode === 'modify' ? 'updated the app, but the update' : 'generated the app, but it'} is NOT verified${readyFor}.${result.unverifiedReason ? ` ${result.unverifiedReason}` : ''}`
+                `Spec-Driven Agent ${result.mode === 'modify' ? 'updated the app, but the update' : 'generated the app, but it'} is NOT verified${readyFor}.${result.unverifiedReason ? ` ${result.unverifiedReason}` : ''}${
+                  unresolved > 0
+                    ? ` ${unresolved} unresolved implementation or verification issue${unresolved === 1 ? '' : 's'} remain${unresolved === 1 ? 's' : ''}.`
+                    : ''
+                }`
               : typeof result.notConfirmedCount !== 'number'
                 ? `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.${
                     typeof result.blockerCount === 'number' && result.blockerCount > 0
@@ -760,6 +764,7 @@ export function useAssistantLogic({
             incompleteReason: result.incompleteReason,
             blockerCount: result.blockerCount,
             notConfirmedCount: result.notConfirmedCount,
+            unresolvedBlockerCount: result.unresolvedBlockerCount,
             unverified: result.unverified,
             unverifiedReason: result.unverifiedReason,
             verification: result.verificationCounts,

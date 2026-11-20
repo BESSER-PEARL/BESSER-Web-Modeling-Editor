@@ -1868,7 +1868,13 @@ function SpecDrivenCard({
     // An older backend's blockerCount mixes blockers with findings not confirmed.
     const splitsNotConfirmed = typeof notConfirmedCount === "number"
     const unresolved =
-      unresolvedBlockerCount({ incomplete: isIncomplete, blockerCount, notConfirmedCount, unverified: isUnverified }) ?? 0
+      unresolvedBlockerCount({
+        incomplete: isIncomplete,
+        blockerCount,
+        notConfirmedCount,
+        unresolvedBlockerCount: specDriven.unresolvedBlockerCount,
+        unverified: isUnverified,
+      }) ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">

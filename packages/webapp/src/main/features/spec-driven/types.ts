@@ -249,12 +249,15 @@ export interface DoneEvent {
   /** Number of unresolved blocker-severity issues left by a run whose
    * loop COMPLETED (0 for runs that were genuinely cut short). Drives
    * "finished with N unresolved issues" framing instead of the
-   * misleading "stopped early" copy. On a run that is not incomplete it also
-   * counts `notConfirmedCount`, and on an unverified run at least one per class
-   * of checks that never ran. */
+   * misleading "stopped early" copy. On a run that is not incomplete it is
+   * padded for released editors: it also counts `notConfirmedCount`, notes of
+   * checks switched off, and on an unverified run at least one per class of
+   * checks that never ran. */
   blockerCount?: number;
   /** Findings where a check reached no conclusion; never blockers. Absent from older backends. */
   notConfirmedCount?: number;
+  /** The real unresolved blockers, on every run. Absent from older backends. */
+  unresolvedBlockerCount?: number;
   /** The run is not incomplete, but a whole class of checks left no evidence
    * on the delivered app; `unverifiedReason` is the sentence to show. */
   unverified?: boolean;
@@ -479,6 +482,8 @@ export interface SpecDrivenMessageState {
   blockerCount?: number;
   /** Absent on cards from a backend that does not split findings not confirmed out. */
   notConfirmedCount?: number;
+  /** The backend's real unresolved blockers; absent from older backends. */
+  unresolvedBlockerCount?: number;
   /** A whole class of checks left no evidence; absent unless the backend said so. */
   unverified?: boolean;
   unverifiedReason?: string;

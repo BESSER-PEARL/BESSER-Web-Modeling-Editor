@@ -220,6 +220,8 @@ export interface SpecDrivenRunResult {
    * (counted in a complete run's `blockerCount`), and whether a whole class of
    * checks left no evidence, with the sentence that says which. */
   notConfirmedCount?: number;
+  /** The backend's real unresolved blockers, on every run; absent from older backends. */
+  unresolvedBlockerCount?: number;
   unverified?: boolean;
   unverifiedReason?: string;
   /** TRUE totals from the done event's verification report — what the run
@@ -674,6 +676,11 @@ export function useSpecDrivenTrigger(
             typeof event.notConfirmedCount === 'number'
               ? Math.max(0, Math.round(event.notConfirmedCount))
               : undefined;
+          // The backend's real blockers; its blockerCount is padded for released editors.
+          const realBlockerCount =
+            typeof event.unresolvedBlockerCount === 'number'
+              ? Math.max(0, Math.round(event.unresolvedBlockerCount))
+              : undefined;
           const unverified = event.unverified === true && !incomplete;
           const unverifiedReason =
             unverified && typeof event.unverifiedReason === 'string' && event.unverifiedReason.trim()
@@ -773,7 +780,7 @@ export function useSpecDrivenTrigger(
                 : '';
             const unresolved = incomplete
               ? 0
-              : unresolvedBlockerCount({ blockerCount, notConfirmedCount, unverified }) ?? 0;
+              : unresolvedBlockerCount({ blockerCount, notConfirmedCount, unresolvedBlockerCount: realBlockerCount, unverified }) ?? 0;
             const unresolvedPhrase = `**${unresolved} unresolved implementation or verification issue${unresolved === 1 ? '' : 's'}** remain${unresolved === 1 ? 's' : ''}.`;
             const notConfirmedPhrase =
               !incomplete && !unverified && (notConfirmedCount ?? 0) > 0
@@ -788,7 +795,7 @@ export function useSpecDrivenTrigger(
                 : unenforcedCount > 0
                   ? `⚠️ ${whatPhrase}, but ${unenforcedPhrase}${checksPhrase}${unverified ? ` The ${appNoun} is also **not verified**.${reasonPhrase}` : ''}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
                   : unverified
-                    ? `⚠️ ${whatPhrase}, but the ${appNoun} is **not verified**.${reasonPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                    ? `⚠️ ${whatPhrase}, but the ${appNoun} is **not verified**.${reasonPhrase}${unresolved > 0 ? ` ${unresolvedPhrase}` : ''}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
                     : unresolved > 0
                       ? `⚠️ ${whatPhrase}, but ${unresolvedPhrase}${notConfirmedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
                       : `✅ ${whatPhrase}.${checksPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
@@ -819,6 +826,7 @@ export function useSpecDrivenTrigger(
             stoppedByUser,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
             notConfirmedCount,
+            unresolvedBlockerCount: realBlockerCount,
             unverified: unverified || undefined,
             unverifiedReason,
             verificationCounts,

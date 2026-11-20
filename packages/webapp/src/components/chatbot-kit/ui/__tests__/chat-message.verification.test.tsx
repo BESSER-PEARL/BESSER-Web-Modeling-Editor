@@ -341,24 +341,46 @@ describe('run card — not verified, not confirmed and real blockers', () => {
   });
 
   it('heads a run with no evidence for a class of checks as not verified, with the reason', () => {
-    renderCard(finished({ blockerCount: 1, notConfirmedCount: 0, unverified: true, unverifiedReason: REASON }));
+    renderCard(finished({ blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 0, unverified: true, unverifiedReason: REASON }));
     expect(headline(/— not verified/)).toBe('Generated — not verified');
     expect(screen.getByText(REASON)).toBeTruthy();
     expect(screen.queryByText('Application ready')).toBeNull();
   });
 
+  it('states the real blocker of a run that is not verified too', () => {
+    renderCard(finished({ blockerCount: 2, notConfirmedCount: 0, unresolvedBlockerCount: 1, unverified: true, unverifiedReason: REASON }));
+    expect(headline(/— not verified/)).toBe('Generated — not verified· 1 unresolved blocker');
+  });
+
   it('heads an edit run with no such evidence as an update that was not verified', () => {
-    renderCard(finished({ runMode: 'modify', blockerCount: 2, notConfirmedCount: 2, unverified: true, unverifiedReason: REASON }));
+    const updated = 'The app was updated, but it was never started, so nothing shows it runs (its startup timed out).';
+    renderCard(finished({
+      runMode: 'modify', blockerCount: 2, notConfirmedCount: 2, unresolvedBlockerCount: 0, unverified: true, unverifiedReason: updated,
+    }));
     expect(headline(/— not verified/)).toBe('Updated — not verified');
-    expect(screen.getByText(REASON)).toBeTruthy();
+    expect(screen.getByText(updated)).toBeTruthy();
   });
 
   it('counts findings not confirmed from their own field, with no blocker', () => {
-    renderCard(finished({ blockerCount: 3, notConfirmedCount: 3 }));
+    renderCard(finished({ blockerCount: 3, notConfirmedCount: 3, unresolvedBlockerCount: 0 }));
     expect(headline(/Application ready/)).toBe('Application ready· 3 could not be confirmed');
   });
 
   it('shows the real blockers as blockers and the rest as not confirmed', () => {
+    renderCard(finished({ blockerCount: 5, notConfirmedCount: 3, unresolvedBlockerCount: 2 }));
+    expect(headline(/Application ready/)).toBe(
+      'Application ready· 2 unresolved blockers· 3 could not be confirmed',
+    );
+  });
+
+  it('takes the real blockers from the count when the server sends it, not from blockerCount', () => {
+    // blockerCount still counts the note of a check switched off on the server.
+    renderCard(finished({ blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 0, checksOff: ['build'], unverified: false }));
+    expect(headline(/Application ready/)).toBe('Application ready');
+    expect(screen.getByText('Not checked on this server: build')).toBeTruthy();
+  });
+
+  it('subtracts the findings not confirmed for a backend without the real count', () => {
     renderCard(finished({ blockerCount: 5, notConfirmedCount: 3 }));
     expect(headline(/Application ready/)).toBe(
       'Application ready· 2 unresolved blockers· 3 could not be confirmed',
@@ -431,7 +453,15 @@ describe('run card — ran and failed', () => {
 
 describe('run card — checks switched off on the server', () => {
   it('says so in one quiet line, without a not-verified headline or a count', () => {
-    renderCard({ ...doneCard(undefined), incomplete: false, blockerCount: 0, notConfirmedCount: 0, checksOff: ['build', 'requirements'] });
+    renderCard({
+      ...doneCard(undefined),
+      incomplete: false,
+      blockerCount: 2,
+      notConfirmedCount: 0,
+      unresolvedBlockerCount: 0,
+      unverified: false,
+      checksOff: ['build', 'requirements'],
+    });
     expect(screen.getByText('Not checked on this server: build, requirements')).toBeTruthy();
     expect(screen.getByText('Application ready').parentElement!.textContent).toBe('Application ready');
   });

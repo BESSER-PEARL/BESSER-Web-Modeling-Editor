@@ -229,18 +229,20 @@ const readChecksOff = (raw: unknown): string[] | undefined => {
 
 /**
  * The unresolved blockers of a finished run. On a run that is not incomplete
- * the backend's `blockerCount` adds the findings not confirmed, and on an
- * unverified run at least one per class of checks that never ran, so the split
- * is unknown there. Undefined when unknown, and on a complete run from a
- * backend without `notConfirmedCount` (its count keeps the old meaning).
+ * the backend's `blockerCount` is padded for released editors (findings not
+ * confirmed, notes of checks switched off, classes of checks that never ran),
+ * so its own `unresolvedBlockerCount` is read there. A backend without it gets
+ * the findings not confirmed subtracted; undefined when even that is unknown.
  */
 export function unresolvedBlockerCount(run: {
   incomplete?: boolean;
   blockerCount?: number;
   notConfirmedCount?: number;
+  unresolvedBlockerCount?: number;
   unverified?: boolean;
 }): number | undefined {
   if (run.incomplete) return run.blockerCount ?? 0;
+  if (typeof run.unresolvedBlockerCount === 'number') return run.unresolvedBlockerCount;
   if (typeof run.notConfirmedCount !== 'number' || run.unverified) return undefined;
   return Math.max(0, (run.blockerCount ?? 0) - run.notConfirmedCount);
 }
@@ -461,6 +463,9 @@ export function applySpecDrivenEvent(
         // Additive: an older backend sends none of these, and its card keeps none.
         ...(typeof event.notConfirmedCount === 'number' && {
           notConfirmedCount: Math.max(0, Math.round(event.notConfirmedCount)),
+        }),
+        ...(typeof event.unresolvedBlockerCount === 'number' && {
+          unresolvedBlockerCount: Math.max(0, Math.round(event.unresolvedBlockerCount)),
         }),
         ...(event.unverified === true && {
           unverified: true,

@@ -156,13 +156,14 @@ describe('a Spec-Driven run reported to the agent, by what it could show', () =>
 
   it('says a run that is not verified is not verified, and sends the new fields', async () => {
     const { message, metadata } = await report({
-      mode: 'create', blockerCount: 1, notConfirmedCount: 0, unverified: true, unverifiedReason: REASON,
+      mode: 'create', blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 0, unverified: true, unverifiedReason: REASON,
       verificationCounts: { verified: 0, notVerified: 1, shippedUnenforced: 0, failed: 2 },
     });
     expect(message).toBe(`Spec-Driven Agent generated the app, but it is NOT verified; app.zip is ready for the user to download. ${REASON}`);
     expect(metadata).toMatchObject({
       blockerCount: 1,
       notConfirmedCount: 0,
+      unresolvedBlockerCount: 0,
       unverified: true,
       unverifiedReason: REASON,
       verification: { failed: 2 },
@@ -170,16 +171,37 @@ describe('a Spec-Driven run reported to the agent, by what it could show', () =>
   });
 
   it('says an edit that is not verified is an update that was not verified', async () => {
-    const { message } = await report({ mode: 'modify', blockerCount: 1, notConfirmedCount: 1, unverified: true, unverifiedReason: REASON });
-    expect(message).toBe(`Spec-Driven Agent updated the app, but the update is NOT verified; app.zip is ready for the user to download. ${REASON}`);
+    const updated = 'The app was updated, but it was never started, so nothing shows it runs (its startup timed out).';
+    const { message } = await report({
+      mode: 'modify', blockerCount: 1, notConfirmedCount: 1, unresolvedBlockerCount: 0, unverified: true, unverifiedReason: updated,
+    });
+    expect(message).toBe(`Spec-Driven Agent updated the app, but the update is NOT verified; app.zip is ready for the user to download. ${updated}`);
+  });
+
+  it('states the real blocker of a run that is not verified', async () => {
+    const { message } = await report({
+      mode: 'create', blockerCount: 2, notConfirmedCount: 0, unresolvedBlockerCount: 1, unverified: true, unverifiedReason: REASON,
+    });
+    expect(message).toBe(
+      `Spec-Driven Agent generated the app, but it is NOT verified; app.zip is ready for the user to download. ${REASON} `
+      + '1 unresolved implementation or verification issue remains.',
+    );
+  });
+
+  it('does not count a check switched off on the server as a blocker', async () => {
+    const { message, metadata } = await report({
+      blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 0, unverified: false,
+    });
+    expect(message).toBe('Spec-Driven Agent finished successfully — app.zip is ready for the user to download.');
+    expect(metadata).toMatchObject({ blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 0 });
   });
 
   it('counts findings not confirmed apart from blockers', async () => {
-    expect((await report({ blockerCount: 3, notConfirmedCount: 3 })).message).toBe(
+    expect((await report({ blockerCount: 3, notConfirmedCount: 3, unresolvedBlockerCount: 0 })).message).toBe(
       'Spec-Driven Agent finished successfully — app.zip is ready for the user to download. 3 checks could not be confirmed.',
     );
     cleanup();
-    expect((await report({ blockerCount: 5, notConfirmedCount: 3 })).message).toBe(
+    expect((await report({ blockerCount: 5, notConfirmedCount: 3, unresolvedBlockerCount: 2 })).message).toBe(
       'Spec-Driven Agent produced output, but 2 unresolved implementation or verification issues remain; '
       + 'app.zip is ready for the user to download. 3 checks could not be confirmed.',
     );
@@ -190,5 +212,6 @@ describe('a Spec-Driven run reported to the agent, by what it could show', () =>
     expect(message).toBe('Spec-Driven Agent finished successfully — app.zip is ready for the user to download. 2 checks could not be verified.');
     expect(JSON.parse(JSON.stringify(metadata))).not.toHaveProperty('notConfirmedCount');
     expect(JSON.parse(JSON.stringify(metadata))).not.toHaveProperty('unverified');
+    expect(JSON.parse(JSON.stringify(metadata))).not.toHaveProperty('unresolvedBlockerCount');
   });
 });

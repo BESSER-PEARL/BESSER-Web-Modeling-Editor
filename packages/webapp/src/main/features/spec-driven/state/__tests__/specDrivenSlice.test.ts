@@ -748,11 +748,13 @@ describe('a done event that tells findings not confirmed and missing evidence ap
   it('keeps the count not confirmed, whether the run is not verified, and why', () => {
     const card = finish({
       notConfirmedCount: 1,
+      unresolvedBlockerCount: 0,
       unverified: true,
       unverifiedReason: ' The app was generated, but its frontend was never built or type-checked (the build did not run). ',
     });
     expect(card).toMatchObject({
       notConfirmedCount: 1,
+      unresolvedBlockerCount: 0,
       unverified: true,
       unverifiedReason: 'The app was generated, but its frontend was never built or type-checked (the build did not run).',
     });
@@ -760,7 +762,7 @@ describe('a done event that tells findings not confirmed and missing evidence ap
 
   it('adds nothing for an older backend', () => {
     const card = finish({});
-    for (const key of ['notConfirmedCount', 'unverified', 'unverifiedReason', 'checksOff']) {
+    for (const key of ['notConfirmedCount', 'unresolvedBlockerCount', 'unverified', 'unverifiedReason', 'checksOff']) {
       expect(card).not.toHaveProperty(key);
     }
   });
