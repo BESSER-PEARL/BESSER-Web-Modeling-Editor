@@ -188,6 +188,32 @@ describe('second run: the model changed since the base app', () => {
   });
 });
 
+const MODIFY_INTRO = 'Applying your requested changes to your application…';
+const GENERATE_INTRO = 'Generating your application from your specs…';
+const intro = () => conversationStore.getMessages()[0]?.content;
+
+describe('the line before the run card says what the run does', () => {
+  it('an edit of the existing app says it applies the requested changes', async () => {
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
+    // An agent's banner cannot contradict the mode chosen here.
+    expect((await trigger({ ...PAYLOAD, message: GENERATE_INTRO })).mode).toBe('modify');
+    expect(intro()).toBe(MODIFY_INTRO);
+  });
+
+  it('a rebuild the user chose says it generates the application', async () => {
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.86, ['Room'], ['Book']));
+    vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
+    expect((await trigger({ ...PAYLOAD, message: MODIFY_INTRO })).mode).toBe('generate');
+    expect(intro()).toBe(GENERATE_INTRO);
+  });
+
+  it('a first run says it generates the application', async () => {
+    window.localStorage.clear();
+    expect((await trigger()).mode).toBe('generate');
+    expect(intro()).toBe(GENERATE_INTRO);
+  });
+});
+
 describe('second run: the question comes before the run', () => {
   it('shows no run card and claims no slot until the user answers', async () => {
     let answer: ((startFresh: boolean) => void) | undefined;
@@ -211,7 +237,7 @@ describe('second run: the question comes before the run', () => {
     });
     expect(vi.mocked(sseClient.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
     const messages = conversationStore.getMessages();
-    expect(messages[0]?.content).toBe(PAYLOAD.message);
+    expect(messages[0]?.content).toBe(GENERATE_INTRO);
     expect(messages.some((m) => (m as { specDriven?: unknown }).specDriven)).toBe(true);
   });
 

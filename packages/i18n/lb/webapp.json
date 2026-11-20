@@ -1927,6 +1927,8 @@
       "lifetimeHours_one": "{{count}} Stonn",
       "lifetimeHours_other": "{{count}} Stonnen",
       "generateAgain": "Nach eng Kéier generéieren",
+      "introModify": "Är gewënschten Ännerunge ginn op Är Applikatioun ugewannt…",
+      "introGenerate": "Är Applikatioun gëtt aus Äre Spezifikatioune generéiert…",
       "rebuildAfterExpiry": "De virege Laf kann net méi direkt geännert ginn. D'Applikatioun gëtt dofir aus dem Modell an der ursprénglecher Ufro nei gebaut.",
       "downloadUntil": "Download disponibel bis {{time}}.",
       "downloadAndGithubUntil": "Download disponibel bis {{download}}; op GitHub späichere bis {{github}}.",

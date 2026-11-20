@@ -1229,13 +1229,11 @@ export function useSpecDrivenTrigger(
       // Point of no return: the slot now holds a running run.
       dispatch(claimRunSlot());
 
-      // The free-tier / BYOK choice was already conveyed by the agent's
-      // confirmation copy before the run, so the intro line below is enough.
-      const introText =
-        typeof payload.message === 'string' && payload.message.trim().length > 0
-          ? payload.message
-          : 'Starting the Spec-Driven Agent…';
-      appendAssistantMessage(introText);
+      // Worded from the mode settled above, not from the agent's banner: the
+      // agent sends the trigger before this decision is made.
+      appendAssistantMessage(
+        i18n.t(runDecision.mode === 'modify' ? 'assistant.runCard.introModify' : 'assistant.runCard.introGenerate'),
+      );
       // Client-generated run key: created BEFORE the backend assigns its
       // run id, it links the card message (`specDriven.liveKey`) to the
       // Redux slice entry every SSE event updates. Register the slice

@@ -1927,6 +1927,8 @@
       "lifetimeHours_one": "{{count}} heure",
       "lifetimeHours_other": "{{count}} heures",
       "generateAgain": "Générer à nouveau",
+      "introModify": "Application des modifications demandées à votre application…",
+      "introGenerate": "Génération de votre application à partir de vos spécifications…",
       "rebuildAfterExpiry": "L'exécution précédente ne peut plus être modifiée sur place : l'application est donc reconstruite à partir du modèle et de la demande d'origine.",
       "downloadUntil": "Téléchargement disponible jusqu'à {{time}}.",
       "downloadAndGithubUntil": "Téléchargement disponible jusqu'à {{download}} ; enregistrement sur GitHub jusqu'à {{github}}.",
