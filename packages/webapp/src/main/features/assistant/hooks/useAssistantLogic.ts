@@ -92,6 +92,7 @@ import {
   readLastGeneration,
   setLastRunForProject,
   selectHasLiveSpecDrivenRun,
+  unresolvedBlockerCount,
 } from '../../spec-driven';
 import type { TriggerSpecDrivenPayload } from '../../spec-driven';
 import {
@@ -713,6 +714,9 @@ export function useAssistantLogic({
           unenforced > 0
             ? ` ${unenforced} rule${unenforced === 1 ? '' : 's'} the user asked for ${unenforced === 1 ? 'is' : 'are'} NOT enforced in the delivered code; the run card lists ${unenforced === 1 ? 'it' : 'them'} with the reason.`
             : '';
+        // Blockers apart from findings not confirmed, on a complete run of a newer backend.
+        const unresolved = unresolvedBlockerCount(result) ?? 0;
+        const readyFor = result.fileName ? `; ${result.fileName} is ready for the user to download` : '';
         const messageText = result.ok
           ? result.incomplete
             ? typeof result.blockerCount === 'number' && result.blockerCount > 0
@@ -721,11 +725,24 @@ export function useAssistantLogic({
                 // not say it did.
                 `Spec-Driven Agent produced output, but ${result.blockerCount} unresolved implementation or verification issue${result.blockerCount === 1 ? '' : 's'} remain${result.blockerCount === 1 ? 's' : ''}${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The generated app is not verified complete. The user can resume the run to address ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
               : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
-            : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.${
-                typeof result.blockerCount === 'number' && result.blockerCount > 0
-                  ? ` ${result.blockerCount} check${result.blockerCount === 1 ? '' : 's'} could not be verified.`
-                  : ''
-              }`
+            : result.unverified
+              ? // A whole class of checks left no evidence: not a success.
+                `Spec-Driven Agent ${result.mode === 'modify' ? 'updated the app, but the update' : 'generated the app, but it'} is NOT verified${readyFor}.${result.unverifiedReason ? ` ${result.unverifiedReason}` : ''}`
+              : typeof result.notConfirmedCount !== 'number'
+                ? `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.${
+                    typeof result.blockerCount === 'number' && result.blockerCount > 0
+                      ? ` ${result.blockerCount} check${result.blockerCount === 1 ? '' : 's'} could not be verified.`
+                      : ''
+                  }`
+                : `${
+                    unresolved > 0
+                      ? `Spec-Driven Agent produced output, but ${unresolved} unresolved implementation or verification issue${unresolved === 1 ? '' : 's'} remain${unresolved === 1 ? 's' : ''}${readyFor}.`
+                      : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
+                  }${
+                    result.notConfirmedCount > 0
+                      ? ` ${result.notConfirmedCount} check${result.notConfirmedCount === 1 ? '' : 's'} could not be confirmed.`
+                      : ''
+                  }`
           : result.errorCode === 'CANCELLED'
             ? 'Spec-Driven Agent run was cancelled by the user.'
             : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;
@@ -742,6 +759,9 @@ export function useAssistantLogic({
             incomplete: result.incomplete,
             incompleteReason: result.incompleteReason,
             blockerCount: result.blockerCount,
+            notConfirmedCount: result.notConfirmedCount,
+            unverified: result.unverified,
+            unverifiedReason: result.unverifiedReason,
             verification: result.verificationCounts,
           },
         });

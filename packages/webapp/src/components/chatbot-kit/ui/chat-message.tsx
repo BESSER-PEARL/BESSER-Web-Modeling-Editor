@@ -31,7 +31,11 @@ import { cn } from "@/lib/utils"
 import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
-import { phaseStats, selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import {
+  phaseStats,
+  selectLiveSpecDrivenRun,
+  unresolvedBlockerCount,
+} from "@/main/features/spec-driven/state/specDrivenSlice"
 import {
   canOfferRunNotification,
   isRunNotificationOn,
@@ -946,7 +950,7 @@ const VERIFICATION_KIND_LABELS: Record<
   check: "Check",
 }
 
-type VerificationTone = "unenforced" | "unchecked" | "found" | "verified"
+type VerificationTone = "unenforced" | "failed" | "unchecked" | "found" | "verified"
 
 const VERIFICATION_TONES: Record<
   VerificationTone,
@@ -956,6 +960,11 @@ const VERIFICATION_TONES: Record<
     body: "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-100",
     chip: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
     rule: "border-red-200 dark:border-red-900/50",
+  },
+  failed: {
+    body: "bg-orange-50/70 text-orange-900 dark:bg-orange-950/20 dark:text-orange-100",
+    chip: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+    rule: "border-orange-200 dark:border-orange-900/40",
   },
   unchecked: {
     body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
@@ -1041,7 +1050,7 @@ function VerificationCapNote({
 }
 
 /**
- * A ledger row for the three NON-headline states. Collapsed by default, but
+ * A ledger row for the four NON-headline states. Collapsed by default, but
  * the count is always on the row: the number is never hidden, only the
  * detail behind it.
  */
@@ -1222,7 +1231,7 @@ function RunChangesSummary({
 }
 
 /**
- * The verification report: four visually distinct states, each labelled
+ * The verification report: five visually distinct states, each labelled
  * with the TRUE total from `counts` rather than the capped list length.
  *
  * `shippedUnenforced` is the headline and is never collapsed: rules the user
@@ -1235,13 +1244,15 @@ function SpecDrivenVerificationPanel({
   verification: SpecDrivenVerificationView
 }) {
   const { t } = useTranslation()
-  const { verified, foundInCode, notVerified, shippedUnenforced, counts } =
+  const { verified, foundInCode, notVerified, shippedUnenforced, failed, counts } =
     verification
   const unenforced = counts.shippedUnenforced
   const alarm = VERIFICATION_TONES.unenforced
   // Cards saved before this state existed counted source citations as verified.
   const splitsFoundInCode = foundInCode !== undefined
   const foundInCodeCount = counts.foundInCode ?? foundInCode?.length ?? 0
+  // Older backends listed a failed test workflow under Could not verify.
+  const failedCount = counts.failed ?? failed?.length ?? 0
 
   // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
   // collapse to one summary row the user can open.
@@ -1263,6 +1274,17 @@ function SpecDrivenVerificationPanel({
             Verification
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {failedCount > 0 ? (
+              <>
+                <span className="text-foreground">
+                  {t("assistant.chatKit.verification.summaryFailed", {
+                    defaultValue: "{{count}} ran and failed",
+                    count: failedCount,
+                  })}
+                </span>
+                <span aria-hidden>·</span>
+              </>
+            ) : null}
             <span className={counts.verified > 0 ? "text-foreground" : undefined}>
               {counts.verified} verified
             </span>
@@ -1352,6 +1374,25 @@ function SpecDrivenVerificationPanel({
           emptyNote="Nothing we checked was found missing from the delivered code."
         />
       )}
+
+      {failed !== undefined ? (
+        <VerificationSection
+          label={t("assistant.chatKit.verification.failed.label", {
+            defaultValue: "Ran and failed",
+          })}
+          count={failedCount}
+          items={failed}
+          tone="failed"
+          icon={XCircle}
+          blurb={t("assistant.chatKit.verification.failed.blurb", {
+            defaultValue:
+              "A test the agent wrote ran against the app and failed; the test or the app may be wrong.",
+          })}
+          emptyNote={t("assistant.chatKit.verification.failed.empty", {
+            defaultValue: "No test that ran against the app failed.",
+          })}
+        />
+      ) : null}
 
       <VerificationSection
         label="Could not verify"
@@ -1638,6 +1679,10 @@ function SpecDrivenCard({
     incomplete,
     incompleteReason,
     blockerCount,
+    notConfirmedCount,
+    unverified,
+    unverifiedReason,
+    checksOff,
     verification,
     costUsd,
     elapsedSeconds,
@@ -1818,12 +1863,18 @@ function SpecDrivenCard({
     // blockers and still ship an app that does not enforce what was asked
     // for. Never let such a run render as "Application ready".
     const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
+    // A whole class of checks left no evidence: never "Application ready".
+    const isUnverified = unverified === true && !isIncomplete
+    // An older backend's blockerCount mixes blockers with findings not confirmed.
+    const splitsNotConfirmed = typeof notConfirmedCount === "number"
+    const unresolved =
+      unresolvedBlockerCount({ incomplete: isIncomplete, blockerCount, notConfirmedCount, unverified: isUnverified }) ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">
           {unenforcedCount > 0 ? (
             <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
-          ) : isIncomplete ? (
+          ) : isIncomplete || isUnverified ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -1833,9 +1884,13 @@ function SpecDrivenCard({
               ? "Delivered — rules not enforced"
               : isIncomplete
                 ? "Generated — incomplete"
-                : deterministic
-                  ? "Generated deterministically"
-                  : "Application ready"}
+                : isUnverified
+                  ? runMode === "modify"
+                    ? "Updated — not verified"
+                    : "Generated — not verified"
+                  : deterministic
+                    ? "Generated deterministically"
+                    : "Application ready"}
           </span>
           {unenforcedCount > 0 ? (
             <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
@@ -1843,14 +1898,19 @@ function SpecDrivenCard({
               enforced
             </span>
           ) : null}
-          {isIncomplete && (blockerCount ?? 0) > 0 ? (
+          {unresolved > 0 ? (
             <span className="text-[11px] text-amber-700 dark:text-amber-400">
-              · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+              · {unresolved} unresolved blocker{unresolved === 1 ? "" : "s"}
             </span>
           ) : null}
-          {!isIncomplete && (blockerCount ?? 0) > 0 ? (
+          {!splitsNotConfirmed && !isIncomplete && (blockerCount ?? 0) > 0 ? (
             <span className="text-[11px] text-muted-foreground">
               · {blockerCount} could not be verified
+            </span>
+          ) : null}
+          {splitsNotConfirmed && !isUnverified && (notConfirmedCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {notConfirmedCount} could not be confirmed
             </span>
           ) : null}
           {generatorUsed ? (
@@ -2002,10 +2062,24 @@ function SpecDrivenCard({
         {verification ? (
           <SpecDrivenVerificationPanel verification={verification} />
         ) : null}
+        {/* Switched off by the server's configuration: a fact, not a finding of this run. */}
+        {checksOff && checksOff.length > 0 ? (
+          <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
+            {t("assistant.chatKit.verification.checksOff", {
+              defaultValue: "Not checked on this server: {{checks}}",
+              checks: checksOff.join(", "),
+            })}
+          </p>
+        ) : null}
 
         {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
           <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {incompleteReason}
+          </p>
+        ) : null}
+        {isUnverified && unverifiedReason ? (
+          <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {unverifiedReason}
           </p>
         ) : null}
 

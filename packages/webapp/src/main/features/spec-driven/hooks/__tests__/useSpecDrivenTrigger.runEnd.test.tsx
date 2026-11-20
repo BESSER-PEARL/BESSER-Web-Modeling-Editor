@@ -429,3 +429,83 @@ describe('the summary after a run', () => {
     expect(finished).toHaveBeenCalledWith(expect.objectContaining({ ok: true, mode: 'create' }));
   });
 });
+
+describe('the summary after a run that could not show it works', () => {
+  const summary = () => conversationStore.getMessages().filter((m) => !m.specDriven).map((m) => m.content).pop();
+  const REASON =
+    'The app was generated, but it was never started, so nothing shows it runs (its startup timed out).';
+
+  it('says a generation is not verified and why, never that it is ready', async () => {
+    const id = '1'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'create', fileCount: 40, incomplete: false, blockerCount: 1, notConfirmedCount: 0, unverified: true, unverifiedReason: REASON }, id)],
+      'Build a task board.',
+      id,
+    );
+    expect(summary()).toBe(
+      `⚠️ Generated **40** files, but the generated app is **not verified**. ${REASON} `
+      + 'Use the **Download** button on the run card to save the code as-is.',
+    );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith('Generation not verified — output available to inspect');
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+    expect(finished).toHaveBeenCalledWith(expect.objectContaining({
+      ok: true, unverified: true, unverifiedReason: REASON, notConfirmedCount: 0, blockerCount: 1,
+    }));
+  });
+
+  it('says an edit is an update that was not verified', async () => {
+    const id = '2'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'modify', changedFileCount: 2, incomplete: false, blockerCount: 1, notConfirmedCount: 1, unverified: true, unverifiedReason: REASON }, id)],
+      'Fix the save button.',
+      id,
+    );
+    expect(summary()).toBe(
+      `⚠️ Updated **2** files of your application, but the updated app is **not verified**. ${REASON} `
+      + 'Use the **Download** button on the run card to save the code as-is.',
+    );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith('Update not verified — output available to inspect');
+  });
+
+  it('counts findings not confirmed apart, with no blocker', async () => {
+    const id = '3'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'create', fileCount: 40, incomplete: false, blockerCount: 3, notConfirmedCount: 3 }, id)],
+      'Build a task board.',
+      id,
+    );
+    expect(summary()).toBe(
+      '✅ Generated **40** files. 3 checks could not be confirmed. Use the **Download** button on the run card to save it.',
+    );
+  });
+
+  it('names the real blockers as unresolved issues and the rest as not confirmed', async () => {
+    const id = '4'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'create', fileCount: 40, incomplete: false, blockerCount: 5, notConfirmedCount: 3 }, id)],
+      'Build a task board.',
+      id,
+    );
+    expect(summary()).toBe(
+      '⚠️ Generated **40** files, but **2 unresolved implementation or verification issues** remain. '
+      + '3 checks could not be confirmed. Use the **Download** button on the run card to save the code as-is.',
+    );
+  });
+
+  it('reads an older backend exactly as before', async () => {
+    const id = '5'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'create', fileCount: 40, incomplete: false, blockerCount: 2 }, id)],
+      'Build a task board.',
+      id,
+    );
+    expect(summary()).toBe(
+      '✅ Generated **40** files. 2 checks could not be verified. Use the **Download** button on the run card to save it.',
+    );
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Spec-Driven Agent finished -- ready to download');
+    const result = finished.mock.calls[0][0];
+    for (const key of ['notConfirmedCount', 'unverified', 'unverifiedReason']) {
+      expect(result[key]).toBeUndefined();
+    }
+  });
+});

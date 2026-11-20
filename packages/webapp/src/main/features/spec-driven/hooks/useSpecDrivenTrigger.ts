@@ -89,6 +89,7 @@ import {
   setApiKeyPresent,
   setLastRunForProject,
   tryClaimRunSlot,
+  unresolvedBlockerCount,
 } from '../state/specDrivenSlice';
 import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
 import { loadProjectThunk } from '../../../app/store/workspaceSlice';
@@ -215,6 +216,12 @@ export interface SpecDrivenRunResult {
    * agent report "finished with N unresolved issues" instead of the
    * misleading "stopped early". */
   blockerCount?: number;
+  /** From the done event, absent from older backends: findings not confirmed
+   * (counted in a complete run's `blockerCount`), and whether a whole class of
+   * checks left no evidence, with the sentence that says which. */
+  notConfirmedCount?: number;
+  unverified?: boolean;
+  unverifiedReason?: string;
   /** TRUE totals from the done event's verification report — what the run
    * ran, only found in the code, could not verify, and delivered UNENFORCED.
    * `blockerCount` is the same evidence collapsed to one number;
@@ -225,6 +232,8 @@ export interface SpecDrivenRunResult {
     foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    /** Test workflows that ran and failed; absent when the backend does not report them. */
+    failed?: number;
   };
 }
 
@@ -653,10 +662,23 @@ export function useSpecDrivenTrigger(
                   0,
                   Math.round(vCounts.shippedUnenforced ?? 0),
                 ),
+                ...(typeof vCounts.failed === 'number' && {
+                  failed: Math.max(0, Math.round(vCounts.failed)),
+                }),
               }
             : undefined;
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          // Absent from older backends, whose blockerCount keeps its old meaning.
+          const notConfirmedCount =
+            typeof event.notConfirmedCount === 'number'
+              ? Math.max(0, Math.round(event.notConfirmedCount))
+              : undefined;
+          const unverified = event.unverified === true && !incomplete;
+          const unverifiedReason =
+            unverified && typeof event.unverifiedReason === 'string' && event.unverifiedReason.trim()
+              ? event.unverifiedReason.trim()
+              : undefined;
           const stoppedByUser = wasStoppedByUser(event, doneRunId);
           const finishedAt = Date.now();
           // Record this output as the base for a future
@@ -744,22 +766,39 @@ export function useSpecDrivenTrigger(
               unenforcedCount > 0
                 ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
                 : '';
-            // A complete run's blockerCount is unverified findings only.
-            const unverifiedPhrase =
-              !incomplete && blockerCount > 0
+            // An older backend's complete-run blockerCount is findings it could not verify.
+            const legacyPhrase =
+              notConfirmedCount === undefined && !incomplete && blockerCount > 0
                 ? ` ${blockerCount} check${blockerCount === 1 ? '' : 's'} could not be verified.`
                 : '';
+            const unresolved = incomplete
+              ? 0
+              : unresolvedBlockerCount({ blockerCount, notConfirmedCount, unverified }) ?? 0;
+            const unresolvedPhrase = `**${unresolved} unresolved implementation or verification issue${unresolved === 1 ? '' : 's'}** remain${unresolved === 1 ? 's' : ''}.`;
+            const notConfirmedPhrase =
+              !incomplete && !unverified && (notConfirmedCount ?? 0) > 0
+                ? ` ${notConfirmedCount} check${notConfirmedCount === 1 ? '' : 's'} could not be confirmed.`
+                : '';
+            const checksPhrase = `${unresolved > 0 ? ` ${unresolvedPhrase}` : ''}${notConfirmedPhrase}${legacyPhrase}`;
+            const appNoun = `${edited ? 'updated' : 'generated'} app`;
+            const reasonPhrase = unverifiedReason ? ` ${unverifiedReason}` : '';
             appendAssistantMessage(
               incomplete
                 ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
                 : unenforcedCount > 0
-                  ? `⚠️ ${whatPhrase}, but ${unenforcedPhrase}${unverifiedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
-                  : `✅ ${whatPhrase}.${unverifiedPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+                  ? `⚠️ ${whatPhrase}, but ${unenforcedPhrase}${checksPhrase}${unverified ? ` The ${appNoun} is also **not verified**.${reasonPhrase}` : ''}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : unverified
+                    ? `⚠️ ${whatPhrase}, but the ${appNoun} is **not verified**.${reasonPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                    : unresolved > 0
+                      ? `⚠️ ${whatPhrase}, but ${unresolvedPhrase}${notConfirmedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                      : `✅ ${whatPhrase}.${checksPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             if (unenforcedCount > 0) {
               toast.warning(
                 `Delivered — ${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} not enforced`,
               );
+            } else if (unverified) {
+              toast.warning(`${edited ? 'Update' : 'Generation'} not verified — output available to inspect`);
             } else if (incomplete) {
               toast.warning(`${edited ? 'Update' : 'Generation'} incomplete — output available to inspect`);
             } else {
@@ -779,6 +818,9 @@ export function useSpecDrivenTrigger(
             incompleteReason: event.incompleteReason,
             stoppedByUser,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
+            notConfirmedCount,
+            unverified: unverified || undefined,
+            unverifiedReason,
             verificationCounts,
           }, {
             stats: {

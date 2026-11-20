@@ -1906,6 +1906,13 @@
           "blurb": "Sa source est citée, mais aucun appel à l’application en cours d’exécution ne l’a atteint.",
           "empty": "Rien ne repose sur une seule citation de source."
         },
+        "summaryFailed": "{{count}} exécutés et en échec",
+        "failed": {
+          "label": "Exécuté et en échec",
+          "blurb": "Un test écrit par l’agent a été exécuté contre l’application et a échoué ; le test ou l’application peut être en cause.",
+          "empty": "Aucun test exécuté contre l’application n’a échoué."
+        },
+        "checksOff": "Non vérifié sur ce serveur : {{checks}}",
         "verifiedBlurb": "Exercé par un appel à l’application en cours d’exécution, avec la preuve.",
         "footer": "Vérifié signifie qu’un appel à l’application en cours d’exécution l’a exercé. Trouvé dans le code signifie que sa source est citée, mais que rien ne l’a exécuté. Impossible à vérifier signifie qu’il n’y a de preuve ni dans un sens ni dans l’autre — ce n’est pas une réussite."
       }

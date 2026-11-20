@@ -140,3 +140,55 @@ describe('a Spec-Driven run reported to the agent', () => {
     }));
   });
 });
+
+describe('a Spec-Driven run reported to the agent, by what it could show', () => {
+  const REASON =
+    'The app was generated, but it was never started, so nothing shows it runs (its startup timed out).';
+  const report = async (result: Record<string, unknown>) => {
+    const apiRef = renderHarness(vi.fn<OnGenerate>());
+    await waitFor(() => expect(fake.onRunFinished).toBeDefined());
+    expect(apiRef.current).not.toBeNull();
+    fake.onRunFinished!({ ok: true, runId: 'r'.repeat(32), fileName: 'app.zip', incomplete: false, ...result });
+    const calls = fake.sendFrontendEvent.mock.calls;
+    const [, payload] = calls[calls.length - 1] as unknown as [string, { message: string; metadata: Record<string, unknown> }];
+    return payload;
+  };
+
+  it('says a run that is not verified is not verified, and sends the new fields', async () => {
+    const { message, metadata } = await report({
+      mode: 'create', blockerCount: 1, notConfirmedCount: 0, unverified: true, unverifiedReason: REASON,
+      verificationCounts: { verified: 0, notVerified: 1, shippedUnenforced: 0, failed: 2 },
+    });
+    expect(message).toBe(`Spec-Driven Agent generated the app, but it is NOT verified; app.zip is ready for the user to download. ${REASON}`);
+    expect(metadata).toMatchObject({
+      blockerCount: 1,
+      notConfirmedCount: 0,
+      unverified: true,
+      unverifiedReason: REASON,
+      verification: { failed: 2 },
+    });
+  });
+
+  it('says an edit that is not verified is an update that was not verified', async () => {
+    const { message } = await report({ mode: 'modify', blockerCount: 1, notConfirmedCount: 1, unverified: true, unverifiedReason: REASON });
+    expect(message).toBe(`Spec-Driven Agent updated the app, but the update is NOT verified; app.zip is ready for the user to download. ${REASON}`);
+  });
+
+  it('counts findings not confirmed apart from blockers', async () => {
+    expect((await report({ blockerCount: 3, notConfirmedCount: 3 })).message).toBe(
+      'Spec-Driven Agent finished successfully — app.zip is ready for the user to download. 3 checks could not be confirmed.',
+    );
+    cleanup();
+    expect((await report({ blockerCount: 5, notConfirmedCount: 3 })).message).toBe(
+      'Spec-Driven Agent produced output, but 2 unresolved implementation or verification issues remain; '
+      + 'app.zip is ready for the user to download. 3 checks could not be confirmed.',
+    );
+  });
+
+  it('words an older backend exactly as before', async () => {
+    const { message, metadata } = await report({ blockerCount: 2 });
+    expect(message).toBe('Spec-Driven Agent finished successfully — app.zip is ready for the user to download. 2 checks could not be verified.');
+    expect(JSON.parse(JSON.stringify(metadata))).not.toHaveProperty('notConfirmedCount');
+    expect(JSON.parse(JSON.stringify(metadata))).not.toHaveProperty('unverified');
+  });
+});

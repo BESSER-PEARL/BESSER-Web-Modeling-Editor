@@ -25,6 +25,7 @@
  */
 
 import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
+import { CHECKS_OFF_FIELD } from '../types';
 import type {
   SpecDrivenErrorCode,
   SpecDrivenEvent,
@@ -178,6 +179,8 @@ export function extractVerification(
     : undefined;
   const notVerified = readVerificationItems(r.notVerified);
   const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
+  // Absent from backends that list a failed test workflow under notVerified.
+  const failed = Array.isArray(r.failed) ? readVerificationItems(r.failed) : undefined;
   const rawCounts =
     r.counts && typeof r.counts === 'object'
       ? (r.counts as Record<string, unknown>)
@@ -195,12 +198,14 @@ export function extractVerification(
     ...(foundInCode && { foundInCode: count('foundInCode', foundInCode.length) }),
     notVerified: count('notVerified', notVerified.length),
     shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
+    ...(failed && { failed: count('failed', failed.length) }),
   };
   if (
     counts.verified === 0 &&
     !counts.foundInCode &&
     counts.notVerified === 0 &&
-    counts.shippedUnenforced === 0
+    counts.shippedUnenforced === 0 &&
+    !counts.failed
   ) {
     return undefined;
   }
@@ -209,8 +214,35 @@ export function extractVerification(
     ...(foundInCode && { foundInCode }),
     notVerified,
     shippedUnenforced,
+    ...(failed && { failed }),
     counts,
   };
+}
+
+/** The non-empty names in a done event's list of checks switched off, or undefined. */
+const readChecksOff = (raw: unknown): string[] | undefined => {
+  const names = Array.isArray(raw)
+    ? raw.filter((name): name is string => typeof name === 'string' && name.trim() !== '').map((name) => name.trim())
+    : [];
+  return names.length > 0 ? names : undefined;
+};
+
+/**
+ * The unresolved blockers of a finished run. On a run that is not incomplete
+ * the backend's `blockerCount` adds the findings not confirmed, and on an
+ * unverified run at least one per class of checks that never ran, so the split
+ * is unknown there. Undefined when unknown, and on a complete run from a
+ * backend without `notConfirmedCount` (its count keeps the old meaning).
+ */
+export function unresolvedBlockerCount(run: {
+  incomplete?: boolean;
+  blockerCount?: number;
+  notConfirmedCount?: number;
+  unverified?: boolean;
+}): number | undefined {
+  if (run.incomplete) return run.blockerCount ?? 0;
+  if (typeof run.notConfirmedCount !== 'number' || run.unverified) return undefined;
+  return Math.max(0, (run.blockerCount ?? 0) - run.notConfirmedCount);
 }
 
 /** A phase event's run totals at its start, or undefined from an older backend. */
@@ -411,6 +443,7 @@ export function applySpecDrivenEvent(
       return { ...card, phases };
     }
     case 'done': {
+      const checksOff = readChecksOff(event[CHECKS_OFF_FIELD]);
       return {
         ...card,
         runId: event.runId || extractSpecDrivenRunId(event.downloadUrl) || card.runId,
@@ -425,6 +458,16 @@ export function applySpecDrivenEvent(
         )),
         incompleteReason: event.incompleteReason ?? undefined,
         blockerCount: event.blockerCount,
+        // Additive: an older backend sends none of these, and its card keeps none.
+        ...(typeof event.notConfirmedCount === 'number' && {
+          notConfirmedCount: Math.max(0, Math.round(event.notConfirmedCount)),
+        }),
+        ...(event.unverified === true && {
+          unverified: true,
+          ...(typeof event.unverifiedReason === 'string' &&
+            event.unverifiedReason.trim() && { unverifiedReason: event.unverifiedReason.trim() }),
+        }),
+        ...(checksOff && { checksOff }),
         generatorUsed:
           typeof event.recipe?.generator_used === 'string'
             ? event.recipe.generator_used

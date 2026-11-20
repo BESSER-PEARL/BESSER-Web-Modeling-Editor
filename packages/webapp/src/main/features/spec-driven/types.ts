@@ -192,6 +192,8 @@ export interface SpecDrivenVerificationReport {
   notVerified: SpecDrivenVerificationItem[];
   /** We checked and it is MISSING from the delivered code. */
   shippedUnenforced: SpecDrivenVerificationItem[];
+  /** A test the agent wrote ran against the app and failed. Absent from older backends. */
+  failed?: SpecDrivenVerificationItem[];
   /** TRUE totals. The three lists above are capped by the backend, so a
    * count may exceed its list length — the UI says "showing N of M". */
   counts: {
@@ -199,8 +201,12 @@ export interface SpecDrivenVerificationReport {
     foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    failed?: number;
   };
 }
+
+/** The done event's field listing classes of checks the server has switched off. */
+export const CHECKS_OFF_FIELD = 'checksOff';
 
 export interface DoneEvent {
   event: 'done';
@@ -243,8 +249,18 @@ export interface DoneEvent {
   /** Number of unresolved blocker-severity issues left by a run whose
    * loop COMPLETED (0 for runs that were genuinely cut short). Drives
    * "finished with N unresolved issues" framing instead of the
-   * misleading "stopped early" copy. */
+   * misleading "stopped early" copy. On a run that is not incomplete it also
+   * counts `notConfirmedCount`, and on an unverified run at least one per class
+   * of checks that never ran. */
   blockerCount?: number;
+  /** Findings where a check reached no conclusion; never blockers. Absent from older backends. */
+  notConfirmedCount?: number;
+  /** The run is not incomplete, but a whole class of checks left no evidence
+   * on the delivered app; `unverifiedReason` is the sentence to show. */
+  unverified?: boolean;
+  unverifiedReason?: string | null;
+  /** Classes of checks switched off on the server (e.g. "build"); never makes a run unverified. */
+  [CHECKS_OFF_FIELD]?: string[];
   /** The three states `blockerCount` collapses into one number: what the run
    * verified, what it could not check, and what it delivered UNENFORCED.
    * Additive — absent on older/interrupted runs, in which case the card
@@ -426,11 +442,14 @@ export interface SpecDrivenVerificationView {
   foundInCode?: SpecDrivenVerificationItemView[];
   notVerified: SpecDrivenVerificationItemView[];
   shippedUnenforced: SpecDrivenVerificationItemView[];
+  /** Absent on cards saved before this state existed. */
+  failed?: SpecDrivenVerificationItemView[];
   counts: {
     verified: number;
     foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    failed?: number;
   };
 }
 
@@ -458,6 +477,13 @@ export interface SpecDrivenMessageState {
   incomplete?: boolean;
   incompleteReason?: string;
   blockerCount?: number;
+  /** Absent on cards from a backend that does not split findings not confirmed out. */
+  notConfirmedCount?: number;
+  /** A whole class of checks left no evidence; absent unless the backend said so. */
+  unverified?: boolean;
+  unverifiedReason?: string;
+  /** Classes of checks the server has switched off; absent when none or not reported. */
+  checksOff?: string[];
   /**
    * What the run verified, could not verify, and shipped UNENFORCED. This is
    * the field a human reads; `blockerCount` is the same evidence collapsed to

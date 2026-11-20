@@ -328,3 +328,116 @@ describe('run card — degradation', () => {
     expect(screen.queryByText('Could not verify')).toBeNull();
   });
 });
+
+describe('run card — not verified, not confirmed and real blockers', () => {
+  const REASON =
+    'The app was generated, but it was never started, so nothing shows it runs (its startup timed out).';
+  /** The card's first row: the headline and its qualifiers. */
+  const headline = (text: RegExp) => screen.getByText(text).parentElement!.textContent;
+  const finished = (fields: Partial<SpecDrivenMessageState>): SpecDrivenMessageState => ({
+    ...doneCard(undefined),
+    incomplete: false,
+    ...fields,
+  });
+
+  it('heads a run with no evidence for a class of checks as not verified, with the reason', () => {
+    renderCard(finished({ blockerCount: 1, notConfirmedCount: 0, unverified: true, unverifiedReason: REASON }));
+    expect(headline(/— not verified/)).toBe('Generated — not verified');
+    expect(screen.getByText(REASON)).toBeTruthy();
+    expect(screen.queryByText('Application ready')).toBeNull();
+  });
+
+  it('heads an edit run with no such evidence as an update that was not verified', () => {
+    renderCard(finished({ runMode: 'modify', blockerCount: 2, notConfirmedCount: 2, unverified: true, unverifiedReason: REASON }));
+    expect(headline(/— not verified/)).toBe('Updated — not verified');
+    expect(screen.getByText(REASON)).toBeTruthy();
+  });
+
+  it('counts findings not confirmed from their own field, with no blocker', () => {
+    renderCard(finished({ blockerCount: 3, notConfirmedCount: 3 }));
+    expect(headline(/Application ready/)).toBe('Application ready· 3 could not be confirmed');
+  });
+
+  it('shows the real blockers as blockers and the rest as not confirmed', () => {
+    renderCard(finished({ blockerCount: 5, notConfirmedCount: 3 }));
+    expect(headline(/Application ready/)).toBe(
+      'Application ready· 2 unresolved blockers· 3 could not be confirmed',
+    );
+  });
+
+  it('keeps an incomplete run as it was, with its findings not confirmed next to it', () => {
+    renderCard(finished({ incomplete: true, blockerCount: 2, notConfirmedCount: 1 }));
+    expect(headline(/Generated — incomplete/)).toBe(
+      'Generated — incomplete· 2 unresolved blockers· 1 could not be confirmed',
+    );
+  });
+
+  it.each([
+    [{ incomplete: false, blockerCount: 2 }, /Application ready/, 'Application ready· 2 could not be verified'],
+    [{ incomplete: true, blockerCount: 2 }, /Generated — incomplete/, 'Generated — incomplete· 2 unresolved blockers'],
+    [{ incomplete: false, blockerCount: 0 }, /Application ready/, 'Application ready'],
+  ])('reads an older backend exactly as before (%o)', (fields, text, expected) => {
+    renderCard(finished(fields));
+    expect(headline(text)).toBe(expected);
+    expect(screen.queryByText(/could not be confirmed|not verified/)).toBeNull();
+  });
+});
+
+describe('run card — ran and failed', () => {
+  const report: SpecDrivenMessageState['verification'] = {
+    verified: [],
+    foundInCode: [],
+    notVerified: [],
+    shippedUnenforced: [],
+    failed: [
+      {
+        kind: 'api_workflow',
+        id: 'place-order',
+        what: "API workflow 'place-order'",
+        why: 'a test the agent wrote ran against the app and failed; it is not a rule from your request, and the test or the app may be wrong',
+      },
+    ],
+    counts: { verified: 0, foundInCode: 0, notVerified: 0, shippedUnenforced: 0, failed: 1 },
+  };
+
+  it('counts it in the summary row and lists it in its own section', async () => {
+    const user = userEvent.setup();
+    renderCard(doneCard(report));
+    expect(screen.getByText('1 ran and failed')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
+    const section = screen.getByRole('button', { name: /Ran and failed/ });
+    expect(section.textContent).toContain('1');
+    await user.click(section);
+    expect(screen.getByText("API workflow 'place-order'")).toBeTruthy();
+    expect(screen.getByText(/the test or the app may be wrong$/)).toBeTruthy();
+  });
+
+  it('is read from the done event, and left out for a backend that does not send it', () => {
+    expect(extractVerification(report)?.failed).toHaveLength(1);
+    expect(extractVerification(report)?.counts.failed).toBe(1);
+    const older = extractVerification({ verified: [], notVerified: [], shippedUnenforced: [], counts: { verified: 1 } });
+    expect(older).not.toHaveProperty('failed');
+    expect(older?.counts).not.toHaveProperty('failed');
+  });
+
+  it('shows no section for a report without it', async () => {
+    const user = userEvent.setup();
+    renderCard(doneCard({ verified: [], notVerified: [], shippedUnenforced: [], counts: { verified: 1, notVerified: 0, shippedUnenforced: 0 } }));
+    expect(screen.queryByText(/ran and failed/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
+    expect(screen.queryByText('Ran and failed')).toBeNull();
+  });
+});
+
+describe('run card — checks switched off on the server', () => {
+  it('says so in one quiet line, without a not-verified headline or a count', () => {
+    renderCard({ ...doneCard(undefined), incomplete: false, blockerCount: 0, notConfirmedCount: 0, checksOff: ['build', 'requirements'] });
+    expect(screen.getByText('Not checked on this server: build, requirements')).toBeTruthy();
+    expect(screen.getByText('Application ready').parentElement!.textContent).toBe('Application ready');
+  });
+
+  it('says nothing when the list is absent', () => {
+    renderCard(doneCard(undefined));
+    expect(screen.queryByText(/Not checked on this server/)).toBeNull();
+  });
+});

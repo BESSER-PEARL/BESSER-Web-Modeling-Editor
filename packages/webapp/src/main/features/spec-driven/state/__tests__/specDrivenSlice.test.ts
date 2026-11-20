@@ -25,7 +25,7 @@ import {
   tryClaimRunSlot,
 } from '../specDrivenSlice';
 import type { SpecDrivenState } from '../specDrivenSlice';
-import type { SpecDrivenEvent } from '../../types';
+import { CHECKS_OFF_FIELD, type SpecDrivenEvent } from '../../types';
 
 const INITIAL: SpecDrivenState = {
   byokDialogOpen: false,
@@ -719,5 +719,57 @@ describe('specDrivenSlice — what a run changed', () => {
     const card = applySpecDrivenEvent(CARD, DONE);
     expect(card.runMode).toBeUndefined();
     expect(card.changedFiles).toBeUndefined();
+  });
+});
+
+describe('a done event that tells findings not confirmed and missing evidence apart', () => {
+  const finish = (fields: Record<string, unknown>) => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: {},
+          incomplete: false,
+          blockerCount: 2,
+          ...fields,
+        } as SpecDrivenEvent,
+      }),
+    );
+    return state.runs.k1;
+  };
+
+  it('keeps the count not confirmed, whether the run is not verified, and why', () => {
+    const card = finish({
+      notConfirmedCount: 1,
+      unverified: true,
+      unverifiedReason: ' The app was generated, but its frontend was never built or type-checked (the build did not run). ',
+    });
+    expect(card).toMatchObject({
+      notConfirmedCount: 1,
+      unverified: true,
+      unverifiedReason: 'The app was generated, but its frontend was never built or type-checked (the build did not run).',
+    });
+  });
+
+  it('adds nothing for an older backend', () => {
+    const card = finish({});
+    for (const key of ['notConfirmedCount', 'unverified', 'unverifiedReason', 'checksOff']) {
+      expect(card).not.toHaveProperty(key);
+    }
+  });
+
+  it('reads the checks switched off on the server from their one field name', () => {
+    expect(finish({ [CHECKS_OFF_FIELD]: ['build', ' requirements ', '', 3] }).checksOff).toEqual([
+      'build',
+      'requirements',
+    ]);
+    expect(finish({ [CHECKS_OFF_FIELD]: [] })).not.toHaveProperty('checksOff');
   });
 });

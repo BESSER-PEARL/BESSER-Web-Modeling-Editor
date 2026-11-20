@@ -1906,6 +1906,13 @@
           "blurb": "Die Quelle ist angegeben, aber kein Aufruf der laufenden App hat es erreicht.",
           "empty": "Nichts stützt sich allein auf eine Quellenangabe."
         },
+        "summaryFailed": "{{count}} ausgeführt und fehlgeschlagen",
+        "failed": {
+          "label": "Ausgeführt und fehlgeschlagen",
+          "blurb": "Ein vom Agenten geschriebener Test lief gegen die App und schlug fehl; der Test oder die App kann falsch sein.",
+          "empty": "Kein Test, der gegen die App lief, ist fehlgeschlagen."
+        },
+        "checksOff": "Auf diesem Server nicht geprüft: {{checks}}",
         "verifiedBlurb": "Durch einen Aufruf der laufenden App ausgeführt, mit dem Nachweis.",
         "footer": "Verifiziert heißt, dass ein Aufruf der laufenden App es ausgeführt hat. Im Code gefunden heißt, dass die Quelle angegeben ist, es aber nicht ausgeführt wurde. Nicht verifizierbar heißt, dass es keinen Nachweis in die eine oder andere Richtung gibt — das ist kein Bestehen."
       }

@@ -1906,6 +1906,13 @@
           "blurb": "Seng Quell ass uginn, mä keen Opruff vun der lafender App huet et erreecht.",
           "empty": "Näischt baut eleng op enger Quellenugab op."
         },
+        "summaryFailed": "{{count}} ausgefouert an net gelongen",
+        "failed": {
+          "label": "Ausgefouert an net gelongen",
+          "blurb": "En Test, deen den Agent geschriwwen huet, ass géint d’App gelaf an huet net geklappt; den Test oder d’App kann falsch sinn.",
+          "empty": "Keen Test, deen géint d’App gelaf ass, huet net geklappt."
+        },
+        "checksOff": "Op dësem Server net gepréift: {{checks}}",
         "verifiedBlurb": "Duerch en Opruff vun der lafender App ausgefouert, mam Beweis.",
         "footer": "Verifizéiert heescht, datt en Opruff vun der lafender App et ausgefouert huet. Am Code fonnt heescht, datt seng Quell uginn ass, mä näischt et ausgefouert huet. Konnt net verifizéiert ginn heescht, datt et kee Beweis an déi eng oder aner Richtung gëtt — dat ass kee Bestoen."
       }

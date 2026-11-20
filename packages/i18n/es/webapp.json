@@ -1906,6 +1906,13 @@
           "blurb": "Su fuente está citada, pero ninguna llamada a la aplicación en ejecución lo alcanzó.",
           "empty": "Nada se apoya solo en una cita de la fuente."
         },
+        "summaryFailed": "{{count}} ejecutados y fallidos",
+        "failed": {
+          "label": "Ejecutado y fallido",
+          "blurb": "Una prueba escrita por el agente se ejecutó contra la aplicación y falló; la prueba o la aplicación pueden estar mal.",
+          "empty": "Ninguna prueba ejecutada contra la aplicación falló."
+        },
+        "checksOff": "No se comprueba en este servidor: {{checks}}",
         "verifiedBlurb": "Ejercitado por una llamada a la aplicación en ejecución, con la evidencia.",
         "footer": "Verificado significa que una llamada a la aplicación en ejecución lo ejercitó. Encontrado en el código significa que su fuente está citada, pero nada lo ejecutó. No se pudo verificar significa que no hay evidencia en ningún sentido — no es un aprobado."
       }
