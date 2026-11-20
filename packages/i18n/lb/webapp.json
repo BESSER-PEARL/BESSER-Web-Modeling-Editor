@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} Ronn",
       "turns_other": "{{count}} Ronnen",
       "stats": "Dauer, LLM-Ronnen a geschate Käschte vun dësem Schrëtt",
-      "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung."
+      "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung.",
+      "stepElapsed": "{{duration}} an dësem Schrëtt"
     }
   },
   "deploy": {

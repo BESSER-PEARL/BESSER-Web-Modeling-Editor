@@ -87,6 +87,8 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    matches the event's phase name; if none exists yet (out-of-order
  *    events) it is skipped — the chevron only opens when there's
  *    something to show.
+ *  - `step` replaces the card's current step; a new phase or the run's
+ *    terminal event clears it.
  *  - `tool_call` before any phase gets an implicit "Working" phase so
  *    the row still has a home in the timeline.
  *  - `model_update` swaps the header model and adds a visible step note.
@@ -289,6 +291,7 @@ export function applySpecDrivenEvent(
           : defaultLabel;
       return {
         ...card,
+        step: undefined,
         phases: [
           ...card.phases,
           {
@@ -317,6 +320,21 @@ export function applySpecDrivenEvent(
         }
       }
       return { ...card, phases };
+    }
+    case 'step': {
+      const startedAt =
+        typeof event.elapsedSeconds === 'number' && Number.isFinite(event.elapsedSeconds)
+          ? event.elapsedSeconds
+          : undefined;
+      return {
+        ...card,
+        step: {
+          message: event.message,
+          startedAt,
+          toolCallsBefore: card.phases.reduce((n, p) => n + p.toolCalls.length, 0),
+          textBefore: card.text.length,
+        },
+      };
     }
     case 'tool_call': {
       const phases = [...card.phases];
@@ -450,6 +468,7 @@ export function applySpecDrivenEvent(
         changedFileCount: typeof event.changedFileCount === 'number' ? event.changedFileCount : undefined,
         modelChanges: Array.isArray(event.modelChanges) ? event.modelChanges : undefined,
         status: 'done',
+        step: undefined,
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.
         needsDownload: true,
@@ -476,6 +495,7 @@ export function applySpecDrivenEvent(
       return {
         ...card,
         status: 'error',
+        step: undefined,
         warnings: [
           ...card.warnings,
           { code: event.code, message: event.message, severity: 'error' as const },

@@ -91,6 +91,19 @@ export interface PhaseUpdateEvent {
   message?: string | null;
 }
 
+/**
+ * What the current phase is doing now, while one of its steps runs (during
+ * `validate`: a check round, a requirement judge call, a fix attempt; one can
+ * take minutes). Lasts until the next step, phase or terminal event.
+ * `elapsedSeconds` is the run's elapsed time when the step started.
+ */
+export interface StepEvent {
+  event: 'step';
+  phase: SpecDrivenPhase;
+  message: string;
+  elapsedSeconds?: number | null;
+}
+
 export interface TextDeltaEvent {
   event: 'text';
   delta: string;
@@ -260,6 +273,7 @@ export type SpecDrivenEvent = (
   | StartEvent
   | PhaseEvent
   | PhaseUpdateEvent
+  | StepEvent
   | TextDeltaEvent
   | ModelUpdateEvent
   | ToolCallEvent
@@ -361,6 +375,17 @@ export interface SpecDrivenPhaseView {
   details?: string;
 }
 
+/** The step a running phase is on (from the latest `step` event). */
+export interface SpecDrivenStepView {
+  message: string;
+  /** Run elapsed seconds when the step started; absent if unstamped. */
+  startedAt?: number;
+  /** Tool calls on the card when the step started: later ones belong to it. */
+  toolCallsBefore: number;
+  /** Prose length when the step started: later text was written during it. */
+  textBefore: number;
+}
+
 export interface SpecDrivenWarningView {
   code: string;
   message: string;
@@ -424,6 +449,8 @@ export interface SpecDrivenMessageState {
   provider?: string;
   model?: string;
   phases: SpecDrivenPhaseView[];
+  /** What the run is doing now; cleared when a phase starts or the run ends. */
+  step?: SpecDrivenStepView;
   warnings: SpecDrivenWarningView[];
   text: string;
   status: 'running' | 'done' | 'error';

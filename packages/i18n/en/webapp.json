@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} turn",
       "turns_other": "{{count}} turns",
       "stats": "Duration, LLM turns and estimated cost of this step",
-      "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill."
+      "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill.",
+      "stepElapsed": "{{duration}} on this step"
     }
   },
   "deploy": {

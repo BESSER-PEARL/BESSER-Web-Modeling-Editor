@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} Runde",
       "turns_other": "{{count}} Runden",
       "stats": "Dauer, LLM-Runden und geschätzte Kosten dieses Schritts",
-      "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung."
+      "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung.",
+      "stepElapsed": "{{duration}} in diesem Schritt"
     }
   },
   "deploy": {

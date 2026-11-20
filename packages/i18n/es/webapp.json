@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} turno",
       "turns_other": "{{count}} turnos",
       "stats": "Duración, turnos del LLM y coste estimado de este paso",
-      "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura."
+      "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura.",
+      "stepElapsed": "{{duration}} en este paso"
     }
   },
   "deploy": {

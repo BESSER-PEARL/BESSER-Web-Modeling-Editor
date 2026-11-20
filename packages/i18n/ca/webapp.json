@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} torn",
       "turns_other": "{{count}} torns",
       "stats": "Durada, torns del LLM i cost estimat d’aquest pas",
-      "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura."
+      "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura.",
+      "stepElapsed": "{{duration}} en aquest pas"
     }
   },
   "deploy": {

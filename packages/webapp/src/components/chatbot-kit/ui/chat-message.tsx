@@ -684,6 +684,8 @@ function ToolCallList({ calls }: { calls: SpecDrivenToolCallView[] }) {
 }
 
 const FINDINGS_SHOWN = 5
+/** A step shorter than this needs no timer; past it, a user starts to wonder. */
+const STEP_SECONDS_SHOWN_FROM = 20
 
 /** One validation round: what failed, and against the round before, what got fixed. */
 function FindingsRound({ segment }: { segment: FindingsSegment }) {
@@ -1629,6 +1631,7 @@ function SpecDrivenCard({
     provider,
     model,
     phases,
+    step,
     warnings,
     text,
     status,
@@ -1759,11 +1762,21 @@ function SpecDrivenCard({
     (status === "running" || status === "done") &&
     typeof elapsedSeconds === "number"
   const showStop = status === "running" && typeof runId === "string"
-  // The action in flight, named in the running card's activity strip.
+  // The action in flight, named in the running card's activity strip. One made
+  // before the current step started is over: the step is what runs now.
   const lastCall = phases[phases.length - 1]?.toolCalls.slice(-1)[0]
-  const lastAction = lastCall
+  const toolCallCount = phases.reduce((n, p) => n + p.toolCalls.length, 0)
+  const lastAction = lastCall && (!step || toolCallCount > step.toolCallsBefore)
     ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
     : null
+  // How long the current step has run, from the server's cost heartbeat (so it
+  // freezes if the stream dies). Shown once a step is long enough to wonder about.
+  const stepSeconds =
+    step && typeof step.startedAt === "number" && typeof elapsedSeconds === "number"
+      ? Math.max(0, elapsedSeconds - step.startedAt)
+      : undefined
+  // Prose written before the current step is finished: no typing cursor on it.
+  const proseIsLive = !step || text.length > step.textBefore
   const serverResult =
     status === "done" &&
     typeof runId === "string" &&
@@ -2196,7 +2209,12 @@ function SpecDrivenCard({
       {status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
-          <span className="font-medium text-foreground">Working…</span>
+          <span className="min-w-0 font-medium text-foreground">{step ? step.message : "Working…"}</span>
+          {stepSeconds !== undefined && stepSeconds >= STEP_SECONDS_SHOWN_FROM ? (
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              · {t("assistant.runTrace.stepElapsed", { duration: formatDuration(stepSeconds) })}
+            </span>
+          ) : null}
           {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
             <span className="text-[11px] text-muted-foreground">
               Big steps can take a few minutes — the timer keeps moving while
@@ -2220,7 +2238,7 @@ function SpecDrivenCard({
       {text ? (
         <div className="border-t border-border/60 bg-background/40 px-3 py-2">
           <MarkdownRenderer>{text}</MarkdownRenderer>
-          {isStreaming ? <StreamingCursor /> : null}
+          {isStreaming && proseIsLive ? <StreamingCursor /> : null}
         </div>
       ) : null}
 

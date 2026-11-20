@@ -1976,7 +1976,8 @@
       "turns_one": "{{count}} tour",
       "turns_other": "{{count}} tours",
       "stats": "Durée, tours de LLM et coût estimé de cette étape",
-      "costEstimate": "Estimé à partir du nombre de jetons aux prix catalogue. Approximatif, pas une facture."
+      "costEstimate": "Estimé à partir du nombre de jetons aux prix catalogue. Approximatif, pas une facture.",
+      "stepElapsed": "{{duration}} sur cette étape"
     }
   },
   "deploy": {
