@@ -1,10 +1,10 @@
 /**
- * The pre-run model comparison: read from POST /spec-driven/preview, and
+ * The pre-run check of a modify's base run: read from POST /spec-driven/preview, and
  * never in the way of a run when it is unavailable.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchModelChange, modelChangeQuestion } from '../modelChange';
+import { checkModifyBase, modelChangeQuestion } from '../modelChange';
 import type { ModelChange } from '../modelChange';
 
 const BASE = 'a'.repeat(32);
@@ -19,14 +19,14 @@ function stubFetch(impl: () => Promise<unknown>) {
   return fetchMock;
 }
 
-describe('fetchModelChange', () => {
+describe('checkModifyBase', () => {
   it('asks the preview endpoint about a modify of the base run', async () => {
     const fetchMock = stubFetch(async () => ({
       ok: true,
       json: async () => ({ model_change: { verdict: 'large', basis: 'attributes', gone: 0.64, removed: ['Room.price'] } }),
     }));
-    expect(await fetchModelChange({ id: 'p' }, 'update it', BASE)).toEqual({
-      verdict: 'large', basis: 'attributes', gone: 0.64, removed: ['Room.price'], added: [], renamed: [],
+    expect(await checkModifyBase({ id: 'p' }, 'update it', BASE)).toEqual({
+      modelChange: { verdict: 'large', basis: 'attributes', gone: 0.64, removed: ['Room.price'], added: [], renamed: [] },
     });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toMatch(/\/spec-driven\/preview$/);
@@ -44,23 +44,34 @@ describe('fetchModelChange', () => {
         },
       }),
     }));
-    expect(await fetchModelChange({}, 'x', BASE)).toEqual({
-      verdict: 'large', basis: 'classes', gone: 0.4, removed: [], added: [],
-      renamed: [{ from: 'Room', to: 'Suite' }],
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({
+      modelChange: {
+        verdict: 'large', basis: 'classes', gone: 0.4, removed: [], added: [],
+        renamed: [{ from: 'Room', to: 'Suite' }],
+      },
     });
   });
 
-  it('is null when the backend cannot tell, errors, or is unreachable; failures warn', async () => {
+  it('says whether the backend can still edit the base run', async () => {
+    stubFetch(async () => ({ ok: true, json: async () => ({ model_change: null, base_available: true }) }));
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({ modelChange: null, baseAvailable: true });
+    stubFetch(async () => ({ ok: true, json: async () => ({ model_change: null, base_available: false }) }));
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({ modelChange: null, baseAvailable: false });
+    stubFetch(async () => ({ ok: true, json: async () => ({ model_change: null, base_available: null }) }));
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({ modelChange: null });
+  });
+
+  it('has no comparison when the backend cannot tell, and is null when it errors or is unreachable; failures warn', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     stubFetch(async () => ({ ok: true, json: async () => ({ model_change: null }) }));
-    expect(await fetchModelChange({}, 'x', BASE)).toBeNull();
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({ modelChange: null });
     stubFetch(async () => ({ ok: true, json: async () => ({}) })); // an older backend
-    expect(await fetchModelChange({}, 'x', BASE)).toBeNull();
+    expect(await checkModifyBase({}, 'x', BASE)).toEqual({ modelChange: null });
     expect(warn).not.toHaveBeenCalled();
     stubFetch(async () => ({ ok: false, status: 500, json: async () => ({}) }));
-    expect(await fetchModelChange({}, 'x', BASE)).toBeNull();
+    expect(await checkModifyBase({}, 'x', BASE)).toBeNull();
     stubFetch(async () => { throw new TypeError('Failed to fetch'); });
-    expect(await fetchModelChange({}, 'x', BASE)).toBeNull();
+    expect(await checkModifyBase({}, 'x', BASE)).toBeNull();
     expect(warn).toHaveBeenCalledTimes(2);
     warn.mockRestore();
   });
@@ -72,7 +83,7 @@ describe('fetchModelChange', () => {
         init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
       })) as never);
     const stop = new AbortController();
-    const pending = fetchModelChange({}, 'x', BASE, stop.signal);
+    const pending = checkModifyBase({}, 'x', BASE, stop.signal);
     stop.abort();
     expect(await pending).toBeNull();
     expect(warn).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 /** The project's last Spec-Driven run as this browser knows it, for the modeling agent's context. */
 
-import { peekServerSpecDrivenConfig } from '../../shared/services/specDrivenConfig';
+import { archiveTtlSeconds, peekServerSpecDrivenConfig } from '../../shared/services/specDrivenConfig';
 import { readProjectLastRun, readProjectRunRequest } from '../../shared/services/storage/specDrivenRunRecords';
 import { isWithinTtl } from './runModeDecision';
 
@@ -15,8 +15,9 @@ export interface LastGeneration {
   /** Epoch ms at which the run finished. */
   at?: number;
   /**
-   * The server no longer holds the run's workspace: the next run starts from
-   * scratch. Absent while the server's lifetime is unknown.
+   * The server no longer holds the run's download, from which it edits the
+   * run: the next run starts from scratch. Absent while the server's lifetime
+   * is unknown.
    */
   expired?: boolean;
   /** The user's own words the project's latest run was started with. */
@@ -31,7 +32,7 @@ export function readLastGeneration(projectId: string | undefined, nowMs: number 
   const config = peekServerSpecDrivenConfig();
   return {
     ...(last ? { runId: last.runId, at: last.at } : {}),
-    ...(last && config ? { expired: !isWithinTtl(last, nowMs, config.download_ttl_seconds) } : {}),
+    ...(last && config ? { expired: !isWithinTtl(last, nowMs, archiveTtlSeconds(config)) } : {}),
     ...(request ? { request } : {}),
   };
 }

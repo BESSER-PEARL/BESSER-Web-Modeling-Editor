@@ -15,6 +15,8 @@ import type { TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types
 import { PROJECT_SCHEMA_VERSION } from '@/main/shared/types/project';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
 import * as confirm from '@/main/shared/services/confirm/globalConfirm';
+import * as modelChange from '@/main/features/spec-driven/services/modelChange';
+import { FALLBACK_SMART_GEN_CONFIG, getSpecDrivenConfig } from '@/main/shared/services/specDrivenConfig';
 import { getProjectGitHubLink, markProjectGitHubSynced, modelFingerprint } from '@/main/shared/services/storage/projectGitHubLink';
 import { ProjectStorageRepository } from '@/main/shared/services/storage/ProjectStorageRepository';
 import { readRunSeed, readRunSeedModel } from '@/main/shared/services/storage/specDrivenRunRecords';
@@ -50,7 +52,7 @@ vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
 
 vi.mock('@/main/features/spec-driven/services/modelChange', async (importOriginal) => {
   const mod = await importOriginal<any>();
-  return { ...mod, fetchModelChange: vi.fn(async () => null) };
+  return { ...mod, checkModifyBase: vi.fn(async () => null) };
 });
 
 vi.mock('@/main/shared/services/confirm/globalConfirm', () => ({ globalConfirm: vi.fn() }));
@@ -274,5 +276,37 @@ describe('useSpecDrivenTrigger on a project linked to GitHub', () => {
     await trigger({ ...PAYLOAD, mode: 'generate' });
     await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
     expect(importRepoAsRun).not.toHaveBeenCalled();
+  });
+
+  describe('past the workspace lifetime while the server keeps the download', () => {
+    beforeEach(() => {
+      vi.mocked(getSpecDrivenConfig).mockResolvedValue({
+        ...FALLBACK_SMART_GEN_CONFIG, download_ttl_seconds: 3 * 3600, archive_ttl_seconds: 24 * 3600,
+      });
+      // A download edit would lose the GitHub commit the code came from.
+      vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: null, baseAvailable: true });
+      writeProjectLastRun(PROJECT_ID, EXPIRED, Date.now() - 4 * 3_600_000);
+    });
+
+    afterEach(() => {
+      vi.mocked(getSpecDrivenConfig).mockResolvedValue(FALLBACK_SMART_GEN_CONFIG);
+      vi.mocked(modelChange.checkModifyBase).mockResolvedValue(null);
+    });
+
+    it('still continues from the code on GitHub', async () => {
+      await trigger();
+      await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
+      expect(importRepoAsRun).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0]).toMatchObject({ mode: 'modify', baseRunId: IMPORTED });
+    });
+
+    it('rebuilds from the model, not from the download, when the user chooses so', async () => {
+      importRepoAsRun.mockRejectedValue(new Error('network'));
+      vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
+      await trigger();
+      await waitFor(() => expect(sseClient.startSpecDrivenRun).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(sseClient.startSpecDrivenRun).mock.calls[0][0]).toMatchObject({ mode: 'generate' });
+      expect(modelChange.checkModifyBase).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), EXPIRED, expect.anything());
+    });
   });
 });

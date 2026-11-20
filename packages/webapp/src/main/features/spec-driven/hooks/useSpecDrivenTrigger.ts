@@ -115,6 +115,7 @@ import {
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
 import {
+  archiveTtlSeconds,
   getSpecDrivenConfig,
   resolveFreeRunModel,
 } from '../../../shared/services/specDrivenConfig';
@@ -1170,8 +1171,8 @@ export function useSpecDrivenTrigger(
       // fallback), so the values below are always defined.
       const cfg = await getSpecDrivenConfig();
       // Incremental modify decision. Look up the previous successful
-      // run for THIS project and, if it's still within the backend's
-      // download-TTL window, edit that app in place (`mode:'modify'` +
+      // run for THIS project and, if the backend can still edit it,
+      // edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
       // explicit `mode` on the trigger payload overrides it.
       let runDecision: RunModeDecision | null = null;
@@ -1220,6 +1221,8 @@ export function useSpecDrivenTrigger(
                 lastRun,
                 nowMs: Date.now(),
                 ttlSeconds,
+                // An edit from a run's download does not know the GitHub commit it started from.
+                baseTtlSeconds: getProjectGitHubLink(project.id) ? ttlSeconds : archiveTtlSeconds(cfg),
                 explicitMode: payload.mode,
                 explicitBaseRunId: payload.baseRunId,
               },

@@ -3557,6 +3557,8 @@ export interface components {
             notes: string[];
             model_summary: components["schemas"]["SmartPreviewModelSummaryResponse"];
             model_change: components["schemas"]["ModelChangeResponse"] | null;
+            /** Base Available */
+            base_available: boolean | null;
         };
         /**
          * SmartPushDeployConfig

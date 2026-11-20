@@ -8065,6 +8065,17 @@
                 "type": "null"
               }
             ]
+          },
+          "base_available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Available"
           }
         },
         "type": "object",
@@ -8080,7 +8091,8 @@
           "estimated_duration_seconds",
           "notes",
           "model_summary",
-          "model_change"
+          "model_change",
+          "base_available"
         ],
         "title": "SmartPreviewResponse",
         "description": "Response of ``POST /besser_api/spec-driven/preview``: ``PreviewPlan.to_dict()`` and the model."

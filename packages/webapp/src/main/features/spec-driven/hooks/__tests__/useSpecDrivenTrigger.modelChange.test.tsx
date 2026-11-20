@@ -53,7 +53,7 @@ vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
 
 vi.mock('@/main/features/spec-driven/services/modelChange', async (importOriginal) => {
   const mod = await importOriginal<any>();
-  return { ...mod, fetchModelChange: vi.fn() };
+  return { ...mod, checkModifyBase: vi.fn() };
 });
 
 vi.mock('@/main/shared/services/confirm/globalConfirm', () => ({
@@ -144,12 +144,12 @@ afterEach(() => {
 
 describe('second run: the model changed since the base app', () => {
   it('asks on an unrelated model and starts fresh when the user chooses so', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.86, ['Room'], ['Book']));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('unrelated', 0.86, ['Room'], ['Book']) });
     vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
 
     const params = await trigger();
 
-    expect(vi.mocked(modelChange.fetchModelChange)).toHaveBeenCalledWith(
+    expect(vi.mocked(modelChange.checkModifyBase)).toHaveBeenCalledWith(
       expect.anything(), PAYLOAD.instructions, BASE, expect.any(AbortSignal),
     );
     expect(vi.mocked(confirm.globalConfirm)).toHaveBeenCalledWith(
@@ -160,7 +160,7 @@ describe('second run: the model changed since the base app', () => {
   });
 
   it('updates the existing app when the user keeps it on a large change', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.64, ['Room.price'], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('large', 0.64, ['Room.price'], []) });
     vi.mocked(confirm.globalConfirm).mockResolvedValue(false);
 
     const params = await trigger();
@@ -171,12 +171,12 @@ describe('second run: the model changed since the base app', () => {
   });
 
   it('does not ask on a small change, nor when the comparison is unavailable', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('small', 0, [], []) });
     expect((await trigger()).mode).toBe('modify');
     cleanup();
     vi.mocked(sseClient.startSpecDrivenRun).mockClear();
 
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(null);
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue(null);
     expect((await trigger()).mode).toBe('modify');
     expect(vi.mocked(confirm.globalConfirm)).not.toHaveBeenCalled();
   });
@@ -184,7 +184,7 @@ describe('second run: the model changed since the base app', () => {
   it('leaves an explicit mode from the agent alone', async () => {
     const params = await trigger({ ...PAYLOAD, mode: 'modify', baseRunId: BASE });
     expect(params.mode).toBe('modify');
-    expect(vi.mocked(modelChange.fetchModelChange)).not.toHaveBeenCalled();
+    expect(vi.mocked(modelChange.checkModifyBase)).not.toHaveBeenCalled();
   });
 });
 
@@ -194,21 +194,21 @@ const intro = () => conversationStore.getMessages()[0]?.content;
 
 describe('the line before the run card says what the run does', () => {
   it('an edit of the existing app says it applies the requested changes', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('small', 0, [], []) });
     // An agent's banner cannot contradict the mode chosen here.
     expect((await trigger({ ...PAYLOAD, message: GENERATE_INTRO })).mode).toBe('modify');
     expect(intro()).toBe(MODIFY_INTRO);
   });
 
   it('a rebuild the user chose says it generates the application', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.86, ['Room'], ['Book']));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('unrelated', 0.86, ['Room'], ['Book']) });
     vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
     expect((await trigger({ ...PAYLOAD, message: MODIFY_INTRO })).mode).toBe('generate');
     expect(intro()).toBe(GENERATE_INTRO);
   });
 
   it('an edit whose stream closes early says the update stream closed', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('small', 0, [], []) });
     expect((await trigger()).mode).toBe('modify');
     await waitFor(() => expect(conversationStore.getMessages().some(
       (m) => m.content?.includes('The update stream closed before reporting a final result.'))).toBe(true));
@@ -224,9 +224,9 @@ describe('the line before the run card says what the run does', () => {
 describe('second run: the question comes before the run', () => {
   it('shows no run card and claims no slot until the user answers', async () => {
     let answer: ((startFresh: boolean) => void) | undefined;
-    vi.mocked(modelChange.fetchModelChange).mockImplementation(async () => {
+    vi.mocked(modelChange.checkModifyBase).mockImplementation(async () => {
       noRunYet();
-      return change('unrelated', 0.9, ['Room'], ['Book']);
+      return { modelChange: change('unrelated', 0.9, ['Room'], ['Book']) };
     });
     vi.mocked(confirm.globalConfirm).mockImplementation(
       () => new Promise((resolve) => { answer = resolve; }),
@@ -250,7 +250,7 @@ describe('second run: the question comes before the run', () => {
 
   it('keeps Stop available during the check', async () => {
     let finish: ((change: null) => void) | undefined;
-    vi.mocked(modelChange.fetchModelChange).mockImplementation(
+    vi.mocked(modelChange.checkModifyBase).mockImplementation(
       () => new Promise((resolve) => { finish = resolve; }),
     );
     const api = mount();
@@ -270,7 +270,7 @@ describe('second run: the question comes before the run', () => {
   });
 
   it('refuses a second trigger while the question is open', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.6, [], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('large', 0.6, [], []) });
     let answer: ((startFresh: boolean) => void) | undefined;
     vi.mocked(confirm.globalConfirm).mockImplementation(
       () => new Promise((resolve) => { answer = resolve; }),
@@ -294,7 +294,7 @@ describe('second run: the question comes before the run', () => {
   });
 
   it('refuses a trigger from the other chat surface while the question is open', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('unrelated', 0.9));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('unrelated', 0.9) });
     let answer: ((startFresh: boolean) => void) | undefined;
     vi.mocked(confirm.globalConfirm).mockImplementation(
       () => new Promise((resolve) => { answer = resolve; }),
@@ -306,7 +306,7 @@ describe('second run: the question comes before the run', () => {
     await waitFor(() => expect(answer).toBeDefined());
 
     await act(async () => { await drawer.current!(PAYLOAD); });
-    expect(vi.mocked(modelChange.fetchModelChange)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(modelChange.checkModifyBase)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(confirm.globalConfirm)).toHaveBeenCalledTimes(1);
     expect(conversationStore.getMessages().map((m) => m.content)).toEqual([
       expect.stringContaining('already running'),
@@ -323,7 +323,7 @@ describe('second run: the question comes before the run', () => {
 
   it('stop while the model check is pending: no card, no run, the agent hears it was cancelled', async () => {
     let checkSignal: AbortSignal | undefined;
-    vi.mocked(modelChange.fetchModelChange).mockImplementation(
+    vi.mocked(modelChange.checkModifyBase).mockImplementation(
       (_p, _i, _b, signal) => new Promise((resolve) => {
         checkSignal = signal;
         signal?.addEventListener('abort', () => resolve(null));
@@ -344,7 +344,7 @@ describe('second run: the question comes before the run', () => {
   });
 
   it('stop while the question is open closes it and the run never starts', async () => {
-    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('large', 0.64, [], []));
+    vi.mocked(modelChange.checkModifyBase).mockResolvedValue({ modelChange: change('large', 0.64, [], []) });
     let dialogSignal: AbortSignal | undefined;
     vi.mocked(confirm.globalConfirm).mockImplementation(
       (options) => new Promise((resolve) => {
