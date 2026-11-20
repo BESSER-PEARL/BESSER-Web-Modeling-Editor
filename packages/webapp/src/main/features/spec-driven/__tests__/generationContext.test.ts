@@ -99,6 +99,15 @@ describe('readLastGeneration', () => {
     expect(readLastGeneration('p1', 1_000_000 + 3_600_000)).toEqual({ runId: RUN, at: 1_000_000, expired: true });
   });
 
+  it('is not expired past the workspace lifetime while the server keeps the download it edits from', () => {
+    vi.mocked(peekServerSpecDrivenConfig).mockReturnValue(
+      config({ download_ttl_seconds: 3 * 3600, archive_ttl_seconds: 24 * 3600 }),
+    );
+    writeProjectLastRun('p1', RUN, 1_000_000);
+    expect(readLastGeneration('p1', 1_000_000 + 4 * 3_600_000)?.expired).toBe(false);
+    expect(readLastGeneration('p1', 1_000_000 + 24 * 3_600_000)?.expired).toBe(true);
+  });
+
   it('still carries the request when no run of the project finished', () => {
     recordProjectRunRequest('p1', framedRequest('Build a task board.'));
     expect(readLastGeneration('p1')).toEqual({ request: 'Build a task board.' });

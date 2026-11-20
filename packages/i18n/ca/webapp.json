@@ -1901,6 +1901,23 @@
         "filesChanged_other": "{{count}} fitxers modificats",
         "showAll": "Mostra’ls tots ({{count}})",
         "more": "i {{count}} més"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} trobats al codi",
+        "foundInCode": {
+          "label": "Trobat al codi, no executat",
+          "blurb": "La seva font està citada, però cap crida a l’aplicació en execució no l’ha exercitat.",
+          "empty": "Res no es basa només en una cita de la font."
+        },
+        "summaryFailed": "{{count}} executats i fallits",
+        "failed": {
+          "label": "Executat i fallit",
+          "blurb": "Una prova escrita per l’agent s’ha executat contra l’aplicació i ha fallat; la prova o l’aplicació poden estar malament.",
+          "empty": "Cap prova executada contra l’aplicació no ha fallat."
+        },
+        "checksOff": "No es comprova en aquest servidor: {{checks}}",
+        "verifiedBlurb": "Exercitat per una crida a l’aplicació en execució, amb l’evidència.",
+        "footer": "Verificat vol dir que una crida a l’aplicació en execució l’ha exercitat. Trobat al codi vol dir que la seva font està citada, però res no l’ha executat. No s’ha pogut verificar vol dir que no hi ha evidència en cap sentit — no és un aprovat."
       }
     },
     "generationKey": {
@@ -1920,6 +1937,8 @@
       "lifetimeHours_one": "{{count}} hora",
       "lifetimeHours_other": "{{count}} hores",
       "generateAgain": "Torna a generar",
+      "introModify": "S'estan aplicant els canvis sol·licitats a la teva aplicació…",
+      "introGenerate": "S'està generant la teva aplicació a partir de les teves especificacions…",
       "rebuildAfterExpiry": "L'execució anterior ja no es pot editar directament, així que l'aplicació es reconstrueix a partir del model i de la petició original.",
       "downloadUntil": "Baixada disponible fins a les {{time}}.",
       "downloadAndGithubUntil": "Baixada disponible fins a les {{download}}; desar a GitHub fins a les {{github}}.",
@@ -1969,7 +1988,8 @@
       "turns_one": "{{count}} torn",
       "turns_other": "{{count}} torns",
       "stats": "Durada, torns del LLM i cost estimat d’aquest pas",
-      "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura."
+      "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura.",
+      "stepElapsed": "{{duration}} en aquest pas"
     }
   },
   "deploy": {

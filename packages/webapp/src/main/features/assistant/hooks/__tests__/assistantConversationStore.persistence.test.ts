@@ -174,6 +174,21 @@ describe('reviveStoredConversation drops what the renderers would crash on', () 
     expect(revived!.messages[1].specDriven!.changedFiles).toBeUndefined();
   });
 
+  it('keeps a saved report without the found-in-code list, and drops one whose list is malformed', () => {
+    const older = { verified: [], notVerified: [], shippedUnenforced: [], counts: { verified: 2 } };
+    const card = (id: string, verification: unknown) => ({
+      id,
+      role: 'assistant',
+      content: 'Done',
+      specDriven: { status: 'done', text: '', phases: [], warnings: [], verification },
+    });
+    const revived = reviveStoredConversation(
+      stored([card('older', older), card('malformed', { ...older, foundInCode: 'not a list' })]),
+    );
+    expect(revived!.messages[0].specDriven!.verification).toEqual(older);
+    expect(revived!.messages[1].specDriven!.verification).toBeUndefined();
+  });
+
   it('keeps only message details of the right type', () => {
     const revived = reviveStoredConversation(
       stored([{ id: 'a', role: 'assistant', content: 'hi' }], {

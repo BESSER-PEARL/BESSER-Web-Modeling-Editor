@@ -25,7 +25,7 @@ import {
   tryClaimRunSlot,
 } from '../specDrivenSlice';
 import type { SpecDrivenState } from '../specDrivenSlice';
-import type { SpecDrivenEvent } from '../../types';
+import { CHECKS_OFF_FIELD, type SpecDrivenEvent } from '../../types';
 
 const INITIAL: SpecDrivenState = {
   byokDialogOpen: false,
@@ -602,6 +602,36 @@ describe('extractVerification', () => {
     expect(report?.shippedUnenforced).toHaveLength(1);
   });
 
+  it('keeps what was only found in the code apart from what was run', () => {
+    const cited = {
+      kind: 'requirement',
+      id: 'R3',
+      what: 'an order total is never negative',
+      how: 'implementation cited and re-checked against the delivered source: backend/app/orders.py:42',
+    };
+    const report = extractVerification({
+      verified: [],
+      foundInCode: [cited],
+      notVerified: [],
+      shippedUnenforced: [],
+      counts: { verified: 0, foundInCode: 6, notVerified: 0, shippedUnenforced: 0 },
+    });
+    expect(report?.foundInCode).toEqual([{ ...cited, why: undefined }]);
+    expect(report?.counts.foundInCode).toBe(6);
+    expect(report?.verified).toEqual([]);
+  });
+
+  it('leaves the found-in-code state out for a backend that does not send it', () => {
+    // That backend still lists source citations under verified.
+    const report = extractVerification({
+      verified: [ITEM],
+      counts: { verified: 1 },
+    });
+    expect(report).toBeDefined();
+    expect(report).not.toHaveProperty('foundInCode');
+    expect(report?.counts).not.toHaveProperty('foundInCode');
+  });
+
   it('clamps a count UP to its own list length rather than under-reporting', () => {
     const report = extractVerification({
       shippedUnenforced: [ITEM, { ...ITEM, id: 'other' }],
@@ -689,5 +719,59 @@ describe('specDrivenSlice — what a run changed', () => {
     const card = applySpecDrivenEvent(CARD, DONE);
     expect(card.runMode).toBeUndefined();
     expect(card.changedFiles).toBeUndefined();
+  });
+});
+
+describe('a done event that tells findings not confirmed and missing evidence apart', () => {
+  const finish = (fields: Record<string, unknown>) => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: {},
+          incomplete: false,
+          blockerCount: 2,
+          ...fields,
+        } as SpecDrivenEvent,
+      }),
+    );
+    return state.runs.k1;
+  };
+
+  it('keeps the count not confirmed, whether the run is not verified, and why', () => {
+    const card = finish({
+      notConfirmedCount: 1,
+      unresolvedBlockerCount: 0,
+      unverified: true,
+      unverifiedReason: ' The app was generated, but its frontend was never built or type-checked (the build did not run). ',
+    });
+    expect(card).toMatchObject({
+      notConfirmedCount: 1,
+      unresolvedBlockerCount: 0,
+      unverified: true,
+      unverifiedReason: 'The app was generated, but its frontend was never built or type-checked (the build did not run).',
+    });
+  });
+
+  it('adds nothing for an older backend', () => {
+    const card = finish({});
+    for (const key of ['notConfirmedCount', 'unresolvedBlockerCount', 'unverified', 'unverifiedReason', 'checksOff']) {
+      expect(card).not.toHaveProperty(key);
+    }
+  });
+
+  it('reads the checks switched off on the server from their one field name', () => {
+    expect(finish({ [CHECKS_OFF_FIELD]: ['build', ' requirements ', '', 3] }).checksOff).toEqual([
+      'build',
+      'requirements',
+    ]);
+    expect(finish({ [CHECKS_OFF_FIELD]: [] })).not.toHaveProperty('checksOff');
   });
 });

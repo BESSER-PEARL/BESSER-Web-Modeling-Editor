@@ -1901,6 +1901,23 @@
         "filesChanged_other": "{{count}} Dateien geändert",
         "showAll": "Alle {{count}} anzeigen",
         "more": "und {{count}} weitere"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} im Code gefunden",
+        "foundInCode": {
+          "label": "Im Code gefunden, nicht ausgeführt",
+          "blurb": "Die Quelle ist angegeben, aber kein Aufruf der laufenden App hat es erreicht.",
+          "empty": "Nichts stützt sich allein auf eine Quellenangabe."
+        },
+        "summaryFailed": "{{count}} ausgeführt und fehlgeschlagen",
+        "failed": {
+          "label": "Ausgeführt und fehlgeschlagen",
+          "blurb": "Ein vom Agenten geschriebener Test lief gegen die App und schlug fehl; der Test oder die App kann falsch sein.",
+          "empty": "Kein Test, der gegen die App lief, ist fehlgeschlagen."
+        },
+        "checksOff": "Auf diesem Server nicht geprüft: {{checks}}",
+        "verifiedBlurb": "Durch einen Aufruf der laufenden App ausgeführt, mit dem Nachweis.",
+        "footer": "Verifiziert heißt, dass ein Aufruf der laufenden App es ausgeführt hat. Im Code gefunden heißt, dass die Quelle angegeben ist, es aber nicht ausgeführt wurde. Nicht verifizierbar heißt, dass es keinen Nachweis in die eine oder andere Richtung gibt — das ist kein Bestehen."
       }
     },
     "generationKey": {
@@ -1920,6 +1937,8 @@
       "lifetimeHours_one": "{{count}} Stunde",
       "lifetimeHours_other": "{{count}} Stunden",
       "generateAgain": "Erneut generieren",
+      "introModify": "Ihre gewünschten Änderungen werden auf Ihre Anwendung angewendet…",
+      "introGenerate": "Ihre Anwendung wird aus Ihren Spezifikationen generiert…",
       "rebuildAfterExpiry": "Der vorherige Lauf kann nicht mehr direkt bearbeitet werden. Die Anwendung wird daher aus dem Modell und der ursprünglichen Anfrage neu erstellt.",
       "downloadUntil": "Download verfügbar bis {{time}}.",
       "downloadAndGithubUntil": "Download verfügbar bis {{download}}; auf GitHub speichern bis {{github}}.",
@@ -1969,7 +1988,8 @@
       "turns_one": "{{count}} Runde",
       "turns_other": "{{count}} Runden",
       "stats": "Dauer, LLM-Runden und geschätzte Kosten dieses Schritts",
-      "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung."
+      "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung.",
+      "stepElapsed": "{{duration}} in diesem Schritt"
     }
   },
   "deploy": {

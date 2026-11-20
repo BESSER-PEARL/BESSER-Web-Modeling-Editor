@@ -491,7 +491,7 @@ describe('useSpecDrivenTrigger — happy path', () => {
 
     const msgs = apiRef.current!.getMessages() as any[];
     // Expected messages: intro, streaming-card-with-events, "✅ complete"
-    expect(msgs.some((m) => m.content?.includes('I will build this for you'))).toBe(true);
+    expect(msgs.some((m) => m.content === 'Generating your application from your specs…')).toBe(true);
     expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
     // The card is finished and flagged as awaiting a user-initiated save.
     const card = msgs.find((m) => m.specDriven);

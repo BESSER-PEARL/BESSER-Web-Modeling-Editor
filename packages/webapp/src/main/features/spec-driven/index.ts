@@ -7,6 +7,7 @@ export {
   setApiKeyPresent,
   setLastRunForProject,
   specDrivenReducer,
+  unresolvedBlockerCount,
 } from './state/specDrivenSlice';
 export { useSpecDrivenTrigger } from './hooks/useSpecDrivenTrigger';
 export { readGenerationContext, readGenerationKey, useGenerationKey, type GenerationKey } from './generationKey';

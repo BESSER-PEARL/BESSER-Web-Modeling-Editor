@@ -14,7 +14,7 @@ import * as confirm from '../../../shared/services/confirm/globalConfirm';
 
 vi.mock('../services/modelChange', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../services/modelChange')>();
-  return { ...mod, fetchModelChange: vi.fn() };
+  return { ...mod, checkModifyBase: vi.fn() };
 });
 
 vi.mock('../../../shared/services/confirm/globalConfirm', () => ({
@@ -186,18 +186,43 @@ describe('decideRunMode — the model changed since the base run', () => {
   });
 });
 
+describe('decideRunMode — the backend says whether it can edit the base', () => {
+  const pastWorkspace = { runId: RUN_A, at: NOW - 4 * TTL * 1000 };
+  const recent = { runId: RUN_A, at: NOW - 60_000 };
+
+  it('modifies a run past the workspace TTL that the backend can still edit', () => {
+    expect(
+      decideRunMode({ lastRun: pastWorkspace, nowMs: NOW, ttlSeconds: TTL, baseAvailable: true }),
+    ).toEqual({ mode: 'modify', baseRunId: RUN_A });
+  });
+
+  it('rebuilds, and says the base expired, when the backend cannot edit a recent run', () => {
+    expect(
+      decideRunMode({ lastRun: recent, nowMs: NOW, ttlSeconds: TTL, baseAvailable: false }),
+    ).toEqual({ mode: 'generate', baseExpired: true });
+  });
+
+  it('still asks the user about a large model change of a base edited from its download', () => {
+    expect(
+      decideRunMode({
+        lastRun: pastWorkspace, nowMs: NOW, ttlSeconds: TTL, baseAvailable: true, modelChange: change('large', 0.6),
+      }),
+    ).toEqual({ mode: 'modify', baseRunId: RUN_A, askUser: 'large' });
+  });
+});
+
 describe('resolveRunMode — the pre-run model check', () => {
   const recent = { runId: RUN_A, at: NOW - 60_000 };
   const params = { lastRun: recent, nowMs: NOW, ttlSeconds: TTL };
   const check = () => ({ project: { id: 'p' }, instructions: 'go', signal: new AbortController().signal });
 
   beforeEach(() => {
-    vi.mocked(modelChangeService.fetchModelChange).mockReset();
+    vi.mocked(modelChangeService.checkModifyBase).mockReset();
     vi.mocked(confirm.globalConfirm).mockReset();
   });
 
   it('starts fresh only when the user picks it', async () => {
-    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('unrelated', 0.9));
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: change('unrelated', 0.9) });
     vi.mocked(confirm.globalConfirm).mockResolvedValue(true);
     expect(await resolveRunMode(params, check())).toEqual({ mode: 'generate' });
 
@@ -206,28 +231,50 @@ describe('resolveRunMode — the pre-run model check', () => {
   });
 
   it('asks nothing on a small or unknown change, and checks nothing without a modify', async () => {
-    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('small', 0.05));
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: change('small', 0.05) });
     expect(await resolveRunMode(params, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
-    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(null);
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue(null);
     expect(await resolveRunMode(params, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
     expect(confirm.globalConfirm).not.toHaveBeenCalled();
 
-    vi.mocked(modelChangeService.fetchModelChange).mockClear();
+    vi.mocked(modelChangeService.checkModifyBase).mockClear();
     expect(await resolveRunMode({ ...params, lastRun: null }, check())).toEqual({ mode: 'generate' });
     expect(await resolveRunMode({ ...params, explicitMode: 'modify' }, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
-    expect(modelChangeService.fetchModelChange).not.toHaveBeenCalled();
+    expect(modelChangeService.checkModifyBase).not.toHaveBeenCalled();
+  });
+
+  it('asks the backend about a run past the workspace TTL but within its download lifetime', async () => {
+    const past = { ...params, lastRun: { runId: RUN_A, at: NOW - 4 * TTL * 1000 }, baseTtlSeconds: 48 * TTL };
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: null, baseAvailable: true });
+    expect(await resolveRunMode(past, check())).toEqual({ mode: 'modify', baseRunId: RUN_A });
+    expect(modelChangeService.checkModifyBase).toHaveBeenCalledWith({ id: 'p' }, 'go', RUN_A, expect.any(AbortSignal));
+
+    const rebuild = { mode: 'generate', baseExpired: true };
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: null, baseAvailable: false });
+    expect(await resolveRunMode(past, check())).toEqual(rebuild);
+    // An older backend, or none reached: the workspace TTL decides, as before.
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: null });
+    expect(await resolveRunMode(past, check())).toEqual(rebuild);
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue(null);
+    expect(await resolveRunMode(past, check())).toEqual(rebuild);
+  });
+
+  it('asks nothing about a run past its download lifetime', async () => {
+    const gone = { ...params, lastRun: { runId: RUN_A, at: NOW - 49 * TTL * 1000 }, baseTtlSeconds: 48 * TTL };
+    expect(await resolveRunMode(gone, check())).toEqual({ mode: 'generate', baseExpired: true });
+    expect(modelChangeService.checkModifyBase).not.toHaveBeenCalled();
   });
 
   it('is null when stopped during the check or the question', async () => {
     const stop = new AbortController();
-    vi.mocked(modelChangeService.fetchModelChange).mockImplementation(async () => {
+    vi.mocked(modelChangeService.checkModifyBase).mockImplementation(async () => {
       stop.abort();
       return null;
     });
     expect(await resolveRunMode(params, { ...check(), signal: stop.signal })).toBeNull();
 
     const stop2 = new AbortController();
-    vi.mocked(modelChangeService.fetchModelChange).mockResolvedValue(change('large', 0.6));
+    vi.mocked(modelChangeService.checkModifyBase).mockResolvedValue({ modelChange: change('large', 0.6) });
     vi.mocked(confirm.globalConfirm).mockImplementation(async () => {
       stop2.abort();
       return false;
