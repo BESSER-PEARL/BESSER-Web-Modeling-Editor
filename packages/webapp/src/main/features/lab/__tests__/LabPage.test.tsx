@@ -60,8 +60,8 @@ const LAB_STATE = {
   preview: {
     enabled: true,
     services: [
-      { name: 'backend', running: true, detail: 'port 9100' },
-      { name: 'modeling-agent', running: false, detail: 'exited with 1' },
+      { name: 'backend', state: 'running', detail: 'port 9100' },
+      { name: 'modeling-agent', state: 'failed', detail: 'exited with 1' },
     ],
   },
   run: null as { runId: string; startedAt: number } | null,
@@ -80,7 +80,7 @@ const mocks = vi.hoisted(() => ({
   openLabPullRequests: vi.fn(),
   parkLabChange: vi.fn(),
   resumeLabChange: vi.fn(),
-  dropLabChange: vi.fn(),
+  dropActiveLabChange: vi.fn(),
   resetLabPreview: vi.fn(),
   cancelSpecDrivenRun: vi.fn(),
   // The slice fields the page reads to know whether a run is in flight.
@@ -99,7 +99,7 @@ vi.mock('../../../shared/api/lab', () => ({
   openLabPullRequests: mocks.openLabPullRequests,
   parkLabChange: mocks.parkLabChange,
   resumeLabChange: mocks.resumeLabChange,
-  dropLabChange: mocks.dropLabChange,
+  dropActiveLabChange: mocks.dropActiveLabChange,
   resetLabPreview: mocks.resetLabPreview,
 }));
 // The chat hook has its own tests; the page only lays out what it returns.
@@ -217,17 +217,17 @@ describe('LabPage', () => {
   });
 
   it('drops the change only after the user confirms', async () => {
-    mocks.dropLabChange.mockResolvedValue(NO_CHANGE);
+    mocks.dropActiveLabChange.mockResolvedValue(NO_CHANGE);
     mocks.globalConfirm.mockResolvedValueOnce(false);
     await renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Drop' }));
     await waitFor(() => expect(mocks.globalConfirm).toHaveBeenCalledTimes(1));
     expect(mocks.globalConfirm.mock.calls[0][0]).toMatchObject({ title: 'Drop this change?', variant: 'danger' });
-    expect(mocks.dropLabChange).not.toHaveBeenCalled();
+    expect(mocks.dropActiveLabChange).not.toHaveBeenCalled();
 
     mocks.globalConfirm.mockResolvedValueOnce(true);
     fireEvent.click(screen.getByRole('button', { name: 'Drop' }));
-    await waitFor(() => expect(mocks.dropLabChange).toHaveBeenCalledWith(SESSION));
+    await waitFor(() => expect(mocks.dropActiveLabChange).toHaveBeenCalledWith(SESSION));
     await waitFor(() => expect(screen.getByText('No active change. Describe one in the chat to start.')).toBeTruthy());
   });
 

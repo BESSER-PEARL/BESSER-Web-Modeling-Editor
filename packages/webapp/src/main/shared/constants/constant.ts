@@ -28,6 +28,8 @@ export const POSTHOG_KEY = _env(process.env.POSTHOG_KEY, import.meta.env.VITE_PO
 export const GA_MEASUREMENT_ID = 'G-WEF3W8Y17C';
 /** The webapp `package.json` version, injected at build time by `vite.config.ts`. */
 export const EDITOR_VERSION = _env(process.env.EDITOR_VERSION, undefined);
+/** The BESSER Lab editor (`LAB_BUILD=true` at build time); a public build is never the lab. */
+export const LAB_BUILD = process.env.LAB_BUILD === 'true';
 export const BASE_URL = `${DEPLOYMENT_URL}/api`;
 export const NO_HTTP_URL = DEPLOYMENT_URL?.split('//')[1] || '';
 export const WS_PROTOCOL = DEPLOYMENT_URL?.startsWith('https') ? 'wss' : 'ws';

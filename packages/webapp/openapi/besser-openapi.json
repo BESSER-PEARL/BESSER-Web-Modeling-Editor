@@ -4195,13 +4195,243 @@
         }
       }
     },
+    "/besser_api/lab/home": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Home",
+        "description": "The signed-in user, the base of each repository, the runs in progress, this month's spending, the\npreview slots and the team memory's state.",
+        "operationId": "lab_home_besser_api_lab_home_get",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabHomeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/changes": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Changes",
+        "description": "Every open change and draft, most recently updated first, then the 10 most recently closed changes.",
+        "operationId": "lab_changes_besser_api_lab_changes_get",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabChangesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/change": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Create Change",
+        "description": "Start a change as a draft owned by the user: a thread and no branches until its first plan is submitted.\n\nRefused when the user's or the lab's monthly budget is spent.",
+        "operationId": "lab_create_change_besser_api_lab_change_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabChangeDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: user_cap, instance_cap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Get Change",
+        "description": "One change: its files, last run, branches, bases, thread and run records.",
+        "operationId": "lab_get_change_besser_api_lab_change_get",
+        "parameters": [
+          {
+            "name": "changeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{12}$",
+              "description": "The change's id.",
+              "title": "Changeid"
+            },
+            "description": "The change's id."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabChangeDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/lab/message": {
       "post": {
         "tags": [
           "lab"
         ],
         "summary": "Lab Message",
-        "description": "Run one step of the lab agent (plan or build) for the user's message, as Spec-Driven SSE events.\n\nThe ``start`` event carries the run id that ``POST /spec-driven/cancel/{run_id}`` stops; the ``done``\nevent carries the step's result in ``lab``. The run goes on when the stream drops, until no one has\nfollowed it for ``BESSER_LLM_DISCONNECTED_GRACE_SECONDS``; ``/spec-driven/runs/{run_id}/events`` replays it.",
+        "description": "Run the change's next step (plan or build) for the user's message, as Spec-Driven SSE events.\n\nThe ``start`` event carries the run id that ``POST /spec-driven/cancel/{run_id}`` stops; the ``done``\nevent carries the step's result in ``lab`` (``LabDone``). The run goes on when the stream drops, until no\none has followed it for ``BESSER_LLM_DISCONNECTED_GRACE_SECONDS``; ``/spec-driven/runs/{run_id}/events``\nreplays it. One run per change at a time, at most ``BESSER_LAB_MAX_CONCURRENT_RUNS`` across the lab; the\nrun's cost cap is what is left of the per-run, the user's and the lab's monthly budgets.",
         "operationId": "lab_message_besser_api_lab_message_post",
         "parameters": [
           {
@@ -4235,52 +4465,32 @@
           "200": {
             "description": "Successful Response"
           },
-          "422": {
-            "description": "Validation Error",
+          "409": {
+            "description": "Refused: change_busy, user_cap, instance_cap, state",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/besser_api/lab/state": {
-      "get": {
-        "tags": [
-          "lab"
-        ],
-        "summary": "Lab State",
-        "description": "The signed-in user, the active change with its changed files, the parked changes and the preview.",
-        "operationId": "lab_state_besser_api_lab_state_get",
-        "parameters": [
-          {
-            "name": "X-GitHub-Session",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Github-Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
+          },
+          "429": {
+            "description": "Refused: runs_full",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LabStateResponse"
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
@@ -4304,7 +4514,7 @@
           "lab"
         ],
         "summary": "Lab Pull Request",
-        "description": "Push the active change and open a draft pull request in each repository it touched, editor first.\n\n409 when ``changeId`` is not the active change; 401 when GitHub refuses the user's sign-in (the token), so\nthe editor asks them to sign in again. The full test suites are not run first; ``checksNote`` tells the user\nwhich checks the change passed.",
+        "description": "Push the change and open a draft pull request in each repository it touched, editor first, with the\nuser's GitHub token; push to the pull requests already open.\n\n401 when GitHub refuses the user's sign-in, so the editor asks them to sign in again. The full test suites\nare not run first; ``checksNote`` tells the user which checks the change passed.",
         "operationId": "lab_pull_request_besser_api_lab_pull_request_post",
         "parameters": [
           {
@@ -4345,52 +4555,22 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "409": {
+            "description": "Refused: change_busy, state",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/besser_api/lab/change/park": {
-      "post": {
-        "tags": [
-          "lab"
-        ],
-        "summary": "Lab Park",
-        "description": "Commit the active change's work in progress and check out the base branches.",
-        "operationId": "lab_park_besser_api_lab_change_park_post",
-        "parameters": [
-          {
-            "name": "X-GitHub-Session",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Github-Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
+          },
+          "404": {
+            "description": "Refused: not_found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LabStateResponse"
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
@@ -4408,14 +4588,14 @@
         }
       }
     },
-    "/besser_api/lab/change/resume": {
+    "/besser_api/lab/change/drop": {
       "post": {
         "tags": [
           "lab"
         ],
-        "summary": "Lab Resume",
-        "description": "Check out a parked change again; 409 while another change is active.",
-        "operationId": "lab_resume_besser_api_lab_change_resume_post",
+        "summary": "Lab Drop Change",
+        "description": "Delete the change: its working trees, branches, thread and notes. Pull requests already opened stay on\nGitHub. Only its owner or an admin may drop it.",
+        "operationId": "lab_drop_change_besser_api_lab_change_drop_post",
         "parameters": [
           {
             "name": "X-GitHub-Session",
@@ -4439,7 +4619,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LabResumeRequest"
+                "$ref": "#/components/schemas/LabChangeRequest"
               }
             }
           }
@@ -4450,7 +4630,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LabStateResponse"
+                  "$ref": "#/components/schemas/LabChangesResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Refused: not_owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: change_busy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
@@ -4468,14 +4678,370 @@
         }
       }
     },
-    "/besser_api/lab/change/drop": {
+    "/besser_api/lab/change/close": {
       "post": {
         "tags": [
           "lab"
         ],
-        "summary": "Lab Drop",
-        "description": "Discard the active change: its uncommitted work, its lab branches and its notes.",
-        "operationId": "lab_drop_besser_api_lab_change_drop_post",
+        "summary": "Lab Close Change",
+        "description": "Close the change, merged or not: its working trees and branches are removed, its state and thread kept.\n\nRefused while work is not pushed to its pull requests.",
+        "operationId": "lab_close_change_besser_api_lab_change_close_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabChangeDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: change_busy, state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/change/update-base": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Update Base",
+        "description": "Bring one repository of the change up to its base branch.\n\nWith an open pull request, GitHub updates the pull request's branch and the lab pulls it back; otherwise\nthe lab merges the freshly fetched base into the change. Conflicts are left for a \"Resolve conflicts\"\nbuild step.",
+        "operationId": "lab_update_base_besser_api_lab_change_update_base_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabUpdateBranchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabUpdateBranchResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: change_busy, state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/diff": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Diff",
+        "description": "The change's working trees against their bases, file by file, secrets redacted.\n\nRefused for a draft (no trees yet) and for a closed change (its branches are gone; the diff is on the pull\nrequest).",
+        "operationId": "lab_diff_besser_api_lab_diff_get",
+        "parameters": [
+          {
+            "name": "changeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{12}$",
+              "description": "The change's id.",
+              "title": "Changeid"
+            },
+            "description": "The change's id."
+          },
+          {
+            "name": "repo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "besser",
+                    "frontend",
+                    "modeling_agent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this repository.",
+              "title": "Repo"
+            },
+            "description": "Only this repository."
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this file of ``repo``, with a larger size cap.",
+              "title": "Path"
+            },
+            "description": "Only this file of ``repo``, with a larger size cap."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabDiffResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/review": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Review",
+        "description": "The change's pull requests as GitHub reports them: state, CI checks with failing log tails, reviews and\ncomments, and when to ask again.",
+        "operationId": "lab_review_besser_api_lab_review_get",
+        "parameters": [
+          {
+            "name": "changeId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{12}$",
+              "description": "The change's id.",
+              "title": "Changeid"
+            },
+            "description": "The change's id."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabReviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Preview",
+        "description": "Every preview slot: the change it shows, who used it last, and the state of its three services.",
+        "operationId": "lab_preview_besser_api_lab_preview_get",
         "parameters": [
           {
             "name": "X-GitHub-Session",
@@ -4500,7 +5066,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LabStateResponse"
+                  "$ref": "#/components/schemas/LabPreviewView"
                 }
               }
             }
@@ -4518,14 +5084,327 @@
         }
       }
     },
-    "/besser_api/lab/preview/reset": {
+    "/besser_api/lab/preview/slot": {
       "post": {
         "tags": [
           "lab"
         ],
-        "summary": "Lab Preview Reset",
-        "description": "Check out the base branches in the working copy; 409 while a change is active.",
-        "operationId": "lab_preview_reset_besser_api_lab_preview_reset_post",
+        "summary": "Lab Take Preview Slot",
+        "description": "Show the change in a preview slot: the slot already showing it, else a free one, else one nobody has\nused for 10 minutes. Answers at once; the slot's ``detail`` names the preparation step meanwhile.",
+        "operationId": "lab_take_preview_slot_besser_api_lab_preview_slot_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabTakeSlotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabPreviewSlot"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: preview_full, state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview/slot/touch": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Touch Preview Slot",
+        "description": "Record that the user still uses the slot, so it is not taken over as idle.",
+        "operationId": "lab_touch_preview_slot_besser_api_lab_preview_slot_touch_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabTouchSlotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview/restart": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Restart Preview",
+        "description": "Restart one service of a slot, or all three.",
+        "operationId": "lab_restart_preview_besser_api_lab_preview_restart_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabPreviewRestartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabPreviewView"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview/logs/{service}": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Preview Log",
+        "description": "The end of one preview service's log, secrets redacted.",
+        "operationId": "lab_preview_log_besser_api_lab_preview_logs__service__get",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "backend",
+                "frontend",
+                "modeling_agent"
+              ],
+              "type": "string",
+              "title": "Service"
+            }
+          },
+          {
+            "name": "slot",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "The preview slot.",
+              "title": "Slot"
+            },
+            "description": "The preview slot."
+          },
+          {
+            "name": "lines",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "description": "How many of the last lines to read.",
+              "default": 200,
+              "title": "Lines"
+            },
+            "description": "How many of the last lines to read."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabPreviewLog"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/settings": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Settings",
+        "description": "The repositories and their bases, the lab's limits, its admins and this month's spending.",
+        "operationId": "lab_settings_besser_api_lab_settings_get",
         "parameters": [
           {
             "name": "X-GitHub-Session",
@@ -4550,7 +5429,492 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LabStateResponse"
+                  "$ref": "#/components/schemas/LabSettingsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/settings/refresh-bases": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Refresh Bases",
+        "description": "Fetch every repository's base branch now. Open changes keep the base they started from.\n\nRefused when a fetch fails; the message names the repository.",
+        "operationId": "lab_refresh_bases_besser_api_lab_settings_refresh_bases_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabSettingsResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/audit": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Audit",
+        "description": "One UTC month of the lab's audit log: who did what to which change, and what it cost.",
+        "operationId": "lab_audit_besser_api_lab_audit_get",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "``YYYY-MM``; the current UTC month when absent.",
+              "title": "Month"
+            },
+            "description": "``YYYY-MM``; the current UTC month when absent."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabAuditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/memory": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Memory",
+        "description": "The team notes the lab agent reads, and whether the memory is on.",
+        "operationId": "lab_memory_besser_api_lab_memory_get",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabMemoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Add Note",
+        "description": "Add a team note, approved by the user; with ``fromProposal`` it approves that proposal.\n\nRefused while the memory is off or full.",
+        "operationId": "lab_add_note_besser_api_lab_memory_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabNoteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabNote"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/memory/{note_id}": {
+      "put": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Update Note",
+        "description": "Replace a team note's text and scope.",
+        "operationId": "lab_update_note_besser_api_lab_memory__note_id__put",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "description": "The note's id.",
+              "title": "Note Id"
+            },
+            "description": "The note's id."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabNoteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabNote"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Delete Note",
+        "description": "Delete a team note.",
+        "operationId": "lab_delete_note_besser_api_lab_memory__note_id__delete",
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "description": "The note's id.",
+              "title": "Note Id"
+            },
+            "description": "The note's id."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refused: state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/memory/proposals/dismiss": {
+      "post": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Dismiss Note Proposal",
+        "description": "Dismiss a note the lab agent proposed: it is not kept.",
+        "operationId": "lab_dismiss_note_proposal_besser_api_lab_memory_proposals_dismiss_post",
+        "parameters": [
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabProposalRef"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Refused: not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabRefusalResponse"
                 }
               }
             }
@@ -6866,6 +8230,605 @@
         "title": "KGSeverityCountsResponse",
         "description": "How many issues of each severity a consistency report holds."
       },
+      "LabAuditEntry": {
+        "properties": {
+          "at": {
+            "type": "number",
+            "title": "At"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "change_created",
+              "change_opened",
+              "run",
+              "run_refused",
+              "pull_requests_opened",
+              "change_closed",
+              "change_dropped",
+              "base_updated",
+              "bases_refreshed",
+              "preview_slot_taken"
+            ],
+            "title": "Action"
+          },
+          "changeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changeid"
+          },
+          "runId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runid"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "plan",
+                  "build"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "costUsd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Costusd"
+          },
+          "stopReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "cancelled",
+                  "timeout",
+                  "cost_cap",
+                  "max_turns",
+                  "api_error"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stopreason"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "login",
+          "action",
+          "changeId",
+          "runId",
+          "step",
+          "costUsd",
+          "stopReason",
+          "detail"
+        ],
+        "title": "LabAuditEntry",
+        "description": "One line of the lab's monthly audit log."
+      },
+      "LabAuditResponse": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LabAuditEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "totalsByLogin": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Totalsbylogin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "entries",
+          "totalsByLogin"
+        ],
+        "title": "LabAuditResponse",
+        "description": "Response of ``GET /lab/audit``: one UTC month of the audit log."
+      },
+      "LabBase": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "upstream": {
+            "type": "string",
+            "title": "Upstream"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "fetchedAt": {
+            "type": "number",
+            "title": "Fetchedat"
+          },
+          "fork": {
+            "type": "boolean",
+            "title": "Fork"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "upstream",
+          "branch",
+          "sha",
+          "fetchedAt",
+          "fork"
+        ],
+        "title": "LabBase",
+        "description": "A repository's base clone: the upstream branch new changes start from."
+      },
+      "LabBuildReport": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "deviations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Deviations"
+          },
+          "notDone": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notdone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "deviations",
+          "notDone"
+        ],
+        "title": "LabBuildReport",
+        "description": "The lab agent's own account of a build: what it did, where it departed from the plan, what is left."
+      },
+      "LabChangeCost": {
+        "properties": {
+          "usd": {
+            "type": "number",
+            "title": "Usd"
+          },
+          "turns": {
+            "type": "integer",
+            "title": "Turns"
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "title": "Elapsedseconds"
+          },
+          "runs": {
+            "type": "integer",
+            "title": "Runs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "usd",
+          "turns",
+          "elapsedSeconds",
+          "runs"
+        ],
+        "title": "LabChangeCost",
+        "description": "What every run of a change cost together."
+      },
+      "LabChangeDetail": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "open",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "merged",
+                  "closed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "planned",
+              "running",
+              "built",
+              "checks_failing",
+              "stopped",
+              "in_review",
+              "merged",
+              "closed"
+            ],
+            "title": "Phase"
+          },
+          "repos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "behind": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Behind"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/LabChangeCost"
+          },
+          "requestedBy": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requestedby"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "number",
+            "title": "Updatedat"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          },
+          "branches": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Branches"
+          },
+          "bases": {
+            "items": {
+              "$ref": "#/components/schemas/LabRepoBaseStatus"
+            },
+            "type": "array",
+            "title": "Bases"
+          },
+          "view": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabChangeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "thread": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/LabThreadMessage"
+                },
+                {
+                  "$ref": "#/components/schemas/LabThreadRun"
+                },
+                {
+                  "$ref": "#/components/schemas/LabThreadPullRequests"
+                },
+                {
+                  "$ref": "#/components/schemas/LabThreadNotice"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "message": "#/components/schemas/LabThreadMessage",
+                  "notice": "#/components/schemas/LabThreadNotice",
+                  "pull_requests": "#/components/schemas/LabThreadPullRequests",
+                  "run": "#/components/schemas/LabThreadRun"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Thread"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/LabRunRecord"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "title",
+          "kind",
+          "status",
+          "outcome",
+          "owner",
+          "phase",
+          "repos",
+          "behind",
+          "run",
+          "pullRequests",
+          "cost",
+          "requestedBy",
+          "createdAt",
+          "updatedAt",
+          "closedAt",
+          "branches",
+          "bases",
+          "view",
+          "thread",
+          "runs"
+        ],
+        "title": "LabChangeDetail",
+        "description": "One change with its branches, its bases, its last run, its thread and its run records."
+      },
+      "LabChangeRequest": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Changeid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId"
+        ],
+        "title": "LabChangeRequest",
+        "description": "Body of the routes that act on one change (drop, close)."
+      },
+      "LabChangeSummary": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "open",
+              "closed"
+            ],
+            "title": "Status"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "merged",
+                  "closed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "planned",
+              "running",
+              "built",
+              "checks_failing",
+              "stopped",
+              "in_review",
+              "merged",
+              "closed"
+            ],
+            "title": "Phase"
+          },
+          "repos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "behind": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Behind"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/LabChangeCost"
+          },
+          "requestedBy": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requestedby"
+          },
+          "createdAt": {
+            "type": "number",
+            "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "number",
+            "title": "Updatedat"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "title",
+          "kind",
+          "status",
+          "outcome",
+          "owner",
+          "phase",
+          "repos",
+          "behind",
+          "run",
+          "pullRequests",
+          "cost",
+          "requestedBy",
+          "createdAt",
+          "updatedAt",
+          "closedAt"
+        ],
+        "title": "LabChangeSummary",
+        "description": "A change as the list of changes shows it."
+      },
       "LabChangeView": {
         "properties": {
           "step": {
@@ -6923,6 +8886,33 @@
               "api_error"
             ],
             "title": "Stopreason"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabBuildReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/LabChangeCost"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/LabIssue"
+            },
+            "type": "array",
+            "title": "Issues"
           }
         },
         "type": "object",
@@ -6935,10 +8925,31 @@
           "checks",
           "checklist",
           "summary",
-          "stopReason"
+          "stopReason",
+          "report",
+          "pullRequests",
+          "cost",
+          "issues"
         ],
         "title": "LabChangeView",
-        "description": "A change as ``GET /lab/state`` shows it: its files now, and the checks of its last build."
+        "description": "A change's files now, and what its last run reported."
+      },
+      "LabChangesResponse": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/LabChangeSummary"
+            },
+            "type": "array",
+            "title": "Changes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "title": "LabChangesResponse",
+        "description": "Response of ``GET /lab/changes``: open changes and drafts by last update, then at most 10 closed ones,\nnewest first."
       },
       "LabCheck": {
         "properties": {
@@ -6985,6 +8996,66 @@
         "title": "LabCheck",
         "description": "One of a repository's own checks, as the build step last ran it."
       },
+      "LabCheckRun": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "app": {
+            "type": "string",
+            "title": "App"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure",
+              "neutral",
+              "skipped"
+            ],
+            "title": "State"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "logTail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logtail"
+          },
+          "logNote": {
+            "type": "string",
+            "title": "Lognote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "app",
+          "state",
+          "url",
+          "logTail",
+          "logNote"
+        ],
+        "title": "LabCheckRun",
+        "description": "A CI check of a pull request's head commit."
+      },
       "LabChecklistItem": {
         "properties": {
           "id": {
@@ -7015,6 +9086,169 @@
         ],
         "title": "LabChecklistItem"
       },
+      "LabDiffResponse": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "repos": {
+            "items": {
+              "$ref": "#/components/schemas/LabRepoDiff"
+            },
+            "type": "array",
+            "title": "Repos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "repos"
+        ],
+        "title": "LabDiffResponse",
+        "description": "Response of ``GET /lab/diff``: the change's working trees against their bases."
+      },
+      "LabDone": {
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "build"
+            ],
+            "title": "Step"
+          },
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "repoChanges": {
+            "items": {
+              "$ref": "#/components/schemas/LabRepoChange"
+            },
+            "type": "array",
+            "title": "Repochanges"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/LabCheck"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/LabChecklistItem"
+            },
+            "type": "array",
+            "title": "Checklist"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "stopReason": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "cancelled",
+              "timeout",
+              "cost_cap",
+              "max_turns",
+              "api_error"
+            ],
+            "title": "Stopreason"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabBuildReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/LabChangeCost"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/LabIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modelProposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabModelProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finalText": {
+            "type": "string",
+            "title": "Finaltext",
+            "default": ""
+          },
+          "noteProposals": {
+            "items": {
+              "$ref": "#/components/schemas/LabNoteProposal"
+            },
+            "type": "array",
+            "title": "Noteproposals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "changeId",
+          "title",
+          "kind",
+          "repoChanges",
+          "checks",
+          "checklist",
+          "summary",
+          "stopReason",
+          "report",
+          "pullRequests",
+          "cost",
+          "issues",
+          "plan",
+          "modelProposal",
+          "finalText",
+          "noteProposals"
+        ],
+        "title": "LabDone",
+        "description": "The ``lab`` field of a lab run's ``done`` event."
+      },
       "LabFileChange": {
         "properties": {
           "path": {
@@ -7038,6 +9272,302 @@
           "status"
         ],
         "title": "LabFileChange"
+      },
+      "LabFileDiff": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "oldPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldpath"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "added",
+              "modified",
+              "deleted",
+              "renamed"
+            ],
+            "title": "Status"
+          },
+          "additions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additions"
+          },
+          "deletions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deletions"
+          },
+          "binary": {
+            "type": "boolean",
+            "title": "Binary"
+          },
+          "patch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patch"
+          },
+          "omitted": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "binary",
+                  "too_large",
+                  "response_full"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omitted"
+          },
+          "redactions": {
+            "type": "integer",
+            "title": "Redactions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "oldPath",
+          "status",
+          "additions",
+          "deletions",
+          "binary",
+          "patch",
+          "omitted",
+          "redactions"
+        ],
+        "title": "LabFileDiff",
+        "description": "One file's diff against the change's base."
+      },
+      "LabHomeResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/LabUserView"
+          },
+          "bases": {
+            "items": {
+              "$ref": "#/components/schemas/LabBase"
+            },
+            "type": "array",
+            "title": "Bases"
+          },
+          "runs": {
+            "$ref": "#/components/schemas/LabRunsView"
+          },
+          "meters": {
+            "$ref": "#/components/schemas/LabMeters"
+          },
+          "previewSlots": {
+            "type": "integer",
+            "title": "Previewslots"
+          },
+          "linkMode": {
+            "type": "string",
+            "enum": [
+              "reflink",
+              "hardlink"
+            ],
+            "title": "Linkmode"
+          },
+          "memory": {
+            "$ref": "#/components/schemas/LabMemoryInfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "bases",
+          "runs",
+          "meters",
+          "previewSlots",
+          "linkMode",
+          "memory"
+        ],
+        "title": "LabHomeResponse",
+        "description": "Response of ``GET /lab/home``: who is signed in and what the lab can do now."
+      },
+      "LabIssue": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "closes": {
+            "type": "boolean",
+            "title": "Closes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "number",
+          "title",
+          "closes"
+        ],
+        "title": "LabIssue",
+        "description": "An issue a change started from."
+      },
+      "LabIssueRef": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
+            "title": "Repo"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Number"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "number"
+        ],
+        "title": "LabIssueRef",
+        "description": "A GitHub issue of one of the lab's repositories, by number."
+      },
+      "LabLimitsView": {
+        "properties": {
+          "perRunUsd": {
+            "type": "number",
+            "title": "Perrunusd"
+          },
+          "userMonthlyUsd": {
+            "type": "number",
+            "title": "Usermonthlyusd"
+          },
+          "instanceMonthlyUsd": {
+            "type": "number",
+            "title": "Instancemonthlyusd"
+          },
+          "maxConcurrentRuns": {
+            "type": "integer",
+            "title": "Maxconcurrentruns"
+          },
+          "previewSlots": {
+            "type": "integer",
+            "title": "Previewslots"
+          },
+          "baseRefreshMinutes": {
+            "type": "integer",
+            "title": "Baserefreshminutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "perRunUsd",
+          "userMonthlyUsd",
+          "instanceMonthlyUsd",
+          "maxConcurrentRuns",
+          "previewSlots",
+          "baseRefreshMinutes"
+        ],
+        "title": "LabLimitsView",
+        "description": "The lab's limits, as the server is configured."
+      },
+      "LabMemoryInfo": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "max": {
+            "type": "integer",
+            "title": "Max"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "reason",
+          "count",
+          "max"
+        ],
+        "title": "LabMemoryInfo",
+        "description": "Whether the team memory is on, and how full it is."
+      },
+      "LabMemoryResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/LabNote"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "reason",
+          "notes"
+        ],
+        "title": "LabMemoryResponse",
+        "description": "Response of ``GET /lab/memory``."
       },
       "LabMessageRequest": {
         "properties": {
@@ -7066,47 +9596,529 @@
                 "type": "null"
               }
             ]
+          },
+          "changeId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Changeid"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabReviewTask"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabIssueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
-          "message"
+          "message",
+          "changeId"
         ],
         "title": "LabMessageRequest",
-        "description": "Body of ``POST /besser_api/lab/message``."
+        "description": "Body of ``POST /besser_api/lab/message``: a message to one change, which runs its next step."
       },
-      "LabParkedChange": {
+      "LabMeter": {
         "properties": {
-          "changeId": {
+          "spentUsd": {
+            "type": "number",
+            "title": "Spentusd"
+          },
+          "reservedUsd": {
+            "type": "number",
+            "title": "Reservedusd"
+          },
+          "capUsd": {
+            "type": "number",
+            "title": "Capusd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "spentUsd",
+          "reservedUsd",
+          "capUsd"
+        ],
+        "title": "LabMeter",
+        "description": "Spending against one monthly cap, in USD."
+      },
+      "LabMeters": {
+        "properties": {
+          "month": {
             "type": "string",
-            "title": "Changeid"
+            "title": "Month"
+          },
+          "user": {
+            "$ref": "#/components/schemas/LabMeter"
+          },
+          "instance": {
+            "$ref": "#/components/schemas/LabMeter"
+          }
+        },
+        "type": "object",
+        "required": [
+          "month",
+          "user",
+          "instance"
+        ],
+        "title": "LabMeters",
+        "description": "This UTC month's spending of the signed-in user and of the whole lab."
+      },
+      "LabModelProposal": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "diagramType": {
+            "type": "string",
+            "const": "ClassDiagram",
+            "title": "Diagramtype"
+          },
+          "model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "diagramType",
+          "model"
+        ],
+        "title": "LabModelProposal",
+        "description": "The class diagram a metamodel or diagram-type plan proposes, as the editor's model JSON."
+      },
+      "LabNote": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "mistake",
+              "convention"
+            ],
+            "title": "Kind"
           },
           "title": {
             "type": "string",
             "title": "Title"
           },
-          "kind": {
-            "$ref": "#/components/schemas/ChangeKind"
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "repos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "changeKinds": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeKind"
+            },
+            "type": "array",
+            "title": "Changekinds"
+          },
+          "docsTarget": {
+            "type": "string",
+            "title": "Docstarget"
+          },
+          "sourceChange": {
+            "type": "string",
+            "title": "Sourcechange"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl"
+          },
+          "approvedBy": {
+            "type": "string",
+            "title": "Approvedby"
           },
           "createdAt": {
             "type": "number",
             "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "number",
+            "title": "Updatedat"
+          },
+          "lastReadAt": {
+            "type": "number",
+            "title": "Lastreadat"
+          },
+          "reads": {
+            "type": "integer",
+            "title": "Reads"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
           }
         },
         "type": "object",
         "required": [
-          "changeId",
-          "title",
+          "id",
           "kind",
-          "createdAt"
+          "title",
+          "body",
+          "repos",
+          "changeKinds",
+          "docsTarget",
+          "sourceChange",
+          "sourceUrl",
+          "approvedBy",
+          "createdAt",
+          "updatedAt",
+          "lastReadAt",
+          "reads",
+          "stale"
         ],
-        "title": "LabParkedChange"
+        "title": "LabNote",
+        "description": "An approved team note; the lab agent reads it when it applies to the change."
       },
-      "LabPreview": {
+      "LabNoteInput": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "mistake",
+              "convention"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 1200,
+            "minLength": 1,
+            "title": "Body"
+          },
+          "repos": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "besser",
+                "frontend",
+                "modeling_agent"
+              ]
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "changeKinds": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeKind"
+            },
+            "type": "array",
+            "title": "Changekinds"
+          },
+          "docsTarget": {
+            "type": "string",
+            "maxLength": 1024,
+            "title": "Docstarget",
+            "default": ""
+          },
+          "fromProposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabProposalRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "body"
+        ],
+        "title": "LabNoteInput",
+        "description": "Body of ``POST`` and ``PUT /besser_api/lab/memory``: a team note as a lab user approves or edits it."
+      },
+      "LabNoteProposal": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "mistake",
+              "convention"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "repos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "changeKinds": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeKind"
+            },
+            "type": "array",
+            "title": "Changekinds"
+          },
+          "docsTarget": {
+            "type": "string",
+            "title": "Docstarget"
+          },
+          "why": {
+            "type": "string",
+            "title": "Why"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "body",
+          "repos",
+          "changeKinds",
+          "docsTarget",
+          "why"
+        ],
+        "title": "LabNoteProposal",
+        "description": "A team note the lab agent proposed during a build; a lab user approves, edits or dismisses it."
+      },
+      "LabPlan": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ChangeKind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "repos": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Repos"
+          },
+          "questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Questions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "summary",
+          "steps",
+          "repos",
+          "questions"
+        ],
+        "title": "LabPlan"
+      },
+      "LabPreviewLog": {
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "title": "Slot"
+          },
+          "service": {
+            "type": "string",
+            "enum": [
+              "backend",
+              "frontend",
+              "modeling_agent"
+            ],
+            "title": "Service"
+          },
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot",
+          "service",
+          "lines",
+          "truncated"
+        ],
+        "title": "LabPreviewLog",
+        "description": "The end of one preview service's log, redacted."
+      },
+      "LabPreviewRestartRequest": {
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Slot"
+          },
+          "service": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "backend",
+                  "frontend",
+                  "modeling_agent"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot"
+        ],
+        "title": "LabPreviewRestartRequest",
+        "description": "Body of ``POST /besser_api/lab/preview/restart``."
+      },
+      "LabPreviewService": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "backend",
+              "frontend",
+              "modeling_agent"
+            ],
+            "title": "Name"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "stopped",
+              "starting",
+              "running",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "logTail": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Logtail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "state",
+          "detail",
+          "startedAt",
+          "logTail"
+        ],
+        "title": "LabPreviewService",
+        "description": "One of a preview slot's three services."
+      },
+      "LabPreviewSlot": {
         "properties": {
           "enabled": {
             "type": "boolean",
             "title": "Enabled"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "confined": {
+            "type": "boolean",
+            "title": "Confined"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
           },
           "services": {
             "items": {
@@ -7114,37 +10126,144 @@
             },
             "type": "array",
             "title": "Services"
+          },
+          "slot": {
+            "type": "integer",
+            "title": "Slot"
+          },
+          "changeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changeid"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "usedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usedby"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastusedat"
           }
         },
         "type": "object",
         "required": [
           "enabled",
-          "services"
+          "url",
+          "confined",
+          "detail",
+          "services",
+          "slot",
+          "changeId",
+          "title",
+          "owner",
+          "usedBy",
+          "startedAt",
+          "lastUsedAt"
         ],
-        "title": "LabPreview"
+        "title": "LabPreviewSlot",
+        "description": "A preview slot and the change it shows."
       },
-      "LabPreviewService": {
+      "LabPreviewView": {
         "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "running": {
+          "enabled": {
             "type": "boolean",
-            "title": "Running"
+            "title": "Enabled"
           },
           "detail": {
             "type": "string",
             "title": "Detail"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/LabPreviewSlot"
+            },
+            "type": "array",
+            "title": "Slots"
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "running",
-          "detail"
+          "enabled",
+          "detail",
+          "slots"
         ],
-        "title": "LabPreviewService"
+        "title": "LabPreviewView",
+        "description": "Response of ``GET /lab/preview`` and of the preview actions: every slot."
+      },
+      "LabProposalRef": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Changeid"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "id"
+        ],
+        "title": "LabProposalRef",
+        "description": "A note the lab agent proposed during a run of a change, pending approval."
       },
       "LabPullRequest": {
         "properties": {
@@ -7177,20 +10296,14 @@
           "branch",
           "base"
         ],
-        "title": "LabPullRequest"
+        "title": "LabPullRequest",
+        "description": "A pull request the lab opened for a change."
       },
       "LabPullRequestRequest": {
         "properties": {
           "changeId": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 64
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
             "title": "Changeid"
           },
           "title": {
@@ -7216,11 +10329,145 @@
               }
             ],
             "title": "Body"
+          },
+          "closesIssues": {
+            "items": {
+              "$ref": "#/components/schemas/LabIssueRef"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Closesissues"
           }
         },
         "type": "object",
+        "required": [
+          "changeId"
+        ],
         "title": "LabPullRequestRequest",
         "description": "Body of ``POST /besser_api/lab/pull-request``; null fields take their defaults."
+      },
+      "LabPullRequestStatus": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "draft": {
+            "type": "boolean",
+            "title": "Draft"
+          },
+          "headSha": {
+            "type": "string",
+            "title": "Headsha"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "merged",
+              "closed"
+            ],
+            "title": "State"
+          },
+          "pushedSha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pushedsha"
+          },
+          "mergeable": {
+            "type": "string",
+            "enum": [
+              "mergeable",
+              "conflicting",
+              "unknown"
+            ],
+            "title": "Mergeable"
+          },
+          "mergeState": {
+            "type": "string",
+            "title": "Mergestate"
+          },
+          "reviewDecision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "APPROVED",
+                  "CHANGES_REQUESTED",
+                  "REVIEW_REQUIRED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewdecision"
+          },
+          "checksState": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure",
+              "none"
+            ],
+            "title": "Checksstate"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/LabCheckRun"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/LabReview"
+            },
+            "type": "array",
+            "title": "Reviews"
+          },
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/LabReviewComment"
+            },
+            "type": "array",
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "number",
+          "url",
+          "draft",
+          "headSha",
+          "state",
+          "pushedSha",
+          "mergeable",
+          "mergeState",
+          "reviewDecision",
+          "checksState",
+          "checks",
+          "reviews",
+          "comments"
+        ],
+        "title": "LabPullRequestStatus",
+        "description": "A pull request of the change as GitHub reports it now."
       },
       "LabPullRequestsResponse": {
         "properties": {
@@ -7242,6 +10489,87 @@
           "checksNote"
         ],
         "title": "LabPullRequestsResponse"
+      },
+      "LabRefusalDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "change_busy",
+              "runs_full",
+              "user_cap",
+              "instance_cap",
+              "not_owner",
+              "preview_full",
+              "not_found",
+              "state"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "LabRefusalDetail",
+        "description": "Why the lab refused an action, written for the user."
+      },
+      "LabRefusalResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/LabRefusalDetail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "LabRefusalResponse",
+        "description": "The body of every lab refusal: ``change_busy`` 409, ``runs_full`` 429, ``user_cap`` 409, ``instance_cap``\n409, ``not_owner`` 403, ``preview_full`` 409, ``not_found`` 404, ``state`` 409 (what the change's state\nrefuses)."
+      },
+      "LabRepoBaseStatus": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "upstream": {
+            "type": "string",
+            "title": "Upstream"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "sha": {
+            "type": "string",
+            "title": "Sha"
+          },
+          "latest": {
+            "type": "string",
+            "title": "Latest"
+          },
+          "behind": {
+            "type": "integer",
+            "title": "Behind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "upstream",
+          "branch",
+          "sha",
+          "latest",
+          "behind"
+        ],
+        "title": "LabRepoBaseStatus",
+        "description": "Where a change's repository started, and how far its base moved since."
       },
       "LabRepoChange": {
         "properties": {
@@ -7275,7 +10603,473 @@
         "title": "LabRepoChange",
         "description": "What the change touched in one repository, against its base branch."
       },
-      "LabResumeRequest": {
+      "LabRepoDiff": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "base": {
+            "type": "string",
+            "title": "Base"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/LabFileDiff"
+            },
+            "type": "array",
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "branch",
+          "base",
+          "files"
+        ],
+        "title": "LabRepoDiff"
+      },
+      "LabReview": {
+        "properties": {
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "CHANGES_REQUESTED",
+              "COMMENTED",
+              "DISMISSED",
+              "PENDING"
+            ],
+            "title": "State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "author",
+          "body",
+          "url",
+          "submittedAt",
+          "state"
+        ],
+        "title": "LabReview",
+        "description": "A submitted pull request review."
+      },
+      "LabReviewComment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "authorAssociation": {
+            "type": "string",
+            "title": "Authorassociation"
+          },
+          "trusted": {
+            "type": "boolean",
+            "title": "Trusted"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "startLine": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startline"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          },
+          "outdated": {
+            "type": "boolean",
+            "title": "Outdated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "author",
+          "authorAssociation",
+          "trusted",
+          "body",
+          "url",
+          "createdAt",
+          "path",
+          "line",
+          "startLine",
+          "resolved",
+          "outdated"
+        ],
+        "title": "LabReviewComment",
+        "description": "A review or conversation comment on a pull request."
+      },
+      "LabReviewResponse": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequestStatus"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "lifecycle": {
+            "type": "string",
+            "enum": [
+              "open",
+              "partly_merged",
+              "merged",
+              "closed"
+            ],
+            "title": "Lifecycle"
+          },
+          "closable": {
+            "type": "boolean",
+            "title": "Closable"
+          },
+          "closableNote": {
+            "type": "string",
+            "title": "Closablenote"
+          },
+          "nextPollSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextpollseconds"
+          },
+          "fetchedAt": {
+            "type": "number",
+            "title": "Fetchedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "pullRequests",
+          "lifecycle",
+          "closable",
+          "closableNote",
+          "nextPollSeconds",
+          "fetchedAt"
+        ],
+        "title": "LabReviewResponse",
+        "description": "Response of ``GET /lab/review``: the change's pull requests on GitHub and what the change can do next."
+      },
+      "LabReviewTask": {
+        "properties": {
+          "task": {
+            "type": "string",
+            "enum": [
+              "fix_ci",
+              "address_comments",
+              "resolve_conflicts"
+            ],
+            "title": "Task"
+          },
+          "repo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "besser",
+                  "frontend",
+                  "modeling_agent"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo"
+          },
+          "commentIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Commentids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task"
+        ],
+        "title": "LabReviewTask",
+        "description": "A build step that acts on the change's pull requests (the ``review`` of a lab message)."
+      },
+      "LabRun": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "changeId": {
+            "type": "string",
+            "title": "Changeid"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "plan",
+                  "build"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "startedAt": {
+            "type": "number",
+            "title": "Startedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "changeId",
+          "login",
+          "step",
+          "startedAt"
+        ],
+        "title": "LabRun",
+        "description": "A lab run in progress: ``/spec-driven/runs/{runId}/events`` follows it, the cancel route stops it."
+      },
+      "LabRunError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "LabRunError",
+        "description": "Why a run failed, written for the user."
+      },
+      "LabRunRecord": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "step": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "build"
+            ],
+            "title": "Step"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "usd": {
+            "type": "number",
+            "title": "Usd"
+          },
+          "turns": {
+            "type": "integer",
+            "title": "Turns"
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "title": "Elapsedseconds"
+          },
+          "stopReason": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "cancelled",
+              "timeout",
+              "cost_cap",
+              "max_turns",
+              "api_error"
+            ],
+            "title": "Stopreason"
+          },
+          "startedAt": {
+            "type": "number",
+            "title": "Startedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "step",
+          "login",
+          "model",
+          "usd",
+          "turns",
+          "elapsedSeconds",
+          "stopReason",
+          "startedAt"
+        ],
+        "title": "LabRunRecord",
+        "description": "One finished run of a change: its cost and who asked for it."
+      },
+      "LabRunsView": {
+        "properties": {
+          "inProgress": {
+            "items": {
+              "$ref": "#/components/schemas/LabRun"
+            },
+            "type": "array",
+            "title": "Inprogress"
+          },
+          "cap": {
+            "type": "integer",
+            "title": "Cap"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inProgress",
+          "cap"
+        ],
+        "title": "LabRunsView",
+        "description": "The runs in progress across all changes, and how many may run at once."
+      },
+      "LabSettingsResponse": {
+        "properties": {
+          "bases": {
+            "items": {
+              "$ref": "#/components/schemas/LabBase"
+            },
+            "type": "array",
+            "title": "Bases"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/LabLimitsView"
+          },
+          "admins": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Admins"
+          },
+          "meters": {
+            "$ref": "#/components/schemas/LabMeters"
+          },
+          "linkMode": {
+            "type": "string",
+            "enum": [
+              "reflink",
+              "hardlink"
+            ],
+            "title": "Linkmode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bases",
+          "limits",
+          "admins",
+          "meters",
+          "linkMode"
+        ],
+        "title": "LabSettingsResponse",
+        "description": "Response of ``GET /lab/settings``: repositories, limits, admins and this month's spending."
+      },
+      "LabTakeSlotRequest": {
         "properties": {
           "changeId": {
             "type": "string",
@@ -7287,80 +11081,318 @@
         "required": [
           "changeId"
         ],
-        "title": "LabResumeRequest",
-        "description": "Body of ``POST /besser_api/lab/change/resume``."
+        "title": "LabTakeSlotRequest",
+        "description": "Body of ``POST /besser_api/lab/preview/slot``: show this change in a preview slot."
       },
-      "LabRun": {
+      "LabThreadMessage": {
         "properties": {
+          "type": {
+            "type": "string",
+            "const": "message",
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "at": {
+            "type": "number",
+            "title": "At"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "plan",
+              "build"
+            ],
+            "title": "Action"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "at",
+          "login",
+          "text",
+          "action",
+          "model"
+        ],
+        "title": "LabThreadMessage",
+        "description": "A message a lab user sent to the change."
+      },
+      "LabThreadNotice": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "notice",
+            "title": "Type"
+          },
+          "at": {
+            "type": "number",
+            "title": "At"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "at",
+          "login",
+          "text"
+        ],
+        "title": "LabThreadNotice",
+        "description": "Something that happened to the change, for every viewer (an update from the base, a merge)."
+      },
+      "LabThreadPullRequests": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "pull_requests",
+            "title": "Type"
+          },
+          "at": {
+            "type": "number",
+            "title": "At"
+          },
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "pullRequests": {
+            "items": {
+              "$ref": "#/components/schemas/LabPullRequest"
+            },
+            "type": "array",
+            "title": "Pullrequests"
+          },
+          "checksNote": {
+            "type": "string",
+            "title": "Checksnote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "at",
+          "login",
+          "pullRequests",
+          "checksNote"
+        ],
+        "title": "LabThreadPullRequests",
+        "description": "Pull requests opened or updated for the change."
+      },
+      "LabThreadRun": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "run",
+            "title": "Type"
+          },
           "runId": {
             "type": "string",
             "title": "Runid"
           },
-          "startedAt": {
+          "at": {
             "type": "number",
-            "title": "Startedat"
-          }
-        },
-        "type": "object",
-        "required": [
-          "runId",
-          "startedAt"
-        ],
-        "title": "LabRun",
-        "description": "The lab run in progress: ``/spec-driven/runs/{runId}/events`` follows it, the cancel route stops it."
-      },
-      "LabStateResponse": {
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "title": "Enabled"
+            "title": "At"
           },
-          "user": {
+          "login": {
             "type": "string",
-            "title": "User"
+            "title": "Login"
           },
-          "change": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "lab": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/LabChangeView"
+                "$ref": "#/components/schemas/LabDone"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "parked": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabRunError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costUsd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Costusd"
+          },
+          "planVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planversion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "runId",
+          "at",
+          "login",
+          "status",
+          "lab",
+          "error",
+          "costUsd",
+          "planVersion"
+        ],
+        "title": "LabThreadRun",
+        "description": "A run of the change: running, or how it ended."
+      },
+      "LabTouchSlotRequest": {
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Slot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot"
+        ],
+        "title": "LabTouchSlotRequest",
+        "description": "Body of ``POST /besser_api/lab/preview/slot/touch``: the slot is still in use."
+      },
+      "LabUpdateBranchRequest": {
+        "properties": {
+          "changeId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "title": "Changeid"
+          },
+          "repo": {
+            "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
+            "title": "Repo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "changeId",
+          "repo"
+        ],
+        "title": "LabUpdateBranchRequest",
+        "description": "Body of ``POST /besser_api/lab/change/update-base``: bring one repository of a change up to its base."
+      },
+      "LabUpdateBranchResponse": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "title": "Repo"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "updated",
+              "up_to_date",
+              "conflict",
+              "refused"
+            ],
+            "title": "Outcome"
+          },
+          "conflicts": {
             "items": {
-              "$ref": "#/components/schemas/LabParkedChange"
+              "type": "string"
             },
             "type": "array",
-            "title": "Parked"
+            "title": "Conflicts"
           },
-          "preview": {
-            "$ref": "#/components/schemas/LabPreview"
-          },
-          "run": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/LabRun"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "message": {
+            "type": "string",
+            "title": "Message"
           }
         },
         "type": "object",
         "required": [
-          "enabled",
-          "user",
-          "change",
-          "parked",
-          "preview",
-          "run"
+          "repo",
+          "outcome",
+          "conflicts",
+          "message"
         ],
-        "title": "LabStateResponse",
-        "description": "Response of ``GET /lab/state`` and of every change action."
+        "title": "LabUpdateBranchResponse",
+        "description": "Response of ``POST /lab/change/update-base``."
+      },
+      "LabUserView": {
+        "properties": {
+          "login": {
+            "type": "string",
+            "title": "Login"
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "title": "Isadmin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "login",
+          "isAdmin"
+        ],
+        "title": "LabUserView",
+        "description": "The signed-in lab user."
       },
       "LoadProjectFromCommitResponse": {
         "properties": {

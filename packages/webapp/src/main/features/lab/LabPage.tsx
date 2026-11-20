@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import {
-  dropLabChange,
+  dropActiveLabChange,
   getLabState,
   openLabPullRequests,
   parkLabChange,
@@ -230,7 +230,7 @@ const LabWorkspace: React.FC<{ githubSession: string }> = ({ githubSession }) =>
     });
     if (!confirmed) return;
     setOpened(null);
-    await runAction(t('lab.actions.drop', { defaultValue: 'Drop' }), () => dropLabChange(githubSession));
+    await runAction(t('lab.actions.drop', { defaultValue: 'Drop' }), () => dropActiveLabChange(githubSession));
   }, [githubSession, runAction, t]);
 
   const busy = actionRunning || running;

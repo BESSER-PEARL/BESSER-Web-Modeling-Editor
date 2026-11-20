@@ -32,6 +32,8 @@ export default defineConfig(({ mode }) => {
       'process.env.POSTHOG_KEY': JSON.stringify(env.POSTHOG_KEY ?? ''),
       'process.env.UML_BOT_WS_URL': JSON.stringify(env.UML_BOT_WS_URL ?? ''),
       'process.env.EDITOR_VERSION': JSON.stringify(editorVersion),
+      // 'true' builds the BESSER Lab editor instead of the public one.
+      'process.env.LAB_BUILD': JSON.stringify(env.LAB_BUILD ?? ''),
     },
     server: {
       host: '0.0.0.0',

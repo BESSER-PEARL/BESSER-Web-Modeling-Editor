@@ -1839,7 +1839,14 @@ export function useSpecDrivenTrigger(
       await driveRun(
         run,
         () => {
-          const handle = startLabRun<SpecDrivenEvent>({ message, action, project: projectPayload, githubSession });
+          // The server requires the change; W4-D sends the open change's id.
+          const handle = startLabRun<SpecDrivenEvent>({
+            message,
+            action,
+            project: projectPayload,
+            githubSession,
+            changeId: changeId ?? '',
+          });
           return {
             ...handle,
             events: noteBusyRefusal(handle.events, () => {

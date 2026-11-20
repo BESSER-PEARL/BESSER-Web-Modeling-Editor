@@ -192,12 +192,12 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
             {preview.services.map((service) => (
               <li key={service.name} className="flex items-center gap-2 text-sm">
                 <span
-                  className={cn('size-2 shrink-0 rounded-full', service.running ? 'bg-success' : 'bg-destructive')}
+                  className={cn('size-2 shrink-0 rounded-full', service.state === 'running' ? 'bg-success' : 'bg-destructive')}
                   aria-hidden
                 />
                 <span className="font-medium text-foreground">{service.name}</span>
                 <span className="text-muted-foreground">
-                  {service.running
+                  {service.state === 'running'
                     ? t('lab.state.running', { defaultValue: 'running' })
                     : t('lab.state.stopped', { defaultValue: 'stopped' })}
                 </span>

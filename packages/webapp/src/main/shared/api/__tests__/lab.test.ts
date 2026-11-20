@@ -6,24 +6,49 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, GITHUB_SESSION_REJECTED_EVENT } from '../api-client';
 import { SseHttpError } from '../sseClient';
 import {
+  closeLabChange,
+  createLabChange,
+  createLabNote,
+  deleteLabNote,
+  dismissLabNoteProposal,
+  dropActiveLabChange,
   dropLabChange,
+  getLabAudit,
+  getLabChange,
+  getLabDiff,
+  getLabHome,
+  getLabMemory,
+  getLabPreview,
+  getLabPreviewLog,
+  getLabReview,
+  getLabSettings,
   getLabState,
+  labRefusal,
+  listLabChanges,
   openLabPullRequests,
   parkLabChange,
+  refreshLabBases,
   resetLabPreview,
+  restartLabPreview,
   resumeLabChange,
   startLabRun,
+  takeLabPreviewSlot,
+  touchLabPreviewSlot,
+  updateLabChangeFromBase,
+  updateLabNote,
   type LabDone,
-  type LabState,
+  type LabNoteInput,
+  type LabRefusalCode,
   type LabStreamEvent,
 } from '../lab';
 
 const SESSION = 'session-abcdef-123';
+const CHANGE = '0123456789ab';
 const encoder = new TextEncoder();
 
 const DONE_LAB: LabDone = {
   step: 'build',
-  changeId: 'c1',
+  changeId: CHANGE,
   title: 'Note element',
   kind: 'editor_element',
   plan: null,
@@ -37,16 +62,21 @@ const DONE_LAB: LabDone = {
   checklist: [{ id: 'element.registries', text: 'Registered in the four registries', done: null }],
   summary: 'Added the note element.',
   stopReason: 'completed',
+  report: null,
+  pullRequests: [],
+  cost: { usd: 0.42, turns: 12, elapsedSeconds: 90, runs: 1 },
+  issues: [],
   finalText: 'Added the note element.',
+  noteProposals: [],
 };
 
-const STATE: LabState = {
-  enabled: true,
-  user: 'jordi',
-  change: null,
-  parked: [{ changeId: 'c0', title: 'Old', kind: 'generator', createdAt: 1_763_000_000 }],
-  preview: { enabled: true, services: [{ name: 'backend', running: true, detail: 'pid 12' }] },
-  run: null,
+const NOTE: LabNoteInput = {
+  kind: 'convention',
+  title: 'Registries',
+  body: 'A new element is registered in four places.',
+  repos: ['frontend'],
+  changeKinds: ['editor_element'],
+  docsTarget: 'CLAUDE.md',
 };
 
 const sse = (events: unknown[]): Response =>
@@ -63,12 +93,20 @@ const sse = (events: unknown[]): Response =>
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+const noContent = (): Response => new Response(null, { status: 204 });
+
 const fetchMock = vi.fn();
 const rejected = vi.fn();
 
 const lastCall = (): { url: string; init: RequestInit & { headers: Record<string, string> } } => {
   const [url, init] = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
   return { url, init };
+};
+
+/** The route and query of the last request, without the backend's base URL. */
+const lastRoute = (): string => {
+  const url = new URL(lastCall().url, 'http://localhost');
+  return url.pathname.replace(/^.*\/besser_api/, '') + url.search;
 };
 
 async function collect<T>(events: AsyncGenerator<T, void, void>): Promise<T[]> {
@@ -90,7 +128,7 @@ afterEach(() => {
 });
 
 describe('startLabRun', () => {
-  it('posts the message with the session header and yields the run events', async () => {
+  it('posts the message to its change with the session header and yields the run events', async () => {
     const runId = 'a'.repeat(32);
     fetchMock.mockResolvedValue(
       sse([
@@ -101,10 +139,13 @@ describe('startLabRun', () => {
     );
 
     const handle = startLabRun({
-      message: 'Add a note element',
+      message: 'Fix the failing check',
       action: 'build',
       project: { ClassDiagram: {} },
       githubSession: SESSION,
+      changeId: CHANGE,
+      review: { task: 'fix_ci', repo: 'frontend', commentIds: [] },
+      issue: { repo: 'besser', number: 744 },
     });
     const events = await collect<LabStreamEvent>(handle.events);
 
@@ -114,26 +155,38 @@ describe('startLabRun', () => {
     expect(init.headers['X-GitHub-Session']).toBe(SESSION);
     expect(init.headers.Accept).toBe('text/event-stream');
     expect(JSON.parse(init.body as string)).toEqual({
-      message: 'Add a note element',
+      message: 'Fix the failing check',
       action: 'build',
       project: { ClassDiagram: {} },
+      changeId: CHANGE,
+      review: { task: 'fix_ci', repo: 'frontend', commentIds: [] },
+      issue: { repo: 'besser', number: 744 },
     });
     expect(events.map((event) => event.event)).toEqual(['start', 'phase', 'done']);
     expect(events[2].lab).toEqual(DONE_LAB);
   });
 
-  it('defaults to the auto action and no project', async () => {
+  it('defaults to the auto action, no project, no review task and no issue', async () => {
     fetchMock.mockResolvedValue(sse([{ event: 'done', lab: DONE_LAB }]));
 
-    await collect(startLabRun({ message: 'hi', githubSession: SESSION }).events);
+    await collect(startLabRun({ message: 'hi', githubSession: SESSION, changeId: CHANGE }).events);
 
-    expect(JSON.parse(lastCall().init.body as string)).toEqual({ message: 'hi', action: 'auto', project: null });
+    expect(JSON.parse(lastCall().init.body as string)).toEqual({
+      message: 'hi',
+      action: 'auto',
+      project: null,
+      changeId: CHANGE,
+      review: null,
+      issue: null,
+    });
   });
 
   it('marks the GitHub session expired on a 401 and fails with the status', async () => {
     fetchMock.mockResolvedValue(json({ detail: 'Not signed in' }, 401));
 
-    const error = await collect(startLabRun({ message: 'hi', githubSession: SESSION }).events).catch((e) => e);
+    const error = await collect(startLabRun({ message: 'hi', githubSession: SESSION, changeId: CHANGE }).events).catch(
+      (e) => e,
+    );
 
     expect(error).toBeInstanceOf(SseHttpError);
     expect((error as SseHttpError).status).toBe(401);
@@ -143,7 +196,9 @@ describe('startLabRun', () => {
   it('keeps the session on a 403 (a login that is not on the list)', async () => {
     fetchMock.mockResolvedValue(json({ detail: 'Not allowed' }, 403));
 
-    const error = await collect(startLabRun({ message: 'hi', githubSession: SESSION }).events).catch((e) => e);
+    const error = await collect(startLabRun({ message: 'hi', githubSession: SESSION, changeId: CHANGE }).events).catch(
+      (e) => e,
+    );
 
     expect((error as SseHttpError).status).toBe(403);
     expect(rejected).not.toHaveBeenCalled();
@@ -162,7 +217,7 @@ describe('startLabRun', () => {
       ),
     );
 
-    const handle = startLabRun({ message: 'hi', githubSession: SESSION });
+    const handle = startLabRun({ message: 'hi', githubSession: SESSION, changeId: CHANGE });
     const first = await handle.events.next();
     expect(first.value).toMatchObject({ event: 'start' });
 
@@ -174,21 +229,128 @@ describe('startLabRun', () => {
 });
 
 describe('lab JSON routes', () => {
-  it('getLabState reads the state with the session header', async () => {
-    fetchMock.mockResolvedValue(json(STATE));
+  const ANSWER = { answered: true };
 
-    await expect(getLabState(SESSION)).resolves.toEqual(STATE);
+  it.each<[string, () => Promise<unknown>, string, string, unknown]>([
+    ['getLabHome', () => getLabHome(SESSION), 'GET', '/lab/home', undefined],
+    ['listLabChanges', () => listLabChanges(SESSION), 'GET', '/lab/changes', undefined],
+    ['createLabChange', () => createLabChange(SESSION), 'POST', '/lab/change', undefined],
+    ['getLabChange', () => getLabChange(SESSION, CHANGE), 'GET', `/lab/change?changeId=${CHANGE}`, undefined],
+    ['dropLabChange', () => dropLabChange(SESSION, CHANGE), 'POST', '/lab/change/drop', { changeId: CHANGE }],
+    ['closeLabChange', () => closeLabChange(SESSION, CHANGE), 'POST', '/lab/change/close', { changeId: CHANGE }],
+    [
+      'updateLabChangeFromBase',
+      () => updateLabChangeFromBase(SESSION, CHANGE, 'frontend'),
+      'POST',
+      '/lab/change/update-base',
+      { changeId: CHANGE, repo: 'frontend' },
+    ],
+    [
+      'openLabPullRequests',
+      () => openLabPullRequests(SESSION, CHANGE),
+      'POST',
+      '/lab/pull-request',
+      { changeId: CHANGE, title: null, body: null, closesIssues: [] },
+    ],
+    [
+      'openLabPullRequests with a title, a body and the issues it closes',
+      () =>
+        openLabPullRequests(SESSION, CHANGE, {
+          title: 'feat: note element',
+          body: 'Adds it.',
+          closesIssues: [{ repo: 'besser', number: 744 }],
+        }),
+      'POST',
+      '/lab/pull-request',
+      { changeId: CHANGE, title: 'feat: note element', body: 'Adds it.', closesIssues: [{ repo: 'besser', number: 744 }] },
+    ],
+    ['getLabDiff', () => getLabDiff(SESSION, CHANGE), 'GET', `/lab/diff?changeId=${CHANGE}`, undefined],
+    [
+      'getLabDiff of one file',
+      () => getLabDiff(SESSION, CHANGE, { repo: 'besser', path: 'docs/a b.rst' }),
+      'GET',
+      `/lab/diff?changeId=${CHANGE}&repo=besser&path=docs%2Fa+b.rst`,
+      undefined,
+    ],
+    ['getLabReview', () => getLabReview(SESSION, CHANGE), 'GET', `/lab/review?changeId=${CHANGE}`, undefined],
+    ['getLabPreview', () => getLabPreview(SESSION), 'GET', '/lab/preview', undefined],
+    ['takeLabPreviewSlot', () => takeLabPreviewSlot(SESSION, CHANGE), 'POST', '/lab/preview/slot', { changeId: CHANGE }],
+    ['restartLabPreview of all services', () => restartLabPreview(SESSION, 1), 'POST', '/lab/preview/restart', { slot: 1, service: null }],
+    [
+      'restartLabPreview of one service',
+      () => restartLabPreview(SESSION, 0, 'frontend'),
+      'POST',
+      '/lab/preview/restart',
+      { slot: 0, service: 'frontend' },
+    ],
+    [
+      'getLabPreviewLog',
+      () => getLabPreviewLog(SESSION, 1, 'backend'),
+      'GET',
+      '/lab/preview/logs/backend?slot=1&lines=200',
+      undefined,
+    ],
+    [
+      'getLabPreviewLog with a line count',
+      () => getLabPreviewLog(SESSION, 0, 'modeling_agent', 50),
+      'GET',
+      '/lab/preview/logs/modeling_agent?slot=0&lines=50',
+      undefined,
+    ],
+    ['getLabSettings', () => getLabSettings(SESSION), 'GET', '/lab/settings', undefined],
+    ['refreshLabBases', () => refreshLabBases(SESSION), 'POST', '/lab/settings/refresh-bases', undefined],
+    ['getLabAudit', () => getLabAudit(SESSION), 'GET', '/lab/audit', undefined],
+    ['getLabAudit of a month', () => getLabAudit(SESSION, '2026-10'), 'GET', '/lab/audit?month=2026-10', undefined],
+    ['getLabMemory', () => getLabMemory(SESSION), 'GET', '/lab/memory', undefined],
+    ['createLabNote', () => createLabNote(SESSION, NOTE), 'POST', '/lab/memory', NOTE],
+    ['updateLabNote', () => updateLabNote(SESSION, 'n-1', NOTE), 'PUT', '/lab/memory/n-1', NOTE],
+  ])('%s', async (_name, call, method, route, body) => {
+    fetchMock.mockResolvedValue(json(ANSWER));
 
-    const { url, init } = lastCall();
-    expect(url).toMatch(/\/besser_api\/lab\/state$/);
-    expect(init.method).toBe('GET');
+    await expect(call()).resolves.toEqual(ANSWER);
+
+    const { init } = lastCall();
+    expect(lastRoute()).toBe(route);
+    expect(init.method).toBe(method);
     expect(init.headers['X-GitHub-Session']).toBe(SESSION);
+    expect(init.body === undefined ? undefined : JSON.parse(init.body as string)).toEqual(body);
+  });
+
+  it.each<[string, () => Promise<void>, string, string, unknown]>([
+    ['touchLabPreviewSlot', () => touchLabPreviewSlot(SESSION, 1), 'POST', '/lab/preview/slot/touch', { slot: 1 }],
+    ['deleteLabNote', () => deleteLabNote(SESSION, 'n-1'), 'DELETE', '/lab/memory/n-1', undefined],
+    [
+      'dismissLabNoteProposal',
+      () => dismissLabNoteProposal(SESSION, { changeId: CHANGE, id: 'p1' }),
+      'POST',
+      '/lab/memory/proposals/dismiss',
+      { changeId: CHANGE, id: 'p1' },
+    ],
+  ])('%s resolves on the 204 it answers', async (_name, call, method, route, body) => {
+    fetchMock.mockResolvedValue(noContent());
+
+    await expect(call()).resolves.toBeUndefined();
+
+    const { init } = lastCall();
+    expect(lastRoute()).toBe(route);
+    expect(init.method).toBe(method);
+    expect(init.headers['X-GitHub-Session']).toBe(SESSION);
+    expect(init.body === undefined ? undefined : JSON.parse(init.body as string)).toEqual(body);
+  });
+
+  it('a route that answers 204 still rejects with the refusal when the server refuses', async () => {
+    fetchMock.mockResolvedValue(json({ detail: { code: 'not_found', message: 'No such note.' } }, 404));
+
+    const error = await deleteLabNote(SESSION, 'n-404').catch((e) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(404);
   });
 
   it('a lab that is switched off answers 404, which rejects with that status', async () => {
     fetchMock.mockResolvedValue(json({ detail: 'Not Found' }, 404));
 
-    const error = await getLabState(SESSION).catch((e) => e);
+    const error = await getLabHome(SESSION).catch((e) => e);
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(404);
@@ -198,69 +360,93 @@ describe('lab JSON routes', () => {
   it('a 401 on a JSON route marks the GitHub session expired', async () => {
     fetchMock.mockResolvedValue(json({ detail: 'Session expired' }, 401));
 
-    await expect(parkLabChange(SESSION)).rejects.toBeInstanceOf(ApiError);
+    await expect(listLabChanges(SESSION)).rejects.toBeInstanceOf(ApiError);
 
     expect(rejected).toHaveBeenCalledTimes(1);
   });
 
-  const ACTIVE = { ...STATE, change: { ...DONE_LAB, plan: undefined, modelProposal: undefined } };
+  it.each([
+    ['getLabState', () => getLabState(SESSION), 'GET', '/lab/state', undefined],
+    ['parkLabChange', () => parkLabChange(SESSION), 'POST', '/lab/change/park', {}],
+    ['resumeLabChange', () => resumeLabChange(SESSION, 'c0'), 'POST', '/lab/change/resume', { changeId: 'c0' }],
+    ['dropActiveLabChange', () => dropActiveLabChange(SESSION), 'POST', '/lab/change/drop', {}],
+    ['resetLabPreview', () => resetLabPreview(SESSION), 'POST', '/lab/preview/reset', {}],
+  ])('phase 1 shim %s still calls its route', async (_name, call, method, route, body) => {
+    fetchMock.mockResolvedValue(json(ANSWER));
 
-  it('openLabPullRequests sends the change id, null title and body by default and returns the pull requests with the checks note', async () => {
-    const opened = {
-      pullRequests: [
-        { repo: 'frontend', number: 7, url: 'https://github.com/o/wme/pull/7', branch: 'lab/jordi/x', base: 'develop' },
-      ],
-      checksNote: 'The quick checks passed; the full suites run in CI.',
-    };
-    fetchMock.mockResolvedValueOnce(json(ACTIVE)).mockResolvedValueOnce(json(opened));
+    await expect(call()).resolves.toEqual(ANSWER);
 
-    await expect(openLabPullRequests(SESSION, 'c1')).resolves.toEqual(opened);
+    expect(lastRoute()).toBe(route);
+    expect(lastCall().init.method).toBe(method);
+    expect(lastCall().init.body === undefined ? undefined : JSON.parse(lastCall().init.body as string)).toEqual(body);
+  });
+});
 
-    const { url, init } = lastCall();
-    expect(url).toMatch(/\/besser_api\/lab\/pull-request$/);
-    expect(init.method).toBe('POST');
-    expect(init.headers['X-GitHub-Session']).toBe(SESSION);
-    expect(JSON.parse(init.body as string)).toEqual({ changeId: 'c1', title: null, body: null });
+describe('labRefusal', () => {
+  const refusedStream = (status: number, body: unknown) => new SseHttpError(status, JSON.stringify(body));
+
+  it.each<[LabRefusalCode, number]>([
+    ['change_busy', 409],
+    ['runs_full', 429],
+    ['user_cap', 409],
+    ['instance_cap', 409],
+    ['not_owner', 403],
+    ['preview_full', 409],
+    ['not_found', 404],
+    ['state', 409],
+  ])('reads the %s refusal', (code, status) => {
+    const message = `The lab refused: ${code}.`;
+    expect(labRefusal(refusedStream(status, { detail: { code, message } }))).toEqual({ code, message });
   });
 
-  it('openLabPullRequests passes a chosen title and body', async () => {
-    fetchMock.mockResolvedValueOnce(json(ACTIVE)).mockResolvedValueOnce(json({ pullRequests: [], checksNote: '' }));
-
-    await openLabPullRequests(SESSION, 'c1', { title: 'feat: note element', body: 'Adds it.' });
-
-    expect(JSON.parse(lastCall().init.body as string)).toEqual({
-      changeId: 'c1',
-      title: 'feat: note element',
-      body: 'Adds it.',
+  it('a plain string detail is unknown, with that text', () => {
+    expect(labRefusal(refusedStream(403, { detail: 'Your login is not allowed.' }))).toEqual({
+      code: 'unknown',
+      message: 'Your login is not allowed.',
+    });
+    expect(labRefusal(new ApiError(401, 'Session expired', 'Session expired'))).toEqual({
+      code: 'unknown',
+      message: 'Session expired',
     });
   });
 
-  it.each([
-    ['another change is active', ACTIVE],
-    ['no change is active', STATE],
-  ])('openLabPullRequests pushes nothing and resolves null when %s', async (_name, state) => {
-    fetchMock.mockResolvedValue(json(state));
+  it('a code the editor does not know is unknown, with the server message', () => {
+    expect(labRefusal(refusedStream(409, { detail: { code: 'later_code', message: 'Something new.' } }))).toEqual({
+      code: 'unknown',
+      message: 'Something new.',
+    });
+  });
 
-    await expect(openLabPullRequests(SESSION, 'c-older-card')).resolves.toBeNull();
+  it('any other shape is unknown, with the error text', () => {
+    expect(labRefusal(new SseHttpError(502, '<html>Bad gateway</html>'))).toEqual({
+      code: 'unknown',
+      message: 'SSE request failed: 502',
+    });
+    expect(labRefusal(new TypeError('Failed to fetch'))).toEqual({ code: 'unknown', message: 'Failed to fetch' });
+    expect(labRefusal('offline')).toEqual({ code: 'unknown', message: 'offline' });
+  });
+});
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(lastCall().url).toMatch(/\/besser_api\/lab\/state$/);
+describe('LAB_BUILD', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('is false in a default build', async () => {
+    const { LAB_BUILD } = await import('../../constants/constant');
+    expect(LAB_BUILD).toBe(false);
   });
 
   it.each([
-    ['park', () => parkLabChange(SESSION), '/lab/change/park', {}],
-    ['resume', () => resumeLabChange(SESSION, 'c0'), '/lab/change/resume', { changeId: 'c0' }],
-    ['drop', () => dropLabChange(SESSION), '/lab/change/drop', {}],
-    ['preview reset', () => resetLabPreview(SESSION), '/lab/preview/reset', {}],
-  ])('%s posts to its route and returns the new state', async (_name, call, path, body) => {
-    fetchMock.mockResolvedValue(json(STATE));
-
-    await expect(call()).resolves.toEqual(STATE);
-
-    const { url, init } = lastCall();
-    expect(url.endsWith(`/besser_api${path}`)).toBe(true);
-    expect(init.method).toBe('POST');
-    expect(init.headers['X-GitHub-Session']).toBe(SESSION);
-    expect(JSON.parse(init.body as string)).toEqual(body);
+    ['true', true],
+    ['1', false],
+    ['TRUE', false],
+    ['', false],
+  ])('LAB_BUILD=%j builds the lab: %s', async (value, expected) => {
+    vi.stubEnv('LAB_BUILD', value);
+    vi.resetModules();
+    const { LAB_BUILD } = await import('../../constants/constant');
+    expect(LAB_BUILD).toBe(expected);
   });
 });
