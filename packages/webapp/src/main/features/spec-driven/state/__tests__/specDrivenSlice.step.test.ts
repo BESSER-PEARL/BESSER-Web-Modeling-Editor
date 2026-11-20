@@ -66,4 +66,26 @@ describe('step events', () => {
     expect(after.phases).toEqual(before.phases);
     expect(after.step?.startedAt).toBeUndefined();
   });
+
+  it('are ignored when they name another phase than the current row', () => {
+    // A validation helper that also runs during customisation must not label that phase.
+    const customising = replay(UNTIL_VALIDATION.slice(0, 3));
+    const card = replay(
+      [{ event: 'step', phase: 'validate', message: 'Validation: starting the backend', elapsedSeconds: 60 }],
+      customising,
+    );
+    expect(card.step).toBeUndefined();
+  });
+
+  it('match the latest backend phase row, past a client-side row', () => {
+    const switched = replay([
+      ...UNTIL_VALIDATION,
+      { event: 'model_update', model: 'fallback-model', previousModel: 'primary', reason: 'primary_unavailable' },
+    ]);
+    const card = replay(
+      [{ event: 'step', phase: 'validate', message: 'Fix attempt 1: fixing 2 blockers', elapsedSeconds: 500 }],
+      switched,
+    );
+    expect(card.step?.message).toBe('Fix attempt 1: fixing 2 blockers');
+  });
 });

@@ -592,6 +592,7 @@ export function useSpecDrivenTrigger(
           return;
         }
         case 'phase_update':
+        case 'step':
         case 'tool_call':
         case 'findings':
         case 'text':

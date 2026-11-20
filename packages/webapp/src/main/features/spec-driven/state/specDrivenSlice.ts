@@ -87,8 +87,8 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    matches the event's phase name; if none exists yet (out-of-order
  *    events) it is skipped — the chevron only opens when there's
  *    something to show.
- *  - `step` replaces the card's current step; a new phase or the run's
- *    terminal event clears it.
+ *  - `step` replaces the card's current step when it names the phase
+ *    running now; a new phase or the run's terminal event clears it.
  *  - `tool_call` before any phase gets an implicit "Working" phase so
  *    the row still has a home in the timeline.
  *  - `model_update` swaps the header model and adds a visible step note.
@@ -322,6 +322,10 @@ export function applySpecDrivenEvent(
       return { ...card, phases };
     }
     case 'step': {
+      // A step belongs to the phase running now (the latest backend row, past
+      // client-side rows such as a model switch); one naming another is stale.
+      const current = [...card.phases].reverse().find((p) => isValidSpecDrivenPhase(p.phase));
+      if (current?.phase !== event.phase) return card;
       const startedAt =
         typeof event.elapsedSeconds === 'number' && Number.isFinite(event.elapsedSeconds)
           ? event.elapsedSeconds
