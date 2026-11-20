@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../shared/types/workspace-types';
 import type { GenerationResult } from '../../generation';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
-import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { useOpenTraceability } from '../../traceability';
+import { shouldOpenGuiTab, isReviewSpecAction, traceTargetOf, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { GenerationKeyChip } from './GenerationKeyChip';
@@ -354,7 +355,14 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   // on the canvas (it's already rendered) — never relayed to the agent. A
   // "view/modify the GUI" chip switches to the GUI tab instead of relaying a
   // prompt the agent can't act on; every other chip relays its prompt as chat.
+  const openTraceability = useOpenTraceability();
   const handleQuickAction = useCallback((action: GuiActionRouteInput) => {
+    // The agent's answer about the trace: open the Traceability page on that view (the user clicked it).
+    const traceTarget = traceTargetOf(action);
+    if (traceTarget) {
+      openTraceability(traceTarget);
+      return;
+    }
     if (isReviewSpecAction(action)) {
       onOpenChange(false);
       return;
@@ -364,7 +372,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       return;
     }
     handleSubmit(undefined, { overrideText: action.prompt ?? '' });
-  }, [handleSubmit, onOpenChange]);
+  }, [handleSubmit, onOpenChange, openTraceability]);
 
   // Stable so memoised chat messages skip re-rendering. Opening the push
   // dialog is a pure dispatch — the dialog is mounted app-level

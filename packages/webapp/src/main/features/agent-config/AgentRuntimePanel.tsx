@@ -35,7 +35,7 @@ export function AgentRuntimePanel({
   const runtime = useAgentRuntimeForm(currentProject);
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="relative flex-1 overflow-y-auto">
     <div className="mx-auto flex max-w-6xl min-h-full">
 
       <RuntimeSidebar activeSection={activeSection} onSelect={setActiveSection} runtime={runtime} />

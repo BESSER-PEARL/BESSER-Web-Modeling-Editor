@@ -13,6 +13,7 @@ intended for readers who already know the basic workflow.
    ../editor/index
    ../webapp/index
    ../webapp/local-projects
+   ../webapp/traceability-recording
    ../webapp/embedding
    ../overview/index
    ../user-guide/vibe-modeling

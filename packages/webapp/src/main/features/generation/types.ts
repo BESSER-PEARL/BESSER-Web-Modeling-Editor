@@ -8,6 +8,9 @@ export interface GenerationOptions {
    * string detail). Return null to show the detail itself.
    */
   describeError?: (status: number, detail: string) => ReactNode | null;
+  /** The diagram the generated model was read from, for the project trace: set when the model is not the open
+   *  diagram's (the assistant generating from the stored class diagram). Defaults to the open diagram. */
+  traceDiagramId?: string;
 }
 
 export type GenerationResult =

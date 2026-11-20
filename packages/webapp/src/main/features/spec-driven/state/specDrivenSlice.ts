@@ -149,6 +149,7 @@ const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
     items.push({
       kind,
       id: typeof e.id === 'string' ? e.id : '',
+      traceRef: typeof e.traceRef === 'string' && e.traceRef ? e.traceRef : undefined,
       what,
       how: typeof e.how === 'string' && e.how.trim() ? e.how.trim() : undefined,
       why: typeof e.why === 'string' && e.why.trim() ? e.why.trim() : undefined,

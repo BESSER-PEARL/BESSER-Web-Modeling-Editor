@@ -5,6 +5,10 @@ import { DEFAULT_FORECASTER_CONFIG, useGenerateCode } from '../useGenerateCode';
 import type { ForecasterConfig } from '../useGenerateCode';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { createDefaultProject } from '../../../../shared/types/project';
+import type { BesserProject } from '../../../../shared/types/project';
+
+/** These tests are about the plain endpoints: the project does not record traces (see the traceability test). */
+const untraced = (project: BesserProject): BesserProject => ({ ...project, settings: { ...project.settings, traceabilityEnabled: false } });
 import type { GenerationResult } from '../../types';
 
 vi.mock('react-toastify', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
@@ -22,7 +26,7 @@ const generate = async (config: ForecasterConfig): Promise<GenerationResult> => 
 
 describe('useGenerateCode — forecaster', () => {
   beforeEach(() => {
-    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(createDefaultProject('Forecast', '', ''));
+    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(untraced(createDefaultProject('Forecast', '', '')));
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });

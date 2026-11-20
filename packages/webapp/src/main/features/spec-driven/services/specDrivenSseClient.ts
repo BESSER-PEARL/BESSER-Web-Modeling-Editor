@@ -80,6 +80,7 @@ import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
 } from '../../../shared/services/telemetry/pilotTelemetry';
+import type { RequirementKind } from '../../../shared/types/traceability';
 import { track } from '../../../shared/services/analytics/events';
 import type {
   SpecDrivenEvent,
@@ -88,10 +89,27 @@ import type {
   SpecDrivenProvider,
 } from '../types';
 
+/**
+ * A requirement the modeling assistant extracted from the user's request, as the run's requirements
+ * ledger judges it. Mirrors `RequirementInput` in the backend's `backend/models/spec_driven.py`; `id` is
+ * the requirement's artifact id in the project trace.
+ */
+export interface RequirementInput {
+  id: string;
+  text: string;
+  kind: RequirementKind;
+}
+
 export interface StartSpecDrivenRunParams {
   /** The full BesserProject payload (same shape as /generate-output-from-project). */
   project: unknown;
   instructions: string;
+  /** The assistant's requirements: the run judges these instead of extracting its own. */
+  requirements?: RequirementInput[];
+  /** Who ran it, for the run's trace (the project owner, as for the traced generation endpoints). Sent only when the project records traces. */
+  actorName?: string;
+  /** Whether the project records traces: the backend builds the run's trace only when it is true. */
+  traceabilityEnabled?: boolean;
   provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
@@ -541,6 +559,10 @@ export function startSpecDrivenRun(
     instructions: params.instructions,
     provider: wireProvider,
   };
+  if (params.requirements?.length) body.requirements = params.requirements;
+  // The backend caps the name at 200 characters.
+  if (params.actorName?.trim()) body.actorName = params.actorName.trim().slice(0, 200);
+  body.traceabilityEnabled = params.traceabilityEnabled === true;
   if (!isServerPaid) body.api_key = params.apiKey;
   if (!isServerPaid && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
   // The demo secret travels with the tier it unlocks, and nowhere else.

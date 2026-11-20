@@ -126,6 +126,7 @@ export interface AgentModelElement extends UMLModelElement {
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
+  ws_options_label?: string;
   ws_latitude?: number;
   ws_longitude?: number;
   guiId?: string;

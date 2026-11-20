@@ -1,0 +1,114 @@
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { indexTrace } from '../../../shared/traceability/traceQueries';
+import { MODEL_GENERATORS } from '../../../shared/traceability/traceStore';
+import { emptyTraceFile } from '../../../shared/types/traceability';
+import type { TraceFile } from '../../../shared/types/traceability';
+import { TimelineView } from '../TimelineView';
+import { ElementsView } from '../ElementsView';
+
+const at = (minute: number) => new Date(Date.UTC(2026, 10, 18, 10, minute)).toISOString();
+const base = { status: 'SUCCEEDED' as const, toolCalls: [], reads: [], writes: [] };
+const call = (id: string, toolId: string, minute: number) => ({
+  id, toolId, sequenceNumber: 0, status: 'SUCCEEDED' as const, startedAt: at(minute), logs: [],
+});
+
+/** Live, 2026-11-18: a fresh project from the Library template, recording on, then Python Classes and SQLAlchemy generated. */
+function libraryProject(): TraceFile {
+  return {
+    ...emptyTraceFile('p1'),
+    actors: [{ id: 'ada', type: 'Person', name: 'Ada', timestamp: at(0) }],
+    tools: [
+      { id: 'tpl', type: 'ModelGenerator', name: MODEL_GENERATORS.template, timestamp: at(0) },
+      { id: 'py', type: 'CodeGenerator', name: 'python', timestamp: at(0) },
+      { id: 'sa', type: 'CodeGenerator', name: 'sqlalchemy', timestamp: at(0) },
+    ],
+    artifacts: [
+      { id: 'cd', type: 'ModelArtifact', name: 'Library', elementId: 'd1', elementType: 'DomainModel', timestamp: at(1) },
+      { id: 'book', type: 'ModelArtifact', name: 'Book', elementId: 'c1', elementType: 'Class', parentId: 'cd', timestamp: at(1) },
+      { id: 'title', type: 'ModelArtifact', name: 'title', elementId: 'a1', elementType: 'Property', parentId: 'book', timestamp: at(1) },
+      { id: 'pyFile', type: 'CodeArtifact', name: 'classes.py', path: 'classes.py', contentHash: 'h1', timestamp: at(2) },
+      { id: 'pyBook', type: 'CodeArtifact', name: 'Book', path: 'classes.py', contentHash: 'h1', startLine: 1, endLine: 3, parentId: 'pyFile', timestamp: at(2) },
+      { id: 'saFile', type: 'CodeArtifact', name: 'sql_alchemy.py', path: 'sql_alchemy.py', contentHash: 'h2', timestamp: at(3) },
+      { id: 'saBook', type: 'CodeArtifact', name: 'Book', path: 'sql_alchemy.py', contentHash: 'h2', startLine: 5, endLine: 9, parentId: 'saFile', timestamp: at(3) },
+    ],
+    operations: [
+      { ...base, id: 'load', type: 'ModelingSession', startedAt: at(1), performedBy: ['ada'], toolCalls: [call('lc', 'tpl', 1)],
+        changes: [
+          { id: 'c1', kind: 'CREATED', artifactId: 'book', newValue: 'Book', timestamp: at(1) },
+          { id: 'c2', kind: 'CREATED', artifactId: 'title', newValue: 'title', timestamp: at(1) },
+        ] },
+      { ...base, id: 'genPy', type: 'CodeGeneration', startedAt: at(2), performedBy: ['ada'], writes: ['pyFile', 'pyBook'],
+        toolCalls: [call('pc', 'py', 2)] },
+      { ...base, id: 'genSa', type: 'CodeGeneration', startedAt: at(3), performedBy: ['ada'], writes: ['saFile', 'saBook'],
+        toolCalls: [call('sc', 'sa', 3)] },
+    ],
+    traceLinks: [
+      { id: 'lPy', sourceId: 'book', targetId: 'pyBook', operationId: 'genPy', timestamp: at(2), evidence: [] },
+      { id: 'lSa', sourceId: 'book', targetId: 'saBook', operationId: 'genSa', timestamp: at(3), evidence: [] },
+    ],
+  };
+}
+
+const noop = () => {};
+
+describe('a project loaded from the Library template', () => {
+  it('credits the template load to the template library in the Timeline, not to a modeling session', () => {
+    // Live: the header read "Modeling session", though templates are recorded as their source, not as user edits.
+    render(<TimelineView index={indexTrace(libraryProject())} onOpenElement={noop} />);
+    expect(screen.getByText('Written by BESSER template library')).toBeTruthy();
+    expect(screen.queryByText('Modeling session')).toBeNull();
+  });
+
+  it('credits the template library in an element’s History', () => {
+    // Live: "Created attribute title … Modeling session · <owner>".
+    const { container } = render(<ElementsView index={indexTrace(libraryProject())} selectedId="title" onSelect={noop} onShowLineage={noop} />);
+    const entry = [...container.querySelectorAll('li')].find((li) => li.textContent?.startsWith('Created attribute title'));
+    expect(entry?.textContent).toContain('Written by BESSER template library · Ada');
+    expect(entry?.textContent).not.toContain('Modeling session');
+  });
+
+  it('does not claim source models for a template load, which has none', () => {
+    // Live: "Derived from its source models by BESSER template library…".
+    render(<TimelineView index={indexTrace(libraryProject())} onOpenElement={noop} />);
+    fireEvent.click(screen.getByText('Written by BESSER template library'));
+    expect(screen.getByText('Every change below comes from one run of BESSER template library.')).toBeTruthy();
+    expect(screen.queryByText(/Derived from/)).toBeNull();
+  });
+
+  it('shows each generator’s current code for an element, and hides only what a newer run of the same generator replaced', () => {
+    // Live: the Python fragment, itself up to date, was hidden under "Show 1 fragment from older generations"
+    // next to the SQLAlchemy one.
+    const t = libraryProject();
+    t.artifacts.push({ id: 'saBook2', type: 'CodeArtifact', name: 'Book', path: 'sql_alchemy.py', contentHash: 'h3', startLine: 5, endLine: 10, parentId: 'saFile', timestamp: at(5) });
+    t.operations.push({ ...base, id: 'genSa2', type: 'CodeGeneration', startedAt: at(5), performedBy: ['ada'], writes: ['saFile', 'saBook2'],
+      toolCalls: [call('sc2', 'sa', 5)] });
+    t.traceLinks.push({ id: 'lSa2', sourceId: 'book', targetId: 'saBook2', operationId: 'genSa2', timestamp: at(5), evidence: [] });
+    render(<ElementsView index={indexTrace(t)} selectedId="book" onSelect={noop} onShowLineage={noop} />);
+    expect(screen.getByText('sql_alchemy.py:5–10')).toBeTruthy();
+    expect(screen.getByText('classes.py:1–3')).toBeTruthy();
+    expect(screen.queryByText('sql_alchemy.py:5–9')).toBeNull();
+    fireEvent.click(screen.getByText('Show 1 fragment from older generations'));
+    expect(screen.getByText('sql_alchemy.py:5–9')).toBeTruthy();
+  });
+
+  it('names generators as the Generate menu does, not by their ids', () => {
+    // Live: "Generated python", "Generated sqlalchemy".
+    render(<TimelineView index={indexTrace(libraryProject())} onOpenElement={noop} />);
+    expect(screen.getByText('Generated Python Classes')).toBeTruthy();
+    expect(screen.getByText('Generated SQLAlchemy DDL')).toBeTruthy();
+    expect(screen.queryByText(/Generated (python|sqlalchemy)$/)).toBeNull();
+  });
+
+  it('still names the models a derivation read', () => {
+    const t = libraryProject();
+    t.tools.push({ id: 'gui', type: 'ModelGenerator', name: 'BESSER GUI generator', timestamp: at(0) });
+    t.artifacts.push({ id: 'ui', type: 'ModelArtifact', name: 'Library UI', elementId: 'g1', elementType: 'GUIModel', timestamp: at(4) });
+    t.operations.push({ ...base, id: 'derive', type: 'ModelingSession', startedAt: at(4), performedBy: ['ada'], reads: ['cd'],
+      toolCalls: [call('dc', 'gui', 4)], changes: [{ id: 'c3', kind: 'CREATED', artifactId: 'ui', newValue: 'Library UI', timestamp: at(4) }] });
+    render(<TimelineView index={indexTrace(t)} onOpenElement={noop} />);
+    fireEvent.click(screen.getByText('Written by BESSER GUI generator'));
+    expect(screen.getByText(/^Derived from Library by BESSER GUI generator, deterministically/)).toBeTruthy();
+  });
+});

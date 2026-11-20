@@ -2004,6 +2004,7 @@
           "conversion"
         ],
         "summary": "Export Project As Buml",
+        "description": "The project as a B-UML file, with its trace when that keeps it importable.\n\nWhen the trace is left out (``project_code_with_trace``), the ``X-BESSER-Warning`` header says so.",
         "operationId": "export_project_as_buml_besser_api_export_project_as_buml_post",
         "requestBody": {
           "content": {
@@ -4029,6 +4030,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SimulationSessionStopResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/traceability/generate-output": {
+      "post": {
+        "tags": [
+          "traceability"
+        ],
+        "summary": "Generate Traced Output",
+        "description": "Generate code from a diagram and return the file together with the trace of the run.\n\nSame input as ``/generate-output`` plus ``actorName``, for any generator it accepts;\nthe diagram ``id`` is required. The file comes back base64-encoded in JSON, byte for\nbyte what ``/generate-output`` delivers, so the trace can travel with it.",
+        "operationId": "generate_traced_output_besser_api_traceability_generate_output_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TracedGenerationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TracedGenerationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/traceability/generate-output-from-project": {
+      "post": {
+        "tags": [
+          "traceability"
+        ],
+        "summary": "Generate Traced Output From Project",
+        "description": "Generate code from a project and return the file together with the trace of the run.\n\nSame input as ``/generate-output-from-project`` plus ``actorName``, for generators that\nread several diagrams; every diagram the generator reads needs its ``id``. The file comes\nback base64-encoded in JSON, byte for byte what ``/generate-output-from-project`` delivers.",
+        "operationId": "generate_traced_output_from_project_besser_api_traceability_generate_output_from_project_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TracedProjectGenerationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TracedGenerationResponse"
                 }
               }
             }
@@ -6632,6 +6717,18 @@
             "title": "Version",
             "default": "1.0.0"
           },
+          "trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace"
+          },
           "warnings": {
             "anyOf": [
               {
@@ -6653,6 +6750,7 @@
           "project",
           "exportedAt",
           "version",
+          "trace",
           "warnings"
         ],
         "title": "ProjectExportResponse",
@@ -6744,6 +6842,18 @@
               }
             ],
             "title": "Settings"
+          },
+          "trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace"
           }
         },
         "type": "object",
@@ -7198,6 +7308,51 @@
         ],
         "title": "RepoSummaryResponse",
         "description": "What the repo browser shows on a repo card."
+      },
+      "RequirementInput": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RequirementKind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "kind"
+        ],
+        "title": "RequirementInput",
+        "description": "A requirement the modeling assistant extracted from the user's request.\n\n``id`` is the ``RequirementArtifact`` id in the project trace; the frontend\nside of this shape is ``RequirementInput`` in the webapp's\n``features/spec-driven/services/specDrivenSseClient.ts``."
+      },
+      "RequirementKind": {
+        "type": "string",
+        "enum": [
+          "data",
+          "uniqueness",
+          "validation",
+          "rule",
+          "computed",
+          "transition",
+          "action",
+          "ui",
+          "integration",
+          "quality",
+          "technical"
+        ],
+        "title": "RequirementKind",
+        "description": "What a :class:`RequirementArtifact` asks for, which decides the models that can realize it.\n\nThe values are lowercase because the same words name a requirement's kind in the modeling\nagent's protocol and the Spec-Driven Agent's requirements ledger."
       },
       "SaveProjectRequest": {
         "properties": {
@@ -7712,6 +7867,38 @@
             "minLength": 1,
             "title": "Instructions"
           },
+          "requirements": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RequirementInput"
+                },
+                "type": "array",
+                "maxItems": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirements"
+          },
+          "actorName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actorname"
+          },
+          "traceabilityEnabled": {
+            "type": "boolean",
+            "title": "Traceabilityenabled",
+            "default": false
+          },
           "api_key": {
             "anyOf": [
               {
@@ -7884,7 +8071,7 @@
           "instructions"
         ],
         "title": "SmartGenerateRequest",
-        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap."
+        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap.\nrequirements\n    Optional requirements the modeling assistant extracted from the\n    user's request. When given, the requirements ledger is built from\n    them instead of extracting its own, and each verdict names its\n    requirement's trace id. Left out, the run extracts them.\nactorName\n    Optional name of the person starting the run (the project owner), the\n    Person the run's trace (``done.trace``) records besides the agent.\n    Left out, the trace names only the Spec-Driven Agent.\ntraceabilityEnabled\n    Whether the project records traces (opt-in, off by default). Only\n    then does the run build its trace, send it as ``done.trace`` and ship\n    it in the ZIP."
       },
       "SmartPreviewModelSummaryResponse": {
         "properties": {
@@ -8443,6 +8630,262 @@
         ],
         "title": "TelemetryEventRequest",
         "description": "Body of ``POST /besser_api/telemetry/event``."
+      },
+      "TracedGenerationInput": {
+        "properties": {
+          "actorName": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Actorname",
+            "default": "anonymous"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "model": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Model"
+          },
+          "lastUpdate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastupdate"
+          },
+          "generator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generator"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "configYaml": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configyaml"
+          },
+          "referenceDiagramData": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencediagramdata"
+          },
+          "references": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "References"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "model"
+        ],
+        "title": "TracedGenerationInput",
+        "description": "A ``/generate-output`` request whose response also carries the trace of the run.\n\n``id`` (the diagram id) is required by the endpoint: the trace refers to the\nmodel by it."
+      },
+      "TracedGenerationResponse": {
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "mediaType": {
+            "type": "string",
+            "title": "Mediatype"
+          },
+          "contentBase64": {
+            "type": "string",
+            "title": "Contentbase64"
+          },
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fileName",
+          "mediaType",
+          "contentBase64",
+          "trace"
+        ],
+        "title": "TracedGenerationResponse",
+        "description": "The generated file, as the plain download would deliver it, plus the trace fragment of the run."
+      },
+      "TracedProjectGenerationInput": {
+        "properties": {
+          "actorName": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Actorname",
+            "default": "anonymous"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "currentDiagramType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentdiagramtype"
+          },
+          "currentDiagramIndices": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentdiagramindices"
+          },
+          "diagrams": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/DiagramInput"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Diagrams"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings"
+          },
+          "trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "createdAt",
+          "diagrams"
+        ],
+        "title": "TracedProjectGenerationInput",
+        "description": "A ``/generate-output-from-project`` request whose response also carries the trace of the run.\n\nEvery diagram the generator reads needs its ``id``: the trace refers to each model by it."
       },
       "ValidationError": {
         "properties": {

@@ -32,6 +32,7 @@ import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from '../../
 import { useProject } from '../../../app/hooks/useProject';
 import { useUndoRedo } from '../../../shared/hooks/useUndoRedo';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import { recordDiagramUpdate } from '../../../shared/traceability/traceStore';
 import { downloadFile } from '../../../shared/utils/download';
 import {
   getActiveDiagram,
@@ -278,11 +279,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
           visibleIds: visibleIdsRef.current,
         },
       };
-      ProjectStorageRepository.updateDiagram(currentProject.id, 'KnowledgeGraphDiagram', {
-        ...active,
-        model: nextModel,
-        lastUpdate: new Date().toISOString(),
-      });
+      const saved = { ...active, model: nextModel, lastUpdate: new Date().toISOString() };
+      if (ProjectStorageRepository.updateDiagram(currentProject.id, 'KnowledgeGraphDiagram', saved)) {
+        // The graph editor saves straight to storage: its edits are recorded here (layout and view settings are not).
+        recordDiagramUpdate(project, 'KnowledgeGraphDiagram', saved, active.model, nextModel, 'user');
+      }
     }, 400);
   }, [currentProject?.id]);
 

@@ -175,6 +175,8 @@ export interface SpecDrivenVerificationItem {
   kind: SpecDrivenVerificationKind;
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the run's trace (`done.trace`); `id` keeps `R<n>`. */
+  traceRef?: string;
   /** What the thing is, in the user's terms. */
   what: string;
   /** Set on a verified item (what was run) and a found-in-code item (the cited source). */
@@ -276,6 +278,11 @@ export interface DoneEvent {
   changedFileCount?: number;
   /** How the model differs from the one the base app was built from (modify runs). */
   modelChanges?: string[];
+  /** The trace of the run (a trace file fragment, `projectId` null): its generator and LLM calls, the files the
+   *  LLM wrote, and requirement -> code links whose requirements are the RequirementArtifact ids the editor sent.
+   *  Absent from an older backend; untrusted, checked and migrated before it is merged (cross-repo traceability
+   *  contract, section 2). */
+  trace?: unknown;
 }
 
 export interface SpecDrivenErrorEvent {
@@ -427,6 +434,8 @@ export interface SpecDrivenVerificationItemView {
   kind: 'requirement' | 'ocl_constraint' | 'api_workflow' | 'check';
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the project trace. */
+  traceRef?: string;
   what: string;
   /** Verified items: what was run; found-in-code items: the cited source. */
   how?: string;

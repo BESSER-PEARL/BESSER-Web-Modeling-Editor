@@ -7,6 +7,7 @@ import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
+import { MODEL_GENERATORS, recordDiagramCreated, recordDiagramDeleted } from '../../shared/traceability/traceStore';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
@@ -88,6 +89,10 @@ export const useImportDiagramPictureFromImage = () => {
 
       // Save to localStorage and reload the project into Redux to keep them in sync
       ProjectStorageRepository.saveProject(updatedProject);
+      // The picture's diagram replaces the active one: the import created it (an LLM read the picture server-side).
+      const replaced = existingDiagrams[Math.min(activeIndex, existingDiagrams.length - 1)];
+      if (replaced) recordDiagramDeleted(updatedProject, replaced.id, replaced.title);
+      recordDiagramCreated(updatedProject, diagramType, newDiagram, { generator: MODEL_GENERATORS.pictureImport });
       await dispatch(loadProjectThunk(currentProject.id));
 
       return {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { RuntimeSettingsSection } from '../runtime/sections/RuntimeSettingsSection';
 import type { AgentRuntimeConfig } from '../../../shared/services/storage/local-storage-repository';
 
@@ -57,5 +58,20 @@ describe('RuntimeSettingsSection themed controls', () => {
     const update = renderSection();
     fireEvent.click(screen.getByText(/Streamlit/i));
     expect(update).toHaveBeenCalledWith({ agentPlatformUseStreamlit: true });
+  });
+});
+
+describe('RuntimeSettingsSection LLM hint', () => {
+  it('links the "Agent Components" words to the Agent Components page when no LLM is defined', () => {
+    render(
+      <MemoryRouter>
+        <RuntimeSettingsSection
+          agentRuntimeConfig={{ ...baseConfig, agentLlmName: '' }}
+          updateAgentRuntimeConfig={vi.fn()}
+          agentLLMElements={[]}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: 'Agent Components' })).toHaveAttribute('href', '/agent-components');
   });
 });

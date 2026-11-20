@@ -85,6 +85,10 @@ describe('createDefaultProject', () => {
       expect(project.settings.perspectives[type]).toBe(true);
     }
   });
+
+  it('records no traces until the user turns recording on', () => {
+    expect(createDefaultProject('Demo', 'desc', 'me').settings.traceabilityEnabled).toBe(false);
+  });
 });
 
 describe('ensureProjectMigrated v1 → v2', () => {

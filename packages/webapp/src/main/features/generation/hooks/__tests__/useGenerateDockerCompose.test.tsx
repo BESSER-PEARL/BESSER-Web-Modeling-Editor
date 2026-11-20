@@ -8,6 +8,10 @@ import { ProjectStorageRepository } from '../../../../shared/services/storage/Pr
 import { useAppSelector } from '../../../../app/store/hooks';
 import { selectProject } from '../../../../app/store/workspaceSlice';
 import { createDefaultProject } from '../../../../shared/types/project';
+import type { BesserProject } from '../../../../shared/types/project';
+
+/** These tests are about the plain endpoints: the project does not record traces (see the traceability test). */
+const untraced = (project: BesserProject): BesserProject => ({ ...project, settings: { ...project.settings, traceabilityEnabled: false } });
 import { track } from '../../../../shared/services/analytics/events';
 
 const mockDownloadFile = vi.fn();
@@ -45,7 +49,7 @@ const generate = async () => {
 };
 
 describe('useGenerateDockerCompose', () => {
-  const project = createDefaultProject('My Project', '', '');
+  const project = untraced(createDefaultProject('My Project', '', ''));
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,7 +122,7 @@ describe('useGenerateDockerCompose', () => {
 });
 
 describe('useGenerateDockerCompose analytics', () => {
-  const project = createDefaultProject('Acme Secret', '', '');
+  const project = untraced(createDefaultProject('Acme Secret', '', ''));
   const sent = (event: string) => vi.mocked(track).mock.calls.filter(([name]) => name === event).map(([, props]) => props);
 
   beforeEach(() => {

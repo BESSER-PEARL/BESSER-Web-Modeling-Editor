@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ApiError } from '../../shared/api/api-client';
 import { transformAgentModelJson } from '../../shared/api/conversion';
+import { keepRuntimeConfig, normalizeStoredPlatform } from './runtimeConfigKeys';
 import { recommendAgentConfigLlm, recommendAgentConfigMapping } from '../../shared/api/generation';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
@@ -976,8 +977,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       ? cfg.agentLlmName
       : (cfg.llm && typeof cfg.llm === 'object' && typeof cfg.llm.name === 'string' ? cfg.llm.name : '');
     return {
-      agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
-      agentPlatformUseStreamlit: cfg.agentPlatformUseStreamlit ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatformUseStreamlit,
+      ...normalizeStoredPlatform(cfg.agentPlatform, cfg.agentPlatformUseStreamlit, DEFAULT_AGENT_RUNTIME_CONFIG),
       intentRecognitionTechnology:
         cfg.intentRecognitionTechnology || DEFAULT_AGENT_RUNTIME_CONFIG.intentRecognitionTechnology,
       agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
@@ -1542,7 +1542,15 @@ export const AgentConfigurationPanel: React.FC = () => {
         if (defaultLlmName) {
           diagramConfig.default_llm_name = defaultLlmName;
         }
-        updateActiveAgentDiagramConfig(currentProject, diagramConfig);
+        // The Runtime tab owns the runtime settings; the form only holds a stale copy.
+        const latestDiagram = getActiveDiagram(
+          ProjectStorageRepository.loadProject(currentProject.id) || currentProject,
+          'AgentDiagram',
+        );
+        updateActiveAgentDiagramConfig(
+          currentProject,
+          keepRuntimeConfig(diagramConfig, (latestDiagram?.config ?? {}) as Record<string, unknown>),
+        );
       }
 
       if (options?.markActive) {
@@ -2082,8 +2090,10 @@ export const AgentConfigurationPanel: React.FC = () => {
           const latestConfigRecord = (latestAgentDiagram.config ?? {}) as Record<string, unknown>;
 
           updateActiveAgentDiagramConfig(currentProject, {
-            ...latestConfigRecord,
-            ...(config as unknown as Record<string, unknown>),
+            ...keepRuntimeConfig(
+              { ...latestConfigRecord, ...(config as unknown as Record<string, unknown>) },
+              latestConfigRecord,
+            ),
             personalizedVariants: upsertVariantForProfile(readAgentVariants(latestAgentDiagram), nextVariant),
             activePersonalizedVariantId: variantId,
           });
@@ -2184,8 +2194,11 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const showVoiceControls = outputModalities.includes('speech');
 
+  // The root clips (overflow-clip) rather than hides: a hidden box can still be scrolled by focus or
+  // scrollIntoView, which pushed the header out of view and left a blank gap. The scrollers below are
+  // `relative` so the absolutely positioned hidden <select> of every Radix Select stays inside them.
   return (
-    <div className="relative flex h-full flex-col overflow-hidden">
+    <div className="relative flex h-full flex-col overflow-clip">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-elevation-3">
@@ -2288,7 +2301,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           agentLLMElements={agentLLMElements}
         />
       )}
-      <div className={activeTab === 'personalization' ? 'flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className={activeTab === 'personalization' ? 'relative flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
       <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}

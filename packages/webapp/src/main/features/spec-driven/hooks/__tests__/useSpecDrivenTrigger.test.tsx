@@ -151,6 +151,7 @@ interface HarnessAPI {
 function Harness(props: {
   apiRef: { current: HarnessAPI | null };
   hasProject?: boolean;
+  recording?: boolean;
   onRunFinished?: (result: SpecDrivenRunResult) => void;
 }) {
   const [messages, setMessages] = React.useState<any[]>([]);
@@ -163,6 +164,7 @@ function Harness(props: {
           name: 'TestProject',
           diagrams: { ClassDiagram: [{ id: 'cd1', title: 'lib', model: {} }] },
           currentDiagramIndices: { ClassDiagram: 0 },
+          ...(props.recording ? { owner: 'Ada', settings: { traceabilityEnabled: true } } : {}),
         },
   );
   const hook = useSpecDrivenTrigger({
@@ -186,6 +188,7 @@ function Harness(props: {
 function renderHarness(
   opts: {
     hasProject?: boolean;
+    recording?: boolean;
     onRunFinished?: (result: SpecDrivenRunResult) => void;
   } = {},
 ) {
@@ -196,6 +199,7 @@ function renderHarness(
       <Harness
         apiRef={apiRef}
         hasProject={opts.hasProject}
+        recording={opts.recording}
         onRunFinished={opts.onRunFinished}
       />
     </Provider>,
@@ -583,6 +587,34 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
   });
 });
 
+
+describe('useSpecDrivenTrigger — whether the run is traced', () => {
+  async function runArgs(recording: boolean) {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef } = renderHarness({ recording });
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('asks for no run trace when the project does not record traces', async () => {
+    const args = await runArgs(false);
+    expect(args.traceabilityEnabled).toBe(false);
+    expect(args.actorName).toBeUndefined();
+  });
+
+  it('asks for the run trace, with its actor, when the project records traces', async () => {
+    const args = await runArgs(true);
+    expect(args.traceabilityEnabled).toBe(true);
+    expect(args.actorName).toBe('Ada');
+  });
+});
 
 describe('useSpecDrivenTrigger — explicit free-model choice', () => {
   const FREE_CONFIG_WITH_FALLBACK = {

@@ -43,6 +43,8 @@ describe('webapp i18n lazy language loading', () => {
     }
 
     expect(seenOnChange).toEqual([[deWebapp.menu.file.importProject, deEditor.views.highlight]]);
+    // Live: German UI with `<html lang="en">`, so screen readers read it with an English voice.
+    expect(document.documentElement.lang).toBe('de');
   });
 
   it('starts in a stored non-English language with its strings already loaded', async () => {
