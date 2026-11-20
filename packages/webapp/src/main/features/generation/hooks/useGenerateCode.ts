@@ -32,6 +32,7 @@ import {
   traceActorName,
 } from '../../../shared/traceability/traceStore';
 import { toastTraced, type TraceabilityTarget } from '../../traceability';
+import { offerGeneratedCodeOnGitHub } from '../../github';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
 // Add type definitions
@@ -354,6 +355,7 @@ export const useGenerateCode = () => {
           // auto-saving. The menu path leaves autoDownload at its default (true).
           if (opts?.autoDownload === false) return { ok: true, filename, blob };
           downloadFile({ file: blob, filename });
+          offerGeneratedCodeOnGitHub(blob, filename);
           return { ok: true, filename };
         },
         (traced) => {
@@ -474,6 +476,7 @@ export const useGenerateCode = () => {
         (blob, filename) => {
           if (opts?.autoDownload === false) return { ok: true, filename, blob };
           downloadFile({ file: blob, filename });
+          offerGeneratedCodeOnGitHub(blob, filename);
           return { ok: true, filename };
         },
         (traced) => {
