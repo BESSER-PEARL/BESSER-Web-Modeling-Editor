@@ -77,6 +77,11 @@ const LAB_DONE: LabDone = {
   summary: 'frontend: 1 file',
   stopReason: 'completed',
   finalText: 'Added the note element.',
+  report: null,
+  pullRequests: [],
+  cost: { usd: 0, turns: 0, elapsedSeconds: 0, runs: 0 },
+  issues: [],
+  noteProposals: [],
 };
 
 const start = { event: 'start', runId: RUN, provider: 'anthropic' } as SpecDrivenEvent;

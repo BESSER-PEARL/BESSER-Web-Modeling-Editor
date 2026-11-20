@@ -70,7 +70,7 @@ export interface GeneratedFile {
   text: string | null
 }
 
-const langOf = (path: string): string | null => {
+export const langOf = (path: string): string | null => {
   const name = path.split("/").pop() ?? path
   if (name === "Dockerfile" || name.startsWith("Dockerfile.")) return "dockerfile"
   if (name.startsWith(".env")) return "ini"
@@ -152,10 +152,10 @@ export async function readGeneratedFiles(
 
 interface TreeNode {
   dirs: Map<string, TreeNode>
-  files: GeneratedFile[]
+  files: { path: string }[]
 }
 
-function buildTree(files: GeneratedFile[]): TreeNode {
+export function buildTree(files: { path: string }[]): TreeNode {
   const root: TreeNode = { dirs: new Map(), files: [] }
   for (const f of files) {
     let node = root
@@ -168,7 +168,7 @@ function buildTree(files: GeneratedFile[]): TreeNode {
   return root
 }
 
-function FileTree({
+export function FileTree({
   node,
   prefix,
   depth,

@@ -14,7 +14,6 @@ const KNOWN_ROUTES = [
   '/agent-config',
   '/agent-personalization',
   '/agent-personalization-2',
-  '/lab',
 ];
 
 interface UseProjectBootstrapOptions {

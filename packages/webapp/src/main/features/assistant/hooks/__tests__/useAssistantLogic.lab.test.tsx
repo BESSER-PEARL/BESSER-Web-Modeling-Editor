@@ -407,7 +407,8 @@ describe('Open pull request', () => {
   });
 
   it("opens nothing for an older card whose change is not the active one, and says so", async () => {
-    vi.mocked(openLabPullRequests).mockResolvedValue(null);
+    // Phase 1's null answer, which the route no longer gives; W4-D rewrites this test.
+    vi.mocked(openLabPullRequests).mockResolvedValue(null as never);
     const api = renderHarness();
     await act(async () => {
       await api.current!.openPullRequest('c-older');

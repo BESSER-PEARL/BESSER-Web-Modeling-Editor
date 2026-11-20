@@ -28,6 +28,7 @@ import { loadProjectThunk, selectProject } from './store/workspaceSlice';
 import type { RootState } from './store/store';
 import { useHasOpened } from './hooks/useHasOpened';
 import { trackPageview } from '../shared/services/analytics/events';
+import { LAB_BUILD } from '../shared/constants/constant';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -49,7 +50,8 @@ const TraceabilityPage = React.lazy(() =>
   import('../features/traceability/TraceabilityPage').then((m) => ({ default: m.TraceabilityPage })),
 );
 
-const LabPage = React.lazy(() => import('../features/lab/LabPage').then((m) => ({ default: m.LabPage })));
+// The lab build's own application; a public build never renders it, so never fetches its chunk.
+const LabApplication = React.lazy(() => import('../features/lab/LabApplication'));
 
 const AgentSimulationPage = React.lazy(() =>
   import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
@@ -205,7 +207,6 @@ function AppContentInner() {
             <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
             <Route path="/traceability" element={<TraceabilityPage />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
-            <Route path="/lab" element={<LabPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -381,6 +382,17 @@ function AppContent() {
 }
 
 export function RoutedApplication() {
+  if (LAB_BUILD) {
+    return (
+      <ErrorBoundary>
+        <ApplicationStore>
+          <Suspense fallback={<SuspenseFallback />}>
+            <LabApplication />
+          </Suspense>
+        </ApplicationStore>
+      </ErrorBoundary>
+    );
+  }
   return (
     <ErrorBoundary>
       <ApplicationStore>

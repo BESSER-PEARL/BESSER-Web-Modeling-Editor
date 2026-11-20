@@ -44,6 +44,11 @@ const PROPOSAL: LabDone = {
   summary: '',
   stopReason: 'completed',
   finalText: '',
+  report: null,
+  pullRequests: [],
+  cost: { usd: 0, turns: 0, elapsedSeconds: 0, runs: 0 },
+  issues: [],
+  noteProposals: [],
 };
 
 const BANNER_TEXT = 'The agent proposes this model for the extension';

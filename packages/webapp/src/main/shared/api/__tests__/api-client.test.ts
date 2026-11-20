@@ -211,6 +211,28 @@ describe('ApiError.detail', () => {
     expect(error.detail).toBeUndefined();
     expect(error.message).toBe(message);
   });
+
+  it('keeps the detail as the server sent it, so a caller can read a structured refusal', async () => {
+    const refusal = { code: 'user_cap', message: 'You have used $75 of your $75 this month.' };
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ detail: refusal }), { status: 409 }));
+    const error = (await apiClient.post('/lab/change', {}).catch((e) => e)) as ApiError;
+    expect(error.rawDetail).toEqual(refusal);
+    // The readable fields are unchanged.
+    expect(error.detail).toBe(refusal.message);
+    expect(error.message).toBe(refusal.message);
+  });
+});
+
+describe('apiClient.request with no content', () => {
+  it('resolves undefined for a 204 instead of failing to parse the empty body', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(apiClient.request('/lab/memory/n1', { method: 'DELETE' })).resolves.toBeUndefined();
+  });
+
+  it('still parses the JSON body of a 200', async () => {
+    fetchMock.mockResolvedValue(new Response('{"ok":true}', { status: 200 }));
+    await expect(apiClient.get('/x')).resolves.toEqual({ ok: true });
+  });
 });
 
 describe('apiClient.getBlob', () => {

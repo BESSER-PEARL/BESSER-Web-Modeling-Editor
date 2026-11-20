@@ -51,6 +51,11 @@ function labDone(changeId: string, proposal: LabDone['modelProposal']): LabDone 
     summary: '',
     stopReason: 'completed',
     finalText: '',
+    report: null,
+    pullRequests: [],
+    cost: { usd: 0, turns: 0, elapsedSeconds: 0, runs: 0 },
+    issues: [],
+    noteProposals: [],
   };
 }
 

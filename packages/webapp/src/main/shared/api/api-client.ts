@@ -83,8 +83,16 @@ async function errorFromResponse(response: Response, fallback: string): Promise<
   const body: unknown = await response.json().catch(() => undefined);
   const detail = body && typeof body === 'object' ? (body as { detail?: unknown }).detail : undefined;
   const message = formatErrorDetail(body === undefined ? response.statusText : detail, fallback);
-  return new ApiError(response.status, message, (detail != null && formatErrorDetail(detail, '')) || undefined);
+  return new ApiError(
+    response.status,
+    message,
+    (detail != null && formatErrorDetail(detail, '')) || undefined,
+    detail ?? undefined,
+  );
 }
+
+/** HTTP 204 No Content: a success without a body. */
+const NO_CONTENT = 204;
 
 /**
  * Centralized API client for all backend communication.
@@ -135,6 +143,8 @@ class ApiClient {
         throw await errorFromResponse(response, 'Request failed');
       }
 
+      // A 204 has no body to parse; its callers type the result `void`.
+      if (response.status === NO_CONTENT) return undefined as T;
       return response.json();
     } finally {
       dispose();
@@ -235,10 +245,11 @@ class ApiClient {
 /**
  * Typed error class carrying the HTTP status code. `detail` is the server's
  * own `{"detail": ...}` explanation (readable), absent when the response had
- * none; `message` falls back to the status text or a generic text.
+ * none; `message` falls back to the status text or a generic text. `rawDetail` is that `detail`
+ * as the server sent it (e.g. a lab refusal's `{code, message}`), for a caller that branches on it.
  */
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public detail?: string) {
+  constructor(public status: number, message: string, public detail?: string, public rawDetail?: unknown) {
     super(message);
     this.name = 'ApiError';
   }
