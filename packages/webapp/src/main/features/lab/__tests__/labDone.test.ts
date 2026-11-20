@@ -11,7 +11,16 @@ import type { LabDone } from '../../../shared/api/lab';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { MAX_DIAGRAMS_PER_TYPE, type BesserProject } from '../../../shared/types/project';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
-import { discardLabProposal, handleLabDone, keepLabProposal, labChangeModelPayload, labProposalChangeId } from '../labDone';
+import {
+  applyLabRevision,
+  discardLabProposal,
+  dismissLabRevision,
+  handleLabDone,
+  keepLabProposal,
+  labChangeModelPayload,
+  labProposalChangeId,
+  labRevisionOf,
+} from '../labDone';
 
 vi.mock('react-toastify', () => ({
   toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn(), update: vi.fn() },
@@ -156,6 +165,77 @@ describe('handleLabDone', () => {
     const proposal = stored().diagrams.ClassDiagram[1];
     expect(classNamesOf(proposal.model)).toEqual(['Note', 'Mine']);
     expect(labProposalChangeId(proposal)).toBe('c1');
+  });
+
+  // E2E A-1: the user renamed a class in the proposal while the revision was being planned, and the revision
+  // silently replaced the tab, edit and all.
+  it('keeps an edit made while the run was in progress and holds the revision for the banner', async () => {
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
+    const sent = stored().diagrams.ClassDiagram[1].model;
+    await store.dispatch(updateDiagramModelThunk({ model: classModel('Note', 'Mine') as never })).unwrap();
+
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel v2', 'Note', 'Tag')), sent);
+
+    const proposal = stored().diagrams.ClassDiagram[1];
+    expect(classNamesOf(proposal.model)).toEqual(['Note', 'Mine']);
+    expect(proposal.title).toBe('Note metamodel');
+    expect(labProposalChangeId(proposal)).toBe('c1');
+    expect(labRevisionOf(proposal)?.title).toBe('Note metamodel v2');
+    expect(classNamesOf(labRevisionOf(proposal)?.model)).toEqual(['Note', 'Tag']);
+    // The store has the revision too, so the banner shows it without a reload.
+    expect(labRevisionOf(store.getState().workspace.activeDiagram)).not.toBeNull();
+  });
+
+  it('applies the revision when the diagram is as the request carried it, edits made before it included', async () => {
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
+    await store.dispatch(updateDiagramModelThunk({ model: classModel('Note', 'Mine') as never })).unwrap();
+    const sent = stored().diagrams.ClassDiagram[1].model;
+    // Moving a class is not an edit.
+    const moved = classModel('Note', 'Mine');
+    moved.elements['id-Note'].bounds = { x: 400, y: 300, width: 160, height: 100 };
+    await store.dispatch(updateDiagramModelThunk({ model: moved as never })).unwrap();
+
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel v2', 'Note', 'Mine', 'Tag')), sent);
+
+    const proposal = stored().diagrams.ClassDiagram[1];
+    expect(classNamesOf(proposal.model)).toEqual(['Note', 'Mine', 'Tag']);
+    expect(labRevisionOf(proposal)).toBeNull();
+  });
+
+  it('after a reload, does not replace a proposal the user changed since it was placed', async () => {
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
+    await store.dispatch(updateDiagramModelThunk({ model: classModel('Note', 'Mine') as never })).unwrap();
+
+    // A run followed after a reload: what its request carried is not known.
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel v2', 'Note', 'Tag')));
+
+    const proposal = stored().diagrams.ClassDiagram[1];
+    expect(classNamesOf(proposal.model)).toEqual(['Note', 'Mine']);
+    expect(classNamesOf(labRevisionOf(proposal)?.model)).toEqual(['Note', 'Tag']);
+  });
+
+  it('the held revision replaces the user version on request, or is dropped', async () => {
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel', 'Note')));
+    const sent = stored().diagrams.ClassDiagram[1].model;
+    await store.dispatch(updateDiagramModelThunk({ model: classModel('Note', 'Mine') as never })).unwrap();
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel v2', 'Note', 'Tag')), sent);
+    const id = stored().diagrams.ClassDiagram[1].id;
+
+    await dismissLabRevision(id);
+    let proposal = stored().diagrams.ClassDiagram[1];
+    expect(classNamesOf(proposal.model)).toEqual(['Note', 'Mine']);
+    expect(labRevisionOf(proposal)).toBeNull();
+    expect(labProposalChangeId(proposal)).toBe('c1');
+
+    await handleLabDone(labDone('c1', proposalOf('Note metamodel v3', 'Note', 'Tag')), sent);
+    consumeAutoLayoutRequest();
+    await applyLabRevision(id);
+    proposal = stored().diagrams.ClassDiagram[1];
+    expect(proposal).toMatchObject({ id, title: 'Note metamodel v3' });
+    expect(classNamesOf(proposal.model)).toEqual(['Note', 'Tag']);
+    expect(labRevisionOf(proposal)).toBeNull();
+    expect(labProposalChangeId(proposal)).toBe('c1');
+    expect(consumeAutoLayoutRequest()).toBe(true);
   });
 
   it('changes nothing when the run proposes no model', async () => {

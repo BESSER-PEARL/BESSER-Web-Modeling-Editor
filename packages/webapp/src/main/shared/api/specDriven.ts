@@ -26,9 +26,24 @@ export const previewSpecDrivenRun = (
   options: Pick<ApiRequestOptions, 'signal' | 'timeout'>,
 ) => apiClient.post<SmartPreviewResponse>('/spec-driven/preview', body, options);
 
+/**
+ * The header a lab run's routes (`/runs/{id}`, its events and its cancel) need: on a BESSER Lab
+ * they take the lab user's GitHub session. Nothing for any other run.
+ */
+export const labRunHeaders = (githubSession?: string | null): Record<string, string> | undefined =>
+  githubSession ? { 'X-GitHub-Session': githubSession } : undefined;
+
 /** `GET /spec-driven/runs/{id}/events.json`: one page of a run's durable event log. */
-export const getSpecDrivenRunEventsPage = (runId: string, afterSequence: number, signal: AbortSignal): Promise<Response> =>
-  fetch(specDrivenRunEventsJsonUrl(runId, afterSequence), { signal, headers: { Accept: 'application/json' } });
+export const getSpecDrivenRunEventsPage = (
+  runId: string,
+  afterSequence: number,
+  signal: AbortSignal,
+  githubSession?: string | null,
+): Promise<Response> =>
+  fetch(specDrivenRunEventsJsonUrl(runId, afterSequence), {
+    signal,
+    headers: { Accept: 'application/json', ...labRunHeaders(githubSession) },
+  });
 
 /** `GET /spec-driven/download/{id}`: the run's generated output and its headers (`Content-Type`). */
 export const downloadSpecDrivenOutput = (runId: string) =>
@@ -39,14 +54,20 @@ export const downloadSpecDrivenOutput = (runId: string) =>
  * Resolves to whether the cancel was handed off (a 2xx, or the beacon queued).
  * `beacon` uses `navigator.sendBeacon` for the page-unload path (a normal fetch
  * is killed when the document is torn down); otherwise a keepalive fetch.
+ * `githubSession` is a lab run's (see `labRunHeaders`); a beacon cannot carry
+ * it, so a lab run's cancel is always the keepalive fetch.
  */
-export function cancelSpecDrivenRun(runId: string, { beacon = false }: { beacon?: boolean } = {}): Promise<boolean> {
+export function cancelSpecDrivenRun(
+  runId: string,
+  { beacon = false, githubSession }: { beacon?: boolean; githubSession?: string | null } = {},
+): Promise<boolean> {
   const url = cancelSpecDrivenUrl(runId);
+  const headers = labRunHeaders(githubSession);
   try {
-    if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+    if (beacon && !headers && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       return Promise.resolve(navigator.sendBeacon(url));
     }
-    return fetch(url, { method: 'POST', keepalive: true }).then(
+    return fetch(url, { method: 'POST', keepalive: true, ...(headers ? { headers } : {}) }).then(
       async (response) => {
         if (!response.ok) return false;
         // `not_found` means the run had already ended: nothing was stopped.

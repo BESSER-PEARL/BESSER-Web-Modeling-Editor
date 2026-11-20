@@ -1943,8 +1943,9 @@ export interface paths {
          * Lab Pull Request
          * @description Push the active change and open a draft pull request in each repository it touched, editor first.
          *
-         *     409 when ``changeId`` is not the active change. The full test suites are not run first; ``checksNote``
-         *     tells the user which checks the change passed.
+         *     409 when ``changeId`` is not the active change; 401 when GitHub refuses the user's sign-in (the token), so
+         *     the editor asks them to sign in again. The full test suites are not run first; ``checksNote`` tells the user
+         *     which checks the change passed.
          */
         post: operations["lab_pull_request_besser_api_lab_pull_request_post"];
         delete?: never;
@@ -3068,6 +3069,11 @@ export interface components {
             skipped: boolean;
             /** Summary */
             summary: string;
+            /**
+             * Durationseconds
+             * @default 0
+             */
+            durationSeconds: number;
         };
         /** LabChecklistItem */
         LabChecklistItem: {
@@ -6221,7 +6227,9 @@ export interface operations {
     get_smart_run_status_besser_api_spec_driven_runs__run_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
             path: {
                 run_id: string;
             };
@@ -6257,7 +6265,9 @@ export interface operations {
                 after?: number;
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
             path: {
                 run_id: string;
             };
@@ -6294,6 +6304,7 @@ export interface operations {
             };
             header?: {
                 "Last-Event-ID"?: string | null;
+                "X-GitHub-Session"?: string | null;
             };
             path: {
                 run_id: string;
@@ -6409,7 +6420,9 @@ export interface operations {
     cancel_smart_gen_besser_api_spec_driven_cancel__run_id__post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
             path: {
                 /** @description Hex run ID returned in the `start` SSE event */
                 run_id: string;

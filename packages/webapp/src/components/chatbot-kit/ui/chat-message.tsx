@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Code2,
   Download,
+  FlaskConical,
   FolderOpen,
   Github,
   HelpCircle,
@@ -46,6 +47,7 @@ import type {
   SpecDrivenWarningView,
 } from "@/main/features/spec-driven/types"
 import { cancelSpecDrivenRun } from "@/main/shared/api/specDriven"
+import { getGitHubAuthState } from "@/main/shared/services/github/githubAuth"
 import {
   fetchAndSaveSpecDrivenArtifact,
   fetchSpecDrivenArtifactBlob,
@@ -631,7 +633,16 @@ const GeneratedFilesDialog = React.lazy(
   () => import("@/components/chatbot-kit/ui/generated-files-dialog")
 )
 
-function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["status"] }) {
+function SpecDrivenStatusPill({ status, stopping = false }: { status: SpecDrivenMessageState["status"]; stopping?: boolean }) {
+  const { t } = useTranslation()
+  if (status === "running" && stopping) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+        {t("lab.runCard.stopping", { defaultValue: "Stopping" })}
+      </span>
+    )
+  }
   if (status === "running") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
@@ -1666,7 +1677,10 @@ function SpecDrivenCard({
       return
     }
     // If the cancel request fails the run keeps streaming; re-enable Stop so the user can retry.
-    void cancelSpecDrivenRun(runId).then((accepted) => {
+    // A lab run's cancel route needs the lab user's session.
+    const githubSession = isLabRun || lab ? getGitHubAuthState().session : null
+    const cancelled = githubSession ? cancelSpecDrivenRun(runId, { githubSession }) : cancelSpecDrivenRun(runId)
+    void cancelled.then((accepted) => {
       if (!accepted) setStopRequested(false)
     })
   }
@@ -1736,10 +1750,18 @@ function SpecDrivenCard({
     typeof elapsedSeconds === "number"
   const showStop = status === "running" && typeof runId === "string"
   // The action in flight, named in the running card's activity strip.
-  const lastCall = phases[phases.length - 1]?.toolCalls.slice(-1)[0]
+  const lastPhase = phases[phases.length - 1]
+  const lastCall = lastPhase?.toolCalls.slice(-1)[0]
   const lastAction = lastCall
     ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
     : null
+  // A lab run's Stop: the card says so until the run ends. A `check` row with no
+  // tool call after it is a check still running, which the stop interrupts.
+  const labStopping = status === "running" && stopRequested && Boolean(isLabRun || lab)
+  const runningCheck =
+    lastPhase?.phase === "check" && lastPhase.toolCalls.length === 0
+      ? lastPhase.message || lastPhase.label
+      : ""
   // A lab run changes branches on the server; it has no artifact to download, view or push.
   const serverResult =
     status === "done" &&
@@ -1790,9 +1812,16 @@ function SpecDrivenCard({
             <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
           ) : isIncomplete ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          ) : lab ? (
+            <FlaskConical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
+          {lab ? (
+            <span className="text-[11px] text-muted-foreground">
+              {t("lab.title", { defaultValue: "BESSER Lab" })} ·
+            </span>
+          ) : null}
           <span className="text-sm font-medium text-foreground">
             {lab
               ? labRunTitle(t, lab)
@@ -2142,7 +2171,7 @@ function SpecDrivenCard({
           </span>
         ) : null}
         <span className="ml-auto">
-          <SpecDrivenStatusPill status={status} />
+          <SpecDrivenStatusPill status={status} stopping={labStopping} />
         </span>
       </div>
 
@@ -2176,7 +2205,24 @@ function SpecDrivenCard({
           is driven by the backend's ~2s cost heartbeat, so it KEEPS TICKING
           while the run is genuinely alive and FREEZES if the transport dies
           (the stall watchdog then surfaces an error). */}
-      {status === "running" ? (
+      {labStopping ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+        >
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+          <span>
+            {runningCheck
+              ? t("lab.runCard.stoppingCheck", {
+                  defaultValue: "Stopping. The running check, {{check}}, is being interrupted.",
+                  check: runningCheck,
+                })
+              : t("lab.runCard.stoppingStep", {
+                  defaultValue: "Stopping. The lab agent stops once its current step ends.",
+                })}
+          </span>
+        </div>
+      ) : status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
           <span className="font-medium text-foreground">Working…</span>

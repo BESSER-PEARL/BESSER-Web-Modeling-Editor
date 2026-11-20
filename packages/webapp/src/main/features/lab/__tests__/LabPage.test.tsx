@@ -1,10 +1,34 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetGitHubAuthForTests, signInToGitHubForTests } from '../../../shared/services/github/githubAuth';
+import { ApiError } from '../../../shared/api/api-client';
+import type { SpecDrivenMessageState } from '../../spec-driven';
 
 const SESSION = 'session-abcdef123';
+
+/** A finished lab build card in the chat, for the change the panel shows. */
+const BUILD_CARD: SpecDrivenMessageState = {
+  runId: 'b'.repeat(32),
+  phases: [],
+  warnings: [],
+  text: '',
+  status: 'done',
+  lab: {
+    step: 'build',
+    changeId: 'c1',
+    title: 'Note element',
+    kind: 'editor_element',
+    plan: null,
+    repoChanges: [{ repo: 'frontend', branch: 'lab/jordi/note-element', base: 'develop', files: [{ path: 'a.ts', status: 'added' }] }],
+    checks: [],
+    checklist: [],
+    summary: '',
+    stopReason: 'completed',
+    finalText: '',
+  },
+};
 
 const LAB_STATE = {
   enabled: true,
@@ -48,7 +72,7 @@ const mocks = vi.hoisted(() => ({
   labEnabled: true,
   configKnown: true,
   chat: {
-    messages: [] as Array<{ id: string; role: string; content: string }>,
+    messages: [] as Array<{ id: string; role: string; content: string; specDriven?: unknown }>,
     isGenerating: false,
   },
   handleSubmit: vi.fn(),
@@ -226,13 +250,80 @@ describe('LabPage', () => {
     expect(mocks.getLabState).toHaveBeenCalledTimes(2);
   });
 
-  it('opens nothing and says so when the change is no longer the active one', async () => {
+  it('opens nothing and says so in place when the change is no longer the active one', async () => {
     mocks.openLabPullRequests.mockResolvedValue(null);
     await renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Open pull request' }));
-    await waitFor(() => expect(mocks.reportError).toHaveBeenCalledTimes(1));
-    expect(mocks.reportError.mock.calls[0][0]).toMatch(/is not the active one/);
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/is not the active one/);
     expect(screen.queryByRole('link', { name: /#\d+/ })).toBeNull();
+  });
+
+  it("keeps a failed pull request's reason in the panel until the next attempt, not in a toast (E2E A-6)", async () => {
+    const refused = 'GitHub did not accept the push to BESSER. Check that your account can push to the repository.';
+    mocks.openLabPullRequests.mockRejectedValueOnce(new ApiError(409, refused, refused));
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Open pull request' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain(refused);
+    expect(within(alert).queryByRole('button', { name: /Sign in again/ })).toBeNull();
+    expect(mocks.reportError).not.toHaveBeenCalled();
+    // The buttons are free again for a retry.
+    expect((screen.getByRole('button', { name: 'Park' }) as HTMLButtonElement).disabled).toBe(false);
+
+    mocks.openLabPullRequests.mockResolvedValueOnce({ pullRequests: [], checksNote: '' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open pull request' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+  });
+
+  it('offers "Sign in again" when GitHub refused the session or token', async () => {
+    mocks.openLabPullRequests.mockRejectedValueOnce(new ApiError(401, 'GitHub session expired', 'GitHub session expired'));
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Open pull request' }));
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByRole('button', { name: /Sign in again/ })).toBeTruthy();
+  });
+
+  it("rejects a run card's pull request failure so the card shows it", async () => {
+    const refused = 'GitHub did not accept the push to BESSER.';
+    mocks.openLabPullRequests.mockRejectedValueOnce(new ApiError(409, refused, refused));
+    mocks.chat.messages = [{ id: 'm1', role: 'assistant', content: '', specDriven: BUILD_CARD }];
+    await renderPage();
+    const card = screen.getByRole('region', { name: 'Lab chat' });
+    fireEvent.click(within(card).getByRole('button', { name: /Open pull request/ }));
+    const alert = await within(card).findByRole('alert');
+    expect(alert.textContent).toContain(refused);
+    expect(mocks.openLabPullRequests).toHaveBeenCalledWith(SESSION, 'c1');
+    expect(mocks.reportError).not.toHaveBeenCalled();
+  });
+
+  it('names the branch of the active change, also before it has files (E2E A, where am I)', async () => {
+    mocks.getLabState.mockResolvedValue({
+      ...LAB_STATE,
+      change: { ...LAB_STATE.change, repoChanges: [{ repo: 'besser', branch: 'lab/jordi/x', base: 'development', files: [] }] },
+    });
+    await renderPage();
+    const active = within(screen.getByRole('region', { name: 'Active change' }));
+    expect(active.getByText('lab/jordi/x')).toBeTruthy();
+  });
+
+  it('says above the composer which change a message goes to', async () => {
+    await renderPage();
+    expect(screen.getByText('Active change: “Note element”. Park it to start a separate change.')).toBeTruthy();
+    cleanup();
+    mocks.getLabState.mockResolvedValue(NO_CHANGE);
+    await renderPage();
+    expect(screen.getByText('Your next message starts a new change.')).toBeTruthy();
+  });
+
+  it('says the run is stopping once the server accepted the stop', async () => {
+    const RUN_ID = 'a'.repeat(32);
+    mocks.getLabState.mockResolvedValue({ ...LAB_STATE, run: { runId: RUN_ID, startedAt: 1763500000 } });
+    mocks.cancelSpecDrivenRun.mockResolvedValue(true);
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop the run' }));
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/^Stopping the lab run/));
+    expect(screen.queryByRole('button', { name: 'Stop the run' })).toBeNull();
   });
 
   it('offers to stop a lab run in progress that this tab is not following, then reads the state again', async () => {
@@ -244,7 +335,8 @@ describe('LabPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop the run' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop the run' })).toBeNull());
-    expect(mocks.cancelSpecDrivenRun).toHaveBeenCalledWith(RUN_ID);
+    // With the lab user's session: the lab's cancel route refuses a request without one (E2E C-D6).
+    expect(mocks.cancelSpecDrivenRun).toHaveBeenCalledWith(RUN_ID, { githubSession: SESSION });
     expect(mocks.getLabState).toHaveBeenCalledTimes(2);
   });
 

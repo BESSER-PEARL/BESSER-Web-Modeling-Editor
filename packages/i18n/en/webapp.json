@@ -5030,6 +5030,8 @@
     "chatLabel": "Lab chat",
     "chatEmpty": "Describe a change to BESSER, the web editor or the modeling agent. The lab agent plans it first.",
     "composerPlaceholder": "Describe the change…",
+    "composerTarget": "Active change: “{{title}}”. Park it to start a separate change.",
+    "composerNewChange": "Your next message starts a new change.",
     "unreachable": "The server could not be reached, so it is not known whether BESSER Lab runs here.",
     "retry": "Try again",
     "loadStateFailed": "The lab state could not be read: {{error}}",
@@ -5063,7 +5065,9 @@
       "running": "running",
       "stopped": "stopped",
       "previewOff": "The preview is off on this instance.",
-      "runInProgress": "A lab run is in progress (started {{time}})."
+      "runInProgress": "A lab run is in progress (started {{time}}).",
+      "onBranch": "On branch",
+      "runStopping": "Stopping the lab run (started {{time}})…"
     },
     "repos": {
       "besser": "BESSER",
@@ -5113,12 +5117,13 @@
       "voiceUnavailable": "BESSER Lab does not take voice messages: type the change instead.",
       "noPullRequests": "No pull request was opened: the change has no changed files.",
       "pullRequestsOpened": "Opened the draft pull requests:",
-      "pullRequestFailed": "The pull requests could not be opened: {{error}}"
+      "serverUnreachable": "The BESSER server cannot be reached, so your message was not sent. Try again in a moment."
     },
     "runCard": {
       "titlePlan": "Plan ready",
       "titlePlanStopped": "Planning stopped early",
       "titleQuestion": "The lab agent has a question",
+      "titleNoChangeNeeded": "No change needed",
       "titleBuilt": "Change built",
       "titleChecksFailing": "Change built, checks failing",
       "titleNoChanges": "Build finished without changes",
@@ -5127,6 +5132,7 @@
       "steps": "Steps",
       "questions": "Open questions",
       "replyHint": "Reply with what to change and the lab agent revises the plan, or build it as it is.",
+      "noChangeHint": "No change was started and no branch was created. Reply if something still needs to change.",
       "answerHint": "Reply to answer it; the lab agent then plans the change.",
       "buildPlan": "Build this plan",
       "buildPlanMessage": "Build this plan.",
@@ -5143,7 +5149,16 @@
       "checklistDone": "Done",
       "checklistMissing": "Missing",
       "checklistNotJudged": "Could not be judged from the files",
+      "onBranch": "On branch {{branch}}",
+      "checkDuration": "Took {{seconds}} s",
+      "stopping": "Stopping",
+      "stoppingCheck": "Stopping. The running check, {{check}}, is being interrupted.",
+      "stoppingStep": "Stopping. The lab agent stops once its current step ends.",
       "openPullRequest": "Open pull request"
+    },
+    "pullRequest": {
+      "failed": "The pull request was not opened.",
+      "signInAgain": "Sign in again"
     },
     "proposal": {
       "label": "Proposed model",
@@ -5151,6 +5166,10 @@
       "hint": "Edit anything that is off, then keep it or discard it.",
       "keep": "Keep",
       "discard": "Discard",
+      "revisedTitle": "The agent revised its proposal while you were editing",
+      "revisedHint": "Your version is on the canvas. Replace it with the revision or keep yours.",
+      "keepMine": "Keep mine",
+      "useRevision": "Use the revision",
       "discardConfirmTitle": "Discard the proposed model?",
       "discardConfirmDescription": "The tab with the class diagram the lab agent proposed is closed. The change itself stays as it is.",
       "errors": {

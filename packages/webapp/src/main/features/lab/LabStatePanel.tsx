@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink, GitBranch, GitPullRequest, PauseCircle, PlayCircle, RotateCcw, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { labChangeBranch, LabPullRequestFailure } from '@/components/chatbot-kit/ui/lab-run-result';
 import { cn } from '@/lib/utils';
 import type { LabPullRequest, LabRepoChange, LabState } from '../../shared/api/lab';
 
@@ -26,9 +27,13 @@ export interface LabStatePanelProps {
   pullRequests: LabPullRequest[];
   /** The server's note on which checks the change passed before the push, shown under the links. */
   checksNote: string;
+  /** Why the last "Open pull request" failed, shown until the next attempt. */
+  pullRequestFailure: { error: unknown } | null;
   onOpenPullRequest: () => void;
   /** Stops the lab run in progress (`state.run`), which may be another tab's or device's. */
   onStopRun: (runId: string) => void;
+  /** The run a stop was accepted for: it is still ending on the server. */
+  stoppingRunId: string | null;
   onPark: () => void;
   onDrop: () => void;
   onResume: (changeId: string) => void;
@@ -41,8 +46,10 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
   busy,
   pullRequests,
   checksNote,
+  pullRequestFailure,
   onOpenPullRequest,
   onStopRun,
+  stoppingRunId,
   onPark,
   onDrop,
   onResume,
@@ -53,6 +60,7 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
   const repoLabel = (repo: string) => t(`lab.repos.${repo}`, { defaultValue: REPO_LABELS[repo] ?? repo });
   const kindLabel = (kind: string) => t(`lab.kinds.${kind}`, { defaultValue: kind.replace('_', ' ') });
   const hasChanges = Boolean(change?.repoChanges.some((repo) => repo.files.length > 0));
+  const branch = change ? labChangeBranch(change.repoChanges) : '';
 
   return (
     <div className="space-y-6">
@@ -62,16 +70,27 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
 
       {run && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 p-3 text-sm">
-          <span className="text-foreground">
-            {t('lab.state.runInProgress', {
-              defaultValue: 'A lab run is in progress (started {{time}}).',
-              time: new Date(run.startedAt * 1000).toLocaleTimeString(),
-            })}
-          </span>
-          <Button size="sm" variant="outline" onClick={() => onStopRun(run.runId)} disabled={busy}>
-            <Square className="size-4" />
-            {t('lab.actions.stopRun', { defaultValue: 'Stop the run' })}
-          </Button>
+          {run.runId === stoppingRunId ? (
+            <span className="text-foreground">
+              {t('lab.state.runStopping', {
+                defaultValue: 'Stopping the lab run (started {{time}})…',
+                time: new Date(run.startedAt * 1000).toLocaleTimeString(),
+              })}
+            </span>
+          ) : (
+            <>
+              <span className="text-foreground">
+                {t('lab.state.runInProgress', {
+                  defaultValue: 'A lab run is in progress (started {{time}}).',
+                  time: new Date(run.startedAt * 1000).toLocaleTimeString(),
+                })}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => onStopRun(run.runId)} disabled={busy}>
+                <Square className="size-4" />
+                {t('lab.actions.stopRun', { defaultValue: 'Stop the run' })}
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -81,6 +100,13 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
             <div>
               <p className="font-medium text-foreground">{change.title}</p>
               <p className="text-xs text-muted-foreground">{kindLabel(change.kind)}</p>
+              {branch && (
+                <p className="mt-0.5 inline-flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                  {t('lab.state.onBranch', { defaultValue: 'On branch' })}
+                  <GitBranch className="size-3 shrink-0" aria-hidden />
+                  <span className="break-all font-mono">{branch}</span>
+                </p>
+              )}
             </div>
             {hasChanges ? (
               change.repoChanges
@@ -105,6 +131,7 @@ export const LabStatePanel: React.FC<LabStatePanelProps> = ({
                 {t('lab.actions.drop', { defaultValue: 'Drop' })}
               </Button>
             </div>
+            {pullRequestFailure && <LabPullRequestFailure error={pullRequestFailure.error} className="text-sm" />}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">

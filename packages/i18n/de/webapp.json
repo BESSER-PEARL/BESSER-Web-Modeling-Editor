@@ -5030,6 +5030,8 @@
     "chatLabel": "Lab-Chat",
     "chatEmpty": "Beschreibe eine Änderung an BESSER, am Web-Editor oder am Modellierungsagenten. Der Lab-Agent plant sie zuerst.",
     "composerPlaceholder": "Beschreibe die Änderung…",
+    "composerTarget": "Aktive Änderung: „{{title}}“. Parke sie, um eine separate Änderung zu beginnen.",
+    "composerNewChange": "Deine nächste Nachricht beginnt eine neue Änderung.",
     "unreachable": "Der Server war nicht erreichbar, daher ist unklar, ob BESSER Lab hier läuft.",
     "retry": "Erneut versuchen",
     "loadStateFailed": "Der Zustand des Labs konnte nicht gelesen werden: {{error}}",
@@ -5063,7 +5065,9 @@
       "running": "läuft",
       "stopped": "gestoppt",
       "previewOff": "Die Vorschau ist auf dieser Instanz aus.",
-      "runInProgress": "Ein BESSER-Lab-Lauf läuft (gestartet um {{time}})."
+      "runInProgress": "Ein BESSER-Lab-Lauf läuft (gestartet um {{time}}).",
+      "onBranch": "Auf Branch",
+      "runStopping": "Der Lab-Lauf wird gestoppt (gestartet um {{time}})…"
     },
     "repos": {
       "besser": "BESSER",
@@ -5113,12 +5117,13 @@
       "voiceUnavailable": "BESSER Lab nimmt keine Sprachnachrichten an: Tippe die Änderung stattdessen ein.",
       "noPullRequests": "Es wurde kein Pull-Request geöffnet: Die Änderung hat keine geänderten Dateien.",
       "pullRequestsOpened": "Die Draft-Pull-Requests wurden geöffnet:",
-      "pullRequestFailed": "Die Pull-Requests konnten nicht geöffnet werden: {{error}}"
+      "serverUnreachable": "Der BESSER-Server ist nicht erreichbar, deshalb wurde deine Nachricht nicht gesendet. Versuche es gleich noch einmal."
     },
     "runCard": {
       "titlePlan": "Plan fertig",
       "titlePlanStopped": "Planung vorzeitig gestoppt",
       "titleQuestion": "Der Lab-Agent hat eine Frage",
+      "titleNoChangeNeeded": "Keine Änderung nötig",
       "titleBuilt": "Änderung gebaut",
       "titleChecksFailing": "Änderung gebaut, Prüfungen schlagen fehl",
       "titleNoChanges": "Build ohne Änderungen beendet",
@@ -5127,6 +5132,7 @@
       "steps": "Schritte",
       "questions": "Offene Fragen",
       "replyHint": "Antworte mit dem, was geändert werden soll, und der Lab-Agent überarbeitet den Plan, oder baue ihn so, wie er ist.",
+      "noChangeHint": "Es wurde keine Änderung begonnen und kein Branch angelegt. Antworte, wenn doch noch etwas geändert werden muss.",
       "answerHint": "Antworte darauf; der Lab-Agent plant die Änderung dann.",
       "buildPlan": "Diesen Plan bauen",
       "buildPlanMessage": "Baue diesen Plan.",
@@ -5143,7 +5149,16 @@
       "checklistDone": "Erledigt",
       "checklistMissing": "Fehlt",
       "checklistNotJudged": "Aus den Dateien nicht beurteilbar",
+      "onBranch": "Auf Branch {{branch}}",
+      "checkDuration": "Dauer: {{seconds}} s",
+      "stopping": "Wird gestoppt",
+      "stoppingCheck": "Wird gestoppt. Die laufende Prüfung {{check}} wird abgebrochen.",
+      "stoppingStep": "Wird gestoppt. Der Lab-Agent hält an, sobald sein aktueller Schritt endet.",
       "openPullRequest": "Pull-Request öffnen"
+    },
+    "pullRequest": {
+      "failed": "Der Pull-Request wurde nicht geöffnet.",
+      "signInAgain": "Erneut anmelden"
     },
     "proposal": {
       "label": "Vorgeschlagenes Modell",
@@ -5151,6 +5166,10 @@
       "hint": "Bearbeite, was nicht stimmt, und behalte oder verwirf es dann.",
       "keep": "Behalten",
       "discard": "Verwerfen",
+      "revisedTitle": "Der Agent hat seinen Vorschlag überarbeitet, während du ihn bearbeitet hast",
+      "revisedHint": "Deine Version ist auf der Zeichenfläche. Ersetze sie durch die Überarbeitung oder behalte deine.",
+      "keepMine": "Meine behalten",
+      "useRevision": "Überarbeitung übernehmen",
       "discardConfirmTitle": "Das vorgeschlagene Modell verwerfen?",
       "discardConfirmDescription": "Der Tab mit dem Klassendiagramm, das der Lab-Agent vorgeschlagen hat, wird geschlossen. Die Änderung selbst bleibt, wie sie ist.",
       "errors": {

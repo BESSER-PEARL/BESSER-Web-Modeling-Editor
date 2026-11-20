@@ -31,7 +31,9 @@ const DONE_LAB: LabDone = {
   repoChanges: [
     { repo: 'frontend', branch: 'lab/jordi/note-element', base: 'develop', files: [{ path: 'packages/x.ts', status: 'added' }] },
   ],
-  checks: [{ id: 'frontend:lint', repo: 'frontend', title: 'Lint', passed: true, skipped: false, summary: 'ok' }],
+  checks: [
+    { id: 'frontend:lint', repo: 'frontend', title: 'Lint', passed: true, skipped: false, summary: 'ok', durationSeconds: 3.1 },
+  ],
   checklist: [{ id: 'element.registries', text: 'Registered in the four registries', done: null }],
   summary: 'Added the note element.',
   stopReason: 'completed',

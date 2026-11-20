@@ -5030,6 +5030,8 @@
     "chatLabel": "Chat du lab",
     "chatEmpty": "Décrivez une modification de BESSER, de l’éditeur web ou de l’agent de modélisation. L’agent du lab la planifie d’abord.",
     "composerPlaceholder": "Décrivez la modification…",
+    "composerTarget": "Modification active : « {{title}} ». Mettez-la de côté pour commencer une modification distincte.",
+    "composerNewChange": "Votre prochain message commence une nouvelle modification.",
     "unreachable": "Le serveur est injoignable : impossible de savoir si BESSER Lab tourne ici.",
     "retry": "Réessayer",
     "loadStateFailed": "L’état du lab n’a pas pu être lu : {{error}}",
@@ -5063,7 +5065,9 @@
       "running": "en cours",
       "stopped": "arrêté",
       "previewOff": "L’aperçu est désactivé sur cette instance.",
-      "runInProgress": "Une exécution BESSER Lab est en cours (démarrée à {{time}})."
+      "runInProgress": "Une exécution BESSER Lab est en cours (démarrée à {{time}}).",
+      "onBranch": "Sur la branche",
+      "runStopping": "Arrêt de l’exécution BESSER Lab (démarrée à {{time}})…"
     },
     "repos": {
       "besser": "BESSER",
@@ -5113,12 +5117,13 @@
       "voiceUnavailable": "BESSER Lab n’accepte pas les messages vocaux : tapez plutôt la modification.",
       "noPullRequests": "Aucune pull request n’a été ouverte : la modification ne contient aucun fichier modifié.",
       "pullRequestsOpened": "Pull requests en brouillon ouvertes :",
-      "pullRequestFailed": "Les pull requests n’ont pas pu être ouvertes : {{error}}"
+      "serverUnreachable": "Le serveur BESSER est injoignable, votre message n’a donc pas été envoyé. Réessayez dans un instant."
     },
     "runCard": {
       "titlePlan": "Plan prêt",
       "titlePlanStopped": "Planification arrêtée avant la fin",
       "titleQuestion": "L’agent du lab a une question",
+      "titleNoChangeNeeded": "Aucune modification nécessaire",
       "titleBuilt": "Modification construite",
       "titleChecksFailing": "Modification construite, vérifications en échec",
       "titleNoChanges": "Construction terminée sans modification",
@@ -5127,6 +5132,7 @@
       "steps": "Étapes",
       "questions": "Questions ouvertes",
       "replyHint": "Répondez avec ce qu’il faut changer et l’agent du lab révise le plan, ou construisez-le tel quel.",
+      "noChangeHint": "Aucune modification n’a été commencée et aucune branche n’a été créée. Répondez si quelque chose doit encore changer.",
       "answerHint": "Répondez-y ; l’agent du lab planifie ensuite la modification.",
       "buildPlan": "Construire ce plan",
       "buildPlanMessage": "Construis ce plan.",
@@ -5143,7 +5149,16 @@
       "checklistDone": "Fait",
       "checklistMissing": "Manquant",
       "checklistNotJudged": "Impossible à évaluer à partir des fichiers",
+      "onBranch": "Sur la branche {{branch}}",
+      "checkDuration": "Durée : {{seconds}} s",
+      "stopping": "Arrêt en cours",
+      "stoppingCheck": "Arrêt en cours. La vérification en cours, {{check}}, est interrompue.",
+      "stoppingStep": "Arrêt en cours. L’agent du lab s’arrête dès la fin de son étape en cours.",
       "openPullRequest": "Ouvrir une pull request"
+    },
+    "pullRequest": {
+      "failed": "La pull request n’a pas été ouverte.",
+      "signInAgain": "Se reconnecter"
     },
     "proposal": {
       "label": "Modèle proposé",
@@ -5151,6 +5166,10 @@
       "hint": "Corrigez ce qui ne va pas, puis conservez-le ou abandonnez-le.",
       "keep": "Conserver",
       "discard": "Abandonner",
+      "revisedTitle": "L’agent a révisé sa proposition pendant que vous la modifiiez",
+      "revisedHint": "Votre version est sur le canevas. Remplacez-la par la révision ou gardez la vôtre.",
+      "keepMine": "Garder la mienne",
+      "useRevision": "Utiliser la révision",
       "discardConfirmTitle": "Abandonner le modèle proposé ?",
       "discardConfirmDescription": "L’onglet contenant le diagramme de classes proposé par l’agent du lab est fermé. La modification elle-même reste telle quelle.",
       "errors": {

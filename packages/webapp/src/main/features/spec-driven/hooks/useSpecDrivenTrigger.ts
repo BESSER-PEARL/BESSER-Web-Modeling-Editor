@@ -58,6 +58,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { getGitHubAuthState } from '../../../shared/services/github/githubAuth';
 import i18n from '../../../shared/i18n';
 import { track, type SpecRunStopReason, type SpecRunTier } from '../../../shared/services/analytics/events';
 import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
@@ -198,7 +199,40 @@ interface RunContext {
   projectId: string;
   /** Called with the run id of the `start` event. */
   onStart?: (runId: string) => void;
+  /** A lab run: the model of its change the request carried; absent when none or not known (after a reload). */
+  labSentModel?: unknown;
+  /** A lab run: the lab user's session, which the lab's cancel route needs. */
+  githubSession?: string;
 }
+
+/**
+ * Set while the page unloads (a reload, a tab close): a lab stream cut then is not a failed
+ * run, and the reloaded page follows the run again. `beforeunload` comes before the browser
+ * cuts the page's requests; a leave prompt the user answers with "stay" clears the flag.
+ */
+let pageUnloading = false;
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('beforeunload', (event) => {
+    pageUnloading = true;
+    // Runs once every listener has answered: a prompt the user stayed on leaves the page alive.
+    setTimeout(() => {
+      if (event.defaultPrevented || event.returnValue) pageUnloading = false;
+    }, 0);
+  });
+  window.addEventListener('pagehide', () => {
+    pageUnloading = true;
+  });
+  window.addEventListener('pageshow', () => {
+    pageUnloading = false;
+  });
+}
+
+/**
+ * Whether `error` ended a lab stream only because the page is unloading (a browser may cut
+ * it as a network error or as an abort; the caller rules out the user's own Stop).
+ */
+const cutByUnload = (error: unknown): boolean =>
+  pageUnloading && !(error instanceof SseHttpError) && !(error instanceof SseStallError);
 
 /** A run to follow through its durable event log: after a reload, or one the lab says is in progress. */
 interface FollowedRun {
@@ -207,6 +241,8 @@ interface FollowedRun {
   /** Milliseconds since the epoch. */
   startedAt: number;
   kind: RunKind;
+  /** A lab run's session for its routes, when the caller has it; else the tab's sign-in. */
+  githubSession?: string;
 }
 
 /** `events`, noting a 409 refusal of the request before rethrowing it. */
@@ -258,10 +294,10 @@ export function wasStoppedByUser(event: Extract<SpecDrivenEvent, { event: 'done'
  * Hand a lab run's result to the lab feature, which puts a proposed model into
  * the project. Loaded on demand: only a BESSER Lab instance ever needs it.
  */
-async function applyLabDone(lab: LabDone): Promise<void> {
+async function applyLabDone(lab: LabDone, sentModel: unknown): Promise<void> {
   try {
     const { handleLabDone } = await import('../../lab');
-    await handleLabDone(lab);
+    await handleLabDone(lab, sentModel);
   } catch (error) {
     reportError(
       i18n.t('lab.errors.applyResult', {
@@ -365,6 +401,8 @@ export function useSpecDrivenTrigger(
   // flipped to false by the finally block *after* the for-await loop
   // exits, not mid-event.
   const abortRequestedRef = useRef(false);
+  /** The current lab run's session for the run routes (`labRunHeaders`); null for any other run. */
+  const labSessionRef = useRef<string | null>(null);
 
   // Timeout handle for the COST_CAP/TIMEOUT failsafe. Cleared when
   // the `done` event finally arrives, or when the stream finishes
@@ -549,7 +587,7 @@ export function useSpecDrivenTrigger(
   const cancelRunOnServer = useCallback(
     (runId: string | undefined, opts: { beacon?: boolean } = {}) => {
       if (!runId) return;
-      cancelSpecDrivenRun(runId, opts);
+      cancelSpecDrivenRun(runId, labSessionRef.current ? { ...opts, githubSession: labSessionRef.current } : opts);
     },
     [],
   );
@@ -737,7 +775,7 @@ export function useSpecDrivenTrigger(
             // The card shows the plan or the build; there is no download and no app to announce.
             clearActiveSpecDrivenRun(event.runId || currentRunIdRef.current);
             finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt: Date.now() });
-            if (event.lab) await applyLabDone(event.lab);
+            if (event.lab) await applyLabDone(event.lab, run.labSentModel);
             return;
           }
           const doneRunId =
@@ -1075,7 +1113,11 @@ export function useSpecDrivenTrigger(
       activeCardRef.current = { liveKey, streamingId };
       setIsGenerating(false);
 
-      const handle = followSpecDrivenRun(target.runId, 0);
+      // A lab's run routes need the lab user's session; it is known while the sign-in is still checked.
+      labSessionRef.current = isLab ? target.githubSession ?? getGitHubAuthState().session : null;
+      const handle = labSessionRef.current
+        ? followSpecDrivenRun(target.runId, 0, labSessionRef.current)
+        : followSpecDrivenRun(target.runId, 0);
       abortRef.current = handle.abort;
       const runCtx: RunContext = {
         kind: target.kind,
@@ -1085,6 +1127,8 @@ export function useSpecDrivenTrigger(
       };
 
       let terminalEventSeen = false;
+      // As in `driveRun`: a stream the unloading page cut is followed again after the reload.
+      let leftToReload = false;
       try {
         for await (const event of handle.events) {
           if (abortRequestedRef.current) break;
@@ -1115,7 +1159,8 @@ export function useSpecDrivenTrigger(
         }
       } catch (error) {
         const isAbort = error instanceof DOMException && error.name === 'AbortError';
-        if (!isAbort) {
+        leftToReload = isLab && !abortRequestedRef.current && cutByUnload(error);
+        if (!isAbort && !leftToReload) {
           if (
             error instanceof SseHttpError &&
             (error.status === 404 || error.status === 410)
@@ -1149,7 +1194,7 @@ export function useSpecDrivenTrigger(
         abortRef.current = null;
         isRunningRef.current = false;
         clearFailsafeTimer();
-        finalizeLiveRun(liveKey, streamingId);
+        if (!leftToReload) finalizeLiveRun(liveKey, streamingId);
         activeCardRef.current = null;
         dispatch(releaseRunSlot());
         releaseOwnership();
@@ -1237,6 +1282,7 @@ export function useSpecDrivenTrigger(
     async (run: RunContext, open: () => SpecDrivenRunHandle, onEnded?: () => void): Promise<void> => {
       const { liveKey, streamingId } = run;
       const isLab = run.kind === 'lab';
+      labSessionRef.current = isLab ? run.githubSession ?? null : null;
       let handle: SpecDrivenRunHandle;
       try {
         handle = open();
@@ -1266,6 +1312,8 @@ export function useSpecDrivenTrigger(
 
       let terminalEventSeen = false;
       let eventsReceived = 0;
+      // The page is unloading: the card stays live (unsaved) and the reloaded page follows the run.
+      let leftToReload = false;
       try {
         // NOTE: the loop deliberately does NOT stop when this hook's
         // surface unmounts. All run state lives outside React (the Redux
@@ -1314,7 +1362,9 @@ export function useSpecDrivenTrigger(
         // like an error occurred.
         const isAbort =
           err instanceof DOMException && err.name === 'AbortError';
-        if (isAbort) {
+        if (isLab && !abortRequestedRef.current && cutByUnload(err)) {
+          leftToReload = true;
+        } else if (isAbort) {
           finalizeLiveRun(liveKey, streamingId);
           appendAssistantMessage(
             `⏹ ${isLab ? labLine('stopped', 'BESSER Lab run stopped by user.') : 'Spec-Driven Agent run stopped by user.'}`,
@@ -1403,7 +1453,7 @@ export function useSpecDrivenTrigger(
         // handling above (e.g. the abort break without an AbortError)
         // still snapshots the card into the message and drops the live
         // entry — finalizeLiveRun is idempotent.
-        finalizeLiveRun(liveKey, streamingId);
+        if (!leftToReload) finalizeLiveRun(liveKey, streamingId);
         activeCardRef.current = null;
         // Release the global run slot in EVERY exit path — including a
         // stream that simply ends without a `done` event (backend
@@ -1775,11 +1825,15 @@ export function useSpecDrivenTrigger(
       const projectId = project?.id ?? '';
       // This tab's claim on the run, as for a Spec-Driven run, so another tab does not adopt it.
       const ownership: { claim?: Promise<(() => void) | null> } = {};
+      const sentDiagrams = (projectPayload?.diagrams as { ClassDiagram?: Array<{ model?: unknown }> } | undefined)?.ClassDiagram;
       const run: RunContext = {
         ...beginRun({ kind: 'lab', projectId, projectName: project?.name }),
         onStart: (runId) => {
           ownership.claim = claimSpecDrivenRunOwnership(runId);
         },
+        // What the revised proposal is based on: an edit made after it is not in the revision.
+        labSentModel: sentDiagrams?.[0]?.model,
+        githubSession,
       };
       let busy = false;
       await driveRun(
@@ -1802,7 +1856,13 @@ export function useSpecDrivenTrigger(
       // tab's): follow it here, so its result and its Stop are in this chat.
       const inProgress = (await getLabState(githubSession).catch(() => null))?.run;
       if (inProgress) {
-        await followRun({ runId: inProgress.runId, projectId, startedAt: inProgress.startedAt * 1000, kind: 'lab' });
+        await followRun({
+          runId: inProgress.runId,
+          projectId,
+          startedAt: inProgress.startedAt * 1000,
+          kind: 'lab',
+          githubSession,
+        });
       }
     },
     [appendErrorToChat, beginRun, currentProjectRef, dispatch, driveRun, followRun],

@@ -144,6 +144,22 @@ describe('lab run card: plan', () => {
     expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
   });
 
+  it('renders the plan summary, steps and questions as Markdown (E2E A-5)', () => {
+    const plan = {
+      ...PLAN_PAYLOAD.plan,
+      summary: 'Adds a `glossary` package with **Term** and `Relation`.',
+      steps: ['Create `besser/BUML/metamodel/glossary/glossary.py`'],
+      questions: ['Should `Term` extend **Element**?'],
+    };
+    renderCard(cardAfterDone({ ...PLAN_PAYLOAD, plan }));
+    const region = screen.getByRole('region', { name: 'Plan' });
+    expect(region.textContent).not.toContain('`');
+    expect(region.textContent).not.toContain('**');
+    expect(within(region).getByText('glossary').tagName).toBe('CODE');
+    expect(within(region).getByText('besser/BUML/metamodel/glossary/glossary.py').tagName).toBe('CODE');
+    expect(within(region).getByText('Element').tagName).toBe('STRONG');
+  });
+
   it('says planning stopped when the model never submitted a plan', () => {
     renderCard(cardAfterDone({ ...PLAN_PAYLOAD, plan: null, stopReason: 'cost_cap' }));
     expect(screen.getByText('Planning stopped early')).toBeTruthy();
@@ -199,6 +215,27 @@ describe('lab run card: plan', () => {
     render(<LabRunResult lab={extractLabRun({ ...PLAN_PAYLOAD, plan: null }) as SpecDrivenLabView} onBuildPlan={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /Build this plan/ })).toBeNull();
   });
+
+  it('shows a plan that touches no repository as an answer, with nothing to build (E2E C-D4)', () => {
+    // The lab agent found the request already met: the session started no change and no branch.
+    const payload = {
+      ...PLAN_PAYLOAD,
+      changeId: '',
+      plan: { ...PLAN_PAYLOAD.plan, steps: [], repos: [], questions: [], summary: 'The docstring already says this.' },
+      modelProposal: null,
+    };
+    renderCard(cardAfterDone(payload));
+    expect(screen.getByText('No change needed')).toBeTruthy();
+    expect(screen.getByText(/No change was started and no branch was created/)).toBeTruthy();
+    expect(screen.queryByText(/the lab agent revises the plan/)).toBeNull();
+    cleanup();
+    render(
+      <Provider store={store}>
+        <LabRunResult lab={extractLabRun(payload) as SpecDrivenLabView} onBuildPlan={vi.fn()} />
+      </Provider>,
+    );
+    expect(screen.queryByRole('button', { name: /Build this plan/ })).toBeNull();
+  });
 });
 
 describe('lab run card: header', () => {
@@ -216,6 +253,37 @@ describe('lab run card: header', () => {
     inRouter('/', payload);
     expect(screen.getByText((payload as { title: string }).title)).toBeTruthy();
     expect(screen.getByRole('link', { name: /Manage changes/ }).getAttribute('href')).toBe('/lab');
+  });
+
+  it('names the lab branch of the change, on a plan card too (E2E A, where am I)', () => {
+    const planOnBranches = {
+      ...PLAN_PAYLOAD,
+      repoChanges: [
+        { repo: 'besser', branch: 'lab/jordi/toml-generator', base: 'development', files: [] },
+        { repo: 'frontend', branch: 'lab/jordi/toml-generator', base: 'develop', files: [] },
+      ],
+    };
+    inRouter('/', planOnBranches);
+    expect(screen.getByText('lab/jordi/toml-generator')).toBeTruthy();
+    cleanup();
+    // Repositories on different branches: each repository's row names its own, so the header does not.
+    const mixed = {
+      ...PLAN_PAYLOAD,
+      repoChanges: [
+        { repo: 'besser', branch: 'lab/jordi/a', base: 'development', files: [] },
+        { repo: 'frontend', branch: 'lab/jordi/b', base: 'develop', files: [] },
+      ],
+    };
+    inRouter('/', mixed);
+    expect(screen.queryByText('lab/jordi/a')).toBeNull();
+  });
+
+  it('names BESSER Lab on a finished lab card, and not on a Spec-Driven one (E2E A, where am I)', () => {
+    renderCard(cardAfterDone(BUILD_PAYLOAD));
+    expect(screen.getByText(/BESSER Lab/)).toBeTruthy();
+    cleanup();
+    renderCard(cardAfterDone(undefined));
+    expect(screen.queryByText(/BESSER Lab/)).toBeNull();
   });
 
   it('leaves the link out on the lab page itself', () => {
@@ -296,17 +364,68 @@ describe('lab run card: build', () => {
     expect(screen.getByText('Build stopped early')).toBeTruthy();
   });
 
-  it("shows the agent's own account above the files, as plain text with its line breaks", () => {
-    const finalText = 'Added the note element.\nRegistered it in <b>components.ts</b>.';
+  it("shows the agent's own account above the files, rendered as Markdown (E2E A-5)", () => {
+    // The account as run bbecb66a sent it: bold headings, bullets and code spans.
+    const finalText = '**What it contains**\n- **`RelationType`:** BROADER_THAN and RELATED_TO\n- Registered in <b>components.ts</b>.';
     renderCard(cardAfterDone({ ...BUILD_PAYLOAD, finalText }));
     const account = screen.getByRole('region', { name: "In the lab agent's words" });
-    const text = within(account).getByText(/Added the note element/);
-    expect(text.textContent).toBe(finalText);
-    expect(text.className).toContain('whitespace-pre-line');
+    expect(account.textContent).not.toContain('**');
+    expect(account.textContent).not.toContain('`');
+    expect(within(account).getByText('What it contains').tagName).toBe('STRONG');
+    expect(within(account).getByText('RelationType').tagName).toBe('CODE');
+    expect(account.querySelectorAll('li')).toHaveLength(2);
     // The model's text is never parsed as HTML.
     expect(account.querySelector('b')).toBeNull();
     const files = screen.getByRole('region', { name: 'Changed files' });
     expect(account.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows how long each check took when the API sends it, and nothing when it does not (E2E B)', () => {
+    const lab = extractLabRun(BUILD_PAYLOAD) as SpecDrivenLabView;
+    // `durationSeconds` is read defensively: older backends do not send it.
+    const timed = {
+      ...lab,
+      checks: [
+        { ...lab.checks[0], durationSeconds: 52.7 },
+        { ...lab.checks[1], durationSeconds: 0.24 },
+        { ...lab.checks[2], durationSeconds: 3 },
+        { ...lab.checks[0], id: 'besser:docs', title: 'Documentation build', durationSeconds: 109.6 },
+        { ...lab.checks[0], id: 'besser:odd', title: 'Odd value', durationSeconds: 'soon' },
+      ],
+    } as unknown as SpecDrivenLabView;
+    render(<LabRunResult lab={timed} />);
+    const checks = within(screen.getByRole('region', { name: 'Checks' }));
+    expect(checks.getByText('Tests of the touched areas').parentElement?.textContent).toContain('· 53s');
+    expect(checks.getByText('Lint').parentElement?.textContent).toContain('· 0.2s');
+    expect(checks.getByText('Documentation build').parentElement?.textContent).toContain('· 1m 50s');
+    // A skipped check did not run, and a malformed value is left out.
+    expect(checks.getByText('Translations').parentElement?.textContent).not.toMatch(/\d+(\.\d)?s/);
+    expect(checks.getByText('Odd value').parentElement?.textContent).not.toMatch(/\d+(\.\d)?s/);
+    cleanup();
+    render(<LabRunResult lab={lab} />);
+    expect(within(screen.getByRole('region', { name: 'Checks' })).queryByText(/\d+(\.\d)?s$/)).toBeNull();
+  });
+
+  it("keeps the server's check durations on the card through the done event (E2E B)", () => {
+    const checks = [
+      { ...BUILD_PAYLOAD.checks[0], durationSeconds: 52.7 },
+      { ...BUILD_PAYLOAD.checks[1], durationSeconds: -1 },
+      BUILD_PAYLOAD.checks[2],
+    ];
+    const card = cardAfterDone({ ...BUILD_PAYLOAD, checks });
+    expect(card.lab?.checks.map((c) => c.durationSeconds)).toEqual([52.7, undefined, undefined]);
+    renderCard(card);
+    const shown = within(screen.getByRole('region', { name: 'Checks' }));
+    expect(shown.getByText('Tests of the touched areas').parentElement?.textContent).toContain('· 53s');
+  });
+
+  it('shows the checks a cancelled build ran, under why it stopped (E2E C-D3)', () => {
+    renderCard(cardAfterDone({ ...BUILD_PAYLOAD, stopReason: 'cancelled' }));
+    expect(screen.getByText('Build stopped early')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toMatch(/It was stopped/);
+    const checks = within(screen.getByRole('region', { name: 'Checks' }));
+    expect(checks.getByText('Tests of the touched areas')).toBeTruthy();
+    expect(checks.getByText('2 errors in note.ts')).toBeTruthy();
   });
 
   it("shows no account when the agent's final text is empty", () => {

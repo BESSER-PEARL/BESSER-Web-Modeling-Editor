@@ -5030,6 +5030,8 @@
     "chatLabel": "Xat del lab",
     "chatEmpty": "Descriu un canvi a BESSER, a l’editor web o a l’agent de modelització. L’agent del lab primer el planifica.",
     "composerPlaceholder": "Descriu el canvi…",
+    "composerTarget": "Canvi actiu: «{{title}}». Aparca’l per començar un canvi a part.",
+    "composerNewChange": "El teu proper missatge comença un canvi nou.",
     "unreachable": "No s’ha pogut contactar amb el servidor, així que no se sap si BESSER Lab funciona aquí.",
     "retry": "Torna-ho a provar",
     "loadStateFailed": "No s’ha pogut llegir l’estat del lab: {{error}}",
@@ -5063,7 +5065,9 @@
       "running": "en execució",
       "stopped": "aturat",
       "previewOff": "La previsualització està desactivada en aquesta instància.",
-      "runInProgress": "Hi ha una execució de BESSER Lab en curs (iniciada a les {{time}})."
+      "runInProgress": "Hi ha una execució de BESSER Lab en curs (iniciada a les {{time}}).",
+      "onBranch": "A la branca",
+      "runStopping": "S’està aturant l’execució de BESSER Lab (iniciada a les {{time}})…"
     },
     "repos": {
       "besser": "BESSER",
@@ -5113,12 +5117,13 @@
       "voiceUnavailable": "BESSER Lab no accepta missatges de veu: escriu el canvi.",
       "noPullRequests": "No s’ha obert cap pull request: el canvi no té fitxers modificats.",
       "pullRequestsOpened": "S’han obert les pull requests en esborrany:",
-      "pullRequestFailed": "No s’han pogut obrir les pull requests: {{error}}"
+      "serverUnreachable": "No es pot contactar amb el servidor de BESSER, així que el teu missatge no s’ha enviat. Torna-ho a provar d’aquí a un moment."
     },
     "runCard": {
       "titlePlan": "Pla a punt",
       "titlePlanStopped": "La planificació s’ha aturat abans d’hora",
       "titleQuestion": "L’agent del lab té una pregunta",
+      "titleNoChangeNeeded": "No cal cap canvi",
       "titleBuilt": "Canvi construït",
       "titleChecksFailing": "Canvi construït, comprovacions fallides",
       "titleNoChanges": "Construcció acabada sense canvis",
@@ -5127,6 +5132,7 @@
       "steps": "Passos",
       "questions": "Preguntes obertes",
       "replyHint": "Respon amb el que cal canviar i l’agent del lab revisa el pla, o construeix-lo tal com és.",
+      "noChangeHint": "No s’ha començat cap canvi ni s’ha creat cap branca. Respon si encara cal canviar alguna cosa.",
       "answerHint": "Respon-la; després l’agent del lab planifica el canvi.",
       "buildPlan": "Construeix aquest pla",
       "buildPlanMessage": "Construeix aquest pla.",
@@ -5143,7 +5149,16 @@
       "checklistDone": "Fet",
       "checklistMissing": "Falta",
       "checklistNotJudged": "No es pot avaluar a partir dels fitxers",
+      "onBranch": "A la branca {{branch}}",
+      "checkDuration": "Durada: {{seconds}} s",
+      "stopping": "S’està aturant",
+      "stoppingCheck": "S’està aturant. S’està interrompent la comprovació en curs, {{check}}.",
+      "stoppingStep": "S’està aturant. L’agent del lab s’atura quan acabi el pas actual.",
       "openPullRequest": "Obre una pull request"
+    },
+    "pullRequest": {
+      "failed": "No s’ha obert la pull request.",
+      "signInAgain": "Torna a iniciar la sessió"
     },
     "proposal": {
       "label": "Model proposat",
@@ -5151,6 +5166,10 @@
       "hint": "Edita el que no sigui correcte i després conserva’l o descarta’l.",
       "keep": "Conserva",
       "discard": "Descarta",
+      "revisedTitle": "L’agent ha revisat la seva proposta mentre l’editaves",
+      "revisedHint": "La teva versió és al llenç. Substitueix-la per la revisió o queda’t la teva.",
+      "keepMine": "Quedar-me la meva",
+      "useRevision": "Fer servir la revisió",
       "discardConfirmTitle": "Vols descartar el model proposat?",
       "discardConfirmDescription": "Es tanca la pestanya amb el diagrama de classes que ha proposat l’agent del lab. El canvi en si queda tal com és.",
       "errors": {

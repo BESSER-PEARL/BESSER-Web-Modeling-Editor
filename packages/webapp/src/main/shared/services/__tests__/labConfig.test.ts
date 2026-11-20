@@ -3,7 +3,7 @@
  * server that says `lab.enabled: true` makes this instance a BESSER Lab.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getLabEnabled, isLabConfigKnown, peekLabEnabled } from '../labConfig';
+import { getLabEnabled, isLabConfigKnown, peekLabEnabled, resolveLabEnabled } from '../labConfig';
 import { _resetSpecDrivenConfigCacheForTests, getSpecDrivenConfig } from '../specDrivenConfig';
 
 const CONFIG = {
@@ -62,6 +62,48 @@ describe('lab config', () => {
     await expect(getLabEnabled()).resolves.toBe(false);
     expect(peekLabEnabled()).toBe(false);
     expect(isLabConfigKnown()).toBe(false);
+  });
+
+  // E2E A-3: with the lab backend down, a failed config load read as "not a lab" sent the message to the modeling agent.
+  describe('resolveLabEnabled', () => {
+    const okResponse = (body: unknown) =>
+      new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+    it('says "not known" (null), not "off", when the config cannot be loaded after a retry', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+        vi.stubGlobal('fetch', fetchMock);
+        const answer = resolveLabEnabled();
+        await vi.runAllTimersAsync();
+        await expect(answer).resolves.toBeNull();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('answers from the retry when the backend comes back', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue(okResponse({ ...CONFIG, lab: { enabled: true } })),
+        );
+        const answer = resolveLabEnabled();
+        await vi.runAllTimersAsync();
+        await expect(answer).resolves.toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('is false on a server that answered without the lab', async () => {
+      serve(CONFIG);
+      await expect(resolveLabEnabled()).resolves.toBe(false);
+    });
   });
 
   it('tells a server that answered from one that could not be reached', async () => {

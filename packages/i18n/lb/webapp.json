@@ -5030,6 +5030,8 @@
     "chatLabel": "Lab-Chat",
     "chatEmpty": "Beschreif eng Ännerung u BESSER, um Web-Editor oder um Modelléierungsagent. De Lab-Agent plangt se als éischt.",
     "composerPlaceholder": "Beschreif d’Ännerung…",
+    "composerTarget": "Aktiv Ännerung: „{{title}}“. Park se, fir eng separat Ännerung unzefänken.",
+    "composerNewChange": "Däin nächste Message fänkt eng nei Ännerung un.",
     "unreachable": "De Server war net z’erreechen, dofir ass net bekannt, ob BESSER Lab hei leeft.",
     "retry": "Nach eng Kéier probéieren",
     "loadStateFailed": "Den Zoustand vum Lab konnt net gelies ginn: {{error}}",
@@ -5063,7 +5065,9 @@
       "running": "leeft",
       "stopped": "gestoppt",
       "previewOff": "D’Virschau ass op dëser Instanz aus.",
-      "runInProgress": "E BESSER-Lab-Laf leeft (ugefaangen um {{time}})."
+      "runInProgress": "E BESSER-Lab-Laf leeft (ugefaangen um {{time}}).",
+      "onBranch": "Op der Branche",
+      "runStopping": "De Lab-Laf gëtt gestoppt (ugefaangen um {{time}})…"
     },
     "repos": {
       "besser": "BESSER",
@@ -5113,12 +5117,13 @@
       "voiceUnavailable": "BESSER Lab hëlt keng Sproochmessagen: tipp d’Ännerung amplaz.",
       "noPullRequests": "Kee Pull-Request gouf opgemaach: d’Ännerung huet keng geännert Fichieren.",
       "pullRequestsOpened": "D’Draft-Pull-Requesten goufen opgemaach:",
-      "pullRequestFailed": "D’Pull-Requesten konnten net opgemaach ginn: {{error}}"
+      "serverUnreachable": "De BESSER-Server ass net erreechbar, dofir gouf däi Message net geschéckt. Probéier et gläich nach eng Kéier."
     },
     "runCard": {
       "titlePlan": "Plang fäerdeg",
       "titlePlanStopped": "Plangen ze fréi gestoppt",
       "titleQuestion": "De Lab-Agent huet eng Fro",
+      "titleNoChangeNeeded": "Keng Ännerung néideg",
       "titleBuilt": "Ännerung gebaut",
       "titleChecksFailing": "Ännerung gebaut, Kontrollen feelen",
       "titleNoChanges": "Build ouni Ännerungen ofgeschloss",
@@ -5127,6 +5132,7 @@
       "steps": "Schrëtt",
       "questions": "Oppe Froen",
       "replyHint": "Äntwer mat deem, wat geännert soll ginn, an de Lab-Agent iwwerschafft de Plang, oder bau en esou, wéi en ass.",
+      "noChangeHint": "Et gouf keng Ännerung ugefaangen a kee Branch ugeluecht. Äntwer, wann nach eppes geännert muss ginn.",
       "answerHint": "Äntwer drop; de Lab-Agent plangt dann d’Ännerung.",
       "buildPlan": "Dëse Plang bauen",
       "buildPlanMessage": "Bau dëse Plang.",
@@ -5143,7 +5149,16 @@
       "checklistDone": "Erleedegt",
       "checklistMissing": "Feelt",
       "checklistNotJudged": "Konnt net aus de Fichieren beurteelt ginn",
+      "onBranch": "Op der Branche {{branch}}",
+      "checkDuration": "Dauer: {{seconds}} s",
+      "stopping": "Gëtt gestoppt",
+      "stoppingCheck": "Gëtt gestoppt. Déi lafend Iwwerpréiwung {{check}} gëtt ofgebrach.",
+      "stoppingStep": "Gëtt gestoppt. De Lab-Agent hält un, soubal säi momentane Schrëtt eriwwer ass.",
       "openPullRequest": "Pull-Request opmaachen"
+    },
+    "pullRequest": {
+      "failed": "De Pull-Request gouf net opgemaach.",
+      "signInAgain": "Nach eng Kéier umellen"
     },
     "proposal": {
       "label": "Proposéiert Modell",
@@ -5151,6 +5166,10 @@
       "hint": "Änner alles, wat net stëmmt, an da behal en oder verwerf en.",
       "keep": "Behalen",
       "discard": "Verwerfen",
+      "revisedTitle": "Den Agent huet seng Propose iwwerschafft, während s du se beaarbecht hues",
+      "revisedHint": "Deng Versioun ass um Canvas. Ersetz se duerch d’Iwwerschaffung oder behal deng.",
+      "keepMine": "Meng behalen",
+      "useRevision": "D’Iwwerschaffung huelen",
       "discardConfirmTitle": "De proposéierte Modell verwerfen?",
       "discardConfirmDescription": "Den Tab mam Klassendiagramm, deen de Lab-Agent proposéiert huet, gëtt zougemaach. D’Ännerung selwer bleift, wéi se ass.",
       "errors": {

@@ -6,11 +6,16 @@
  *  - The `onConnection` handler registration
  *  - Initial `connect()` call and teardown on unmount
  *  - Sync of connection status when the panel reopens
+ *
+ * On a BESSER Lab instance the chat talks to the lab backend, so the modeling
+ * agent's socket is never opened: the status is then the lab backend's, which
+ * answered the config request that made this instance a lab.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportError } from '../../../shared/services/errors/reportError';
+import { getLabEnabled } from '../../../shared/services/labConfig';
 import type { AssistantClient } from '../services';
 
 /* ------------------------------------------------------------------ */
@@ -53,10 +58,11 @@ export function useWebSocketConnection({
   // check it synchronously without needing to re-register on every toggle.
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const labRef = useRef(false);
 
   // Sync connection status when drawer reopens
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !labRef.current) {
       setConnectionStatus(
         (assistantClient.connectionState as ConnectionStatus) ||
           (assistantClient.connected ? 'connected' : 'disconnected'),
@@ -85,12 +91,19 @@ export function useWebSocketConnection({
     });
 
     setConnectionStatus('connecting');
-    // connect() is idempotent \u2014 if the other surface already opened the shared
-    // client, this resolves immediately.
-    assistantClient.connect().catch(() => {
-      setConnectionStatus('disconnected');
-      // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
-      reportError(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
+    void getLabEnabled().then((lab) => {
+      if (lab) {
+        labRef.current = true;
+        setConnectionStatus('connected');
+        return;
+      }
+      // connect() is idempotent \u2014 if the other surface already opened the shared
+      // client, this resolves immediately.
+      assistantClient.connect().catch(() => {
+        setConnectionStatus('disconnected');
+        // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
+        reportError(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
+      });
     });
 
     // The client is SHARED between the widget and the drawer, so a single

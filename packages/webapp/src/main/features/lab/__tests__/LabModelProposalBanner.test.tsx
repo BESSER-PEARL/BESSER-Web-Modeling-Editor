@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { store } from '../../../app/store/store';
-import { loadProjectThunk } from '../../../app/store/workspaceSlice';
+import { loadProjectThunk, updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
 import type { LabDone } from '../../../shared/api/lab';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { handleLabDone, labProposalChangeId } from '../labDone';
@@ -103,6 +103,45 @@ describe('LabModelProposalBanner', () => {
     await act(async () => undefined);
     expect(classDiagrams()).toHaveLength(2);
     expect(screen.getByText(BANNER_TEXT)).toBeTruthy();
+  });
+
+  it('offers a revision the agent made while the user was editing, and replaces the user version on request', async () => {
+    renderBanner();
+    await act(() => handleLabDone(PROPOSAL));
+    const sent = classDiagrams()[1].model;
+    const edited = structuredClone(sent) as { elements: Record<string, { name: string }> };
+    edited.elements.n.name = 'Memo';
+    await act(async () => {
+      await store.dispatch(updateDiagramModelThunk({ model: edited as never })).unwrap();
+    });
+    const revision = structuredClone(PROPOSAL);
+    (revision.modelProposal!.model as { elements: Record<string, { name: string }> }).elements.n.name = 'Notice';
+    await act(() => handleLabDone(revision, sent));
+
+    expect(screen.getByText('The agent revised its proposal while you were editing')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Discard/ })).toBeNull();
+    const nameOnCanvas = () => (classDiagrams()[1].model as { elements: Record<string, { name: string }> }).elements.n.name;
+    expect(nameOnCanvas()).toBe('Memo');
+
+    fireEvent.click(screen.getByRole('button', { name: /Use the revision/ }));
+    await waitFor(() => expect(screen.getByText(BANNER_TEXT)).toBeTruthy());
+    expect(nameOnCanvas()).toBe('Notice');
+  });
+
+  it('Keep mine drops the revision and leaves the user version', async () => {
+    renderBanner();
+    await act(() => handleLabDone(PROPOSAL));
+    const sent = classDiagrams()[1].model;
+    const edited = structuredClone(sent) as { elements: Record<string, { name: string }> };
+    edited.elements.n.name = 'Memo';
+    await act(async () => {
+      await store.dispatch(updateDiagramModelThunk({ model: edited as never })).unwrap();
+    });
+    await act(() => handleLabDone(structuredClone(PROPOSAL), sent));
+
+    fireEvent.click(screen.getByRole('button', { name: /Keep mine/ }));
+    await waitFor(() => expect(screen.getByText(BANNER_TEXT)).toBeTruthy());
+    expect((classDiagrams()[1].model as { elements: Record<string, { name: string }> }).elements.n.name).toBe('Memo');
   });
 
   it("Discard closes the proposal's tab", async () => {

@@ -109,6 +109,36 @@ describe('reconnect budget', () => {
     await consumer;
   });
 
+  it("sends a lab run's session on the stream, every reconnect and the polling fallback (E2E C-D6)", async () => {
+    vi.useFakeTimers();
+    const spy = vi.spyOn(sse, 'streamSse');
+    spy.mockImplementation(() => failingStream() as any);
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const handle = followSpecDrivenRun('e'.repeat(32), 0, 'gh-session-1');
+    const consumer = (async () => {
+      try {
+        for await (const _ of handle.events) { /* drain */ }
+      } catch { /* expected */ }
+    })();
+    // Past two dead streams: the client polls by then.
+    await vi.advanceTimersByTimeAsync(12_000);
+    handle.abort();
+    await consumer;
+
+    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    for (const [, , options] of spy.mock.calls) {
+      expect(options?.headers).toEqual({ 'X-GitHub-Session': 'gh-session-1' });
+    }
+    expect(fetchMock).toHaveBeenCalled();
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init?.headers).toMatchObject({ 'X-GitHub-Session': 'gh-session-1' });
+    }
+  });
+
   it('replays from the last sequence it actually received', async () => {
     vi.useFakeTimers();
     const spy = vi.spyOn(sse, 'streamSse');

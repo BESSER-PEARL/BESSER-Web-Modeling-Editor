@@ -10,7 +10,7 @@ import {
   SMART_GEN_ENDPOINT,
   specDrivenRunEventsUrl,
 } from '../../../shared/constants/constant';
-import { getSpecDrivenRunEventsPage } from '../../../shared/api/specDriven';
+import { getSpecDrivenRunEventsPage, labRunHeaders } from '../../../shared/api/specDriven';
 import {
   SseHttpError,
   streamSse,
@@ -301,6 +301,7 @@ async function* pollSpecDrivenRun(
   runId: string,
   afterSequence: number,
   signal: AbortSignal,
+  githubSession?: string | null,
 ): AsyncGenerator<SpecDrivenEvent, void, void> {
   let cursor = Math.max(0, Math.trunc(afterSequence));
   while (!signal.aborted) {
@@ -319,7 +320,7 @@ async function* pollSpecDrivenRun(
       status?: string;
     };
     try {
-      const response = await getSpecDrivenRunEventsPage(runId, cursor, requestController.signal);
+      const response = await getSpecDrivenRunEventsPage(runId, cursor, requestController.signal, githubSession);
       if (!response.ok) {
         let text = '';
         try {
@@ -380,6 +381,7 @@ async function* withDurableReconnect(
   initial: AsyncGenerator<SpecDrivenEvent, void, void>,
   signal: AbortSignal,
   initialCursor: { runId?: string; sequence?: number } = {},
+  githubSession?: string | null,
 ): AsyncGenerator<SpecDrivenEvent, void, void> {
   let source = initial;
   let runId = initialCursor.runId;
@@ -487,13 +489,14 @@ async function* withDurableReconnect(
     const wokeEarly = await waitForReconnect(delayMs, signal);
     if (wokeEarly) reconnectAttempts = 0;
     source = usePolling
-      ? pollSpecDrivenRun(runId, lastSequence, signal)
+      ? pollSpecDrivenRun(runId, lastSequence, signal, githubSession)
       : streamSse<SpecDrivenEvent>(
           specDrivenRunEventsUrl(runId, lastSequence),
           undefined,
           {
             method: 'GET',
             signal,
+            headers: labRunHeaders(githubSession),
             stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
             responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
           },
@@ -501,10 +504,14 @@ async function* withDurableReconnect(
   }
 }
 
-/** Attach to a run that survived a page reload or component restart. */
+/**
+ * Attach to a run that survived a page reload or component restart.
+ * `githubSession` is a lab run's: the lab's run routes need it (`labRunHeaders`).
+ */
 export function followSpecDrivenRun(
   runId: string,
   afterSequence = 0,
+  githubSession?: string | null,
 ): SpecDrivenRunHandle {
   const controller = new AbortController();
   const cursor = Math.max(0, Math.trunc(afterSequence));
@@ -514,6 +521,7 @@ export function followSpecDrivenRun(
     {
       method: 'GET',
       signal: controller.signal,
+      headers: labRunHeaders(githubSession),
       stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
       responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
     },
@@ -522,7 +530,7 @@ export function followSpecDrivenRun(
     events: withDurableReconnect(initialEvents, controller.signal, {
       runId,
       sequence: cursor,
-    }),
+    }, githubSession),
     abort: () => controller.abort(),
     controller,
   };

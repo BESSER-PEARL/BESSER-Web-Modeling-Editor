@@ -449,6 +449,8 @@ export interface SpecDrivenLabView {
     passed: boolean;
     skipped: boolean;
     summary: string;
+    /** How long the check ran, in seconds; absent on a card saved before the server sent it. */
+    durationSeconds?: number;
   }[];
   /** `done` is null when the rule could not be judged from the files. */
   checklist: { id: string; text: string; done: boolean | null }[];

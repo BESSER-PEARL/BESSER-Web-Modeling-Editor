@@ -3,9 +3,11 @@
  *
  * It opens as its own ClassDiagram tab of the current project, marked as a proposal of
  * its change (`config.labProposalChangeId`, stored with the project), until the user
- * keeps or discards it. A later proposal of the same change replaces that tab; once
- * kept, the diagram is the user's (`config.labChangeId` remembers its change) and a
- * later proposal opens a new tab.
+ * keeps or discards it. A later proposal of the same change replaces that tab, unless
+ * the user edited the tab while the run was in progress: then the user's version stays
+ * and the revision waits in `config.labRevision` for the banner. Once kept, the diagram
+ * is the user's (`config.labChangeId` remembers its change) and a later proposal opens
+ * a new tab.
  */
 import { UMLDiagramType } from '@besser/wme';
 import { store } from '../../app/store/store';
@@ -28,6 +30,10 @@ import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportU
 const PROPOSAL_MARKER = 'labProposalChangeId';
 /** A kept proposal: still its change's model (BESSER `model_proposal._change_diagram` reads both markers). */
 const KEPT_MARKER = 'labChangeId';
+/** The content of the proposal as placed: tells, after a reload, whether the user has edited it since. */
+const PLACED_MARKER = 'labProposalContent';
+/** A revised proposal held back because the user edited the tab while the run was in progress. */
+const REVISION_MARKER = 'labRevision';
 
 const marker = (diagram: ProjectDiagram | null | undefined, name: string): string | null => {
   const changeId = diagram?.config?.[name];
@@ -39,12 +45,72 @@ export function labProposalChangeId(diagram: ProjectDiagram | null | undefined):
   return marker(diagram, PROPOSAL_MARKER);
 }
 
-/** `diagram` without the proposal marker (and without `config` when nothing else was in it). */
+type ModelProposal = NonNullable<LabDone['modelProposal']>;
+
+/** The revised proposal waiting on `diagram` for the user to take or leave, or null. */
+export function labRevisionOf(diagram: ProjectDiagram | null | undefined): ModelProposal | null {
+  const revision = diagram?.config?.[REVISION_MARKER] as ModelProposal | undefined;
+  return revision && typeof revision === 'object' && isUMLModel(revision.model) ? revision : null;
+}
+
+const ELEMENT_FIELDS = ['type', 'name', 'owner', 'visibility', 'attributeType', 'isOptional', 'isId', 'isDerived', 'defaultValue'];
+const END_FIELDS = ['element', 'role', 'multiplicity'];
+
+/**
+ * What a class diagram says, without where it is drawn: moving or laying out classes
+ * is not an edit. Missing and empty values count the same.
+ */
+function modelContent(model: unknown): string {
+  type Item = Record<string, unknown> & { source?: Record<string, unknown>; target?: Record<string, unknown> };
+  const { elements = {}, relationships = {} } = (model ?? {}) as { elements?: Record<string, Item>; relationships?: Record<string, Item> };
+  const pick = (item: Record<string, unknown> | undefined, fields: string[]) => fields.map((field) => item?.[field] || '');
+  return [
+    ...Object.values(elements).map((element) => JSON.stringify([element.id, ...pick(element, ELEMENT_FIELDS)])),
+    ...Object.values(relationships).map((relationship) =>
+      JSON.stringify([
+        relationship.id,
+        ...pick(relationship, ['type', 'name']),
+        ...pick(relationship.source, END_FIELDS),
+        ...pick(relationship.target, END_FIELDS),
+      ]),
+    ),
+  ]
+    .sort()
+    .join('\n');
+}
+
+/** `diagram` without the proposal's markers (and without `config` when nothing else was in it). */
 function settled(diagram: ProjectDiagram): ProjectDiagram {
   const { config, ...rest } = diagram;
   const kept = { ...config };
   delete kept[PROPOSAL_MARKER];
+  delete kept[PLACED_MARKER];
+  delete kept[REVISION_MARKER];
   return Object.keys(kept).length > 0 ? { ...rest, config: kept } : rest;
+}
+
+/** `diagram` holding `proposal` as change `changeId`'s pending proposal. */
+function placed(diagram: ProjectDiagram, proposal: ModelProposal, changeId: string): ProjectDiagram {
+  const { config, ...rest } = settled(diagram);
+  return {
+    ...rest,
+    title: proposal.title,
+    model: proposal.model as ProjectDiagram['model'],
+    config: { ...config, [PROPOSAL_MARKER]: changeId, [PLACED_MARKER]: modelContent(proposal.model) },
+    lastUpdate: new Date().toISOString(),
+  };
+}
+
+/**
+ * Whether the user changed `diagram` while the run was in progress: since `sentModel`, the
+ * model the request carried, or, when that is unknown (the run was followed after a reload),
+ * since the proposal was placed. Edits made before the request are in the revision.
+ */
+function editedDuringRun(diagram: ProjectDiagram, sentModel: unknown): boolean {
+  const current = modelContent(diagram.model);
+  if (sentModel != null) return current !== modelContent(sentModel);
+  const placedContent = marker(diagram, PLACED_MARKER);
+  return placedContent !== null && current !== placedContent;
 }
 
 /**
@@ -75,10 +141,12 @@ function openProject(): BesserProject | null {
 /**
  * Handles the `lab` payload of a lab run's `done` event: a model proposal opens as a
  * ClassDiagram tab titled with its title (the same change's earlier proposal is
- * replaced), becomes the active diagram and is laid out when the canvas opens.
- * Failures are reported to the user; this never throws.
+ * replaced), becomes the active diagram and is laid out when the canvas opens. When the
+ * user edited that tab while the run was in progress, their version stays and the
+ * proposal waits as a revision the banner offers. `sentModel` is the change's model
+ * the run's request carried, when known. Failures are reported to the user; this never throws.
  */
-export async function handleLabDone(lab: LabDone): Promise<void> {
+export async function handleLabDone(lab: LabDone, sentModel?: unknown): Promise<void> {
   const proposal = lab.modelProposal;
   if (!proposal) return;
   const project = openProject();
@@ -102,6 +170,10 @@ export async function handleLabDone(lab: LabDone): Promise<void> {
   const diagrams = project.diagrams.ClassDiagram;
   let index = diagrams.findIndex((diagram) => labProposalChangeId(diagram) === lab.changeId);
   const previous = index >= 0 ? diagrams[index] : undefined;
+  if (previous && editedDuringRun(previous, sentModel)) {
+    await holdRevision(project, index, proposal);
+    return;
+  }
   if (index < 0) {
     if (diagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
       reportError(
@@ -115,28 +187,8 @@ export async function handleLabDone(lab: LabDone): Promise<void> {
     diagrams.push(createEmptyDiagram(proposal.title, UMLDiagramType.ClassDiagram));
     index = diagrams.length - 1;
   }
-  const placed: ProjectDiagram = {
-    ...diagrams[index],
-    title: proposal.title,
-    model: proposal.model,
-    config: { ...diagrams[index].config, [PROPOSAL_MARKER]: lab.changeId },
-    lastUpdate: new Date().toISOString(),
-  };
-  diagrams[index] = placed;
-  project.currentDiagramType = 'ClassDiagram';
-  project.currentDiagramIndices.ClassDiagram = index;
-
   try {
-    ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(project));
-    if (previous) {
-      recordDiagramUpdate(project, 'ClassDiagram', placed, previous.model, placed.model, 'assistant');
-      if (previous.title !== placed.title) recordDiagramRenamed(project, placed.id, previous.title, placed.title);
-    } else {
-      recordDiagramCreated(project, 'ClassDiagram', placed, 'assistant');
-    }
-    // The proposal has no layout of its own: ELK arranges it when the canvas opens.
-    requestAutoLayoutOnNextSetup();
-    await store.dispatch(loadProjectThunk(project.id)).unwrap();
+    await openProposal(project, index, placed(diagrams[index], proposal, lab.changeId), previous);
   } catch (error) {
     console.error('[lab] could not open the proposed model:', error);
     reportError(
@@ -144,6 +196,81 @@ export async function handleLabDone(lab: LabDone): Promise<void> {
       { error },
     );
   }
+}
+
+/** Saves `proposal` as diagram `index` of `project`, makes it active and lays it out when the canvas opens. */
+async function openProposal(
+  project: BesserProject,
+  index: number,
+  proposal: ProjectDiagram,
+  previous: ProjectDiagram | undefined,
+): Promise<void> {
+  project.diagrams.ClassDiagram[index] = proposal;
+  project.currentDiagramType = 'ClassDiagram';
+  project.currentDiagramIndices.ClassDiagram = index;
+  ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(project));
+  if (previous) {
+    recordDiagramUpdate(project, 'ClassDiagram', proposal, previous.model, proposal.model, 'assistant');
+    if (previous.title !== proposal.title) recordDiagramRenamed(project, proposal.id, previous.title, proposal.title);
+  } else {
+    recordDiagramCreated(project, 'ClassDiagram', proposal, 'assistant');
+  }
+  // The proposal has no layout of its own: ELK arranges it when the canvas opens.
+  requestAutoLayoutOnNextSetup();
+  await store.dispatch(loadProjectThunk(project.id)).unwrap();
+}
+
+/**
+ * Keeps the user's diagram `index` as it is and holds `proposal` on it for the banner. The
+ * diagram becomes active; when it already is, the canvas is not remounted, so the user's
+ * editing is not interrupted.
+ */
+async function holdRevision(project: BesserProject, index: number, proposal: ModelProposal): Promise<void> {
+  const diagram = project.diagrams.ClassDiagram[index];
+  const held: ProjectDiagram = { ...diagram, config: { ...diagram.config, [REVISION_MARKER]: proposal } };
+  project.diagrams.ClassDiagram[index] = held;
+  project.currentDiagramType = 'ClassDiagram';
+  project.currentDiagramIndices.ClassDiagram = index;
+  try {
+    ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(project));
+    if (store.getState().workspace.activeDiagram?.id === diagram.id) {
+      await store.dispatch(refreshProjectStateThunk()).unwrap();
+    } else {
+      await store.dispatch(loadProjectThunk(project.id)).unwrap();
+    }
+  } catch (error) {
+    console.error('[lab] could not hold the revised proposal:', error);
+    reportError(
+      i18n.t('lab.proposal.errors.failed', { defaultValue: 'The proposed model could not be opened.' }),
+      { error },
+    );
+  }
+}
+
+/** Replaces the user's version in diagram `diagramId` with the revision waiting on it. */
+export async function applyLabRevision(diagramId: string): Promise<void> {
+  const project = openProject();
+  const index = project?.diagrams.ClassDiagram.findIndex((diagram) => diagram.id === diagramId) ?? -1;
+  if (!project || index < 0) return;
+  const previous = project.diagrams.ClassDiagram[index];
+  const revision = labRevisionOf(previous);
+  const changeId = labProposalChangeId(previous);
+  if (!revision || !changeId) return;
+  await openProposal(project, index, placed(previous, revision, changeId), previous);
+}
+
+/** Drops the revision waiting on diagram `diagramId`: the user's version stays the proposal. */
+export async function dismissLabRevision(diagramId: string): Promise<void> {
+  const project = openProject();
+  const index = project?.diagrams.ClassDiagram.findIndex((diagram) => diagram.id === diagramId) ?? -1;
+  if (!project || index < 0) return;
+  const diagram = project.diagrams.ClassDiagram[index];
+  const config = { ...diagram.config };
+  delete config[REVISION_MARKER];
+  ProjectStorageRepository.withoutNotify(() => {
+    ProjectStorageRepository.updateDiagram(project.id, 'ClassDiagram', { ...diagram, config }, index);
+  });
+  await store.dispatch(refreshProjectStateThunk()).unwrap();
 }
 
 /**

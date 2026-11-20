@@ -313,6 +313,26 @@ describe('spec-driven', () => {
     }
   });
 
+  it("sends a lab run's session on its run routes, and never as a beacon, which cannot carry it", async () => {
+    const signal = new AbortController().signal;
+    await getSpecDrivenRunEventsPage('run1', 7, signal, 'gh-session-1');
+    expect(lastCall()[1]).toEqual({ signal, headers: { Accept: 'application/json', 'X-GitHub-Session': 'gh-session-1' } });
+
+    const sendBeacon = vi.fn(() => true);
+    Object.defineProperty(navigator, 'sendBeacon', { value: sendBeacon, configurable: true });
+    try {
+      cancelSpecDrivenRun('run1', { beacon: true, githubSession: 'gh-session-1' });
+      expect(sendBeacon).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenLastCalledWith(`${BACKEND_URL}/spec-driven/cancel/run1`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'X-GitHub-Session': 'gh-session-1' },
+      });
+    } finally {
+      delete (navigator as { sendBeacon?: unknown }).sendBeacon;
+    }
+  });
+
   it('never throws when the cancel request fails', () => {
     fetchMock.mockImplementation(() => {
       throw new TypeError('offline');

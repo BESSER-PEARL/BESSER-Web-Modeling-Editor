@@ -103,6 +103,9 @@ const LabWorkspace: React.FC<{ githubSession: string }> = ({ githubSession }) =>
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loads, setLoads] = useState(0);
   const [opened, setOpened] = useState<LabPullRequestsResponse | null>(null);
+  // The panel's last "Open pull request" failure, for the change it was about.
+  const [pullRequestFailure, setPullRequestFailure] = useState<{ error: unknown; changeId: string } | null>(null);
+  const [stoppingRunId, setStoppingRunId] = useState<string | null>(null);
   const [actionRunning, setActionRunning] = useState(false);
 
   // Same as the floating assistant: a diagram lives on the editor page.
@@ -179,32 +182,38 @@ const LabWorkspace: React.FC<{ githubSession: string }> = ({ githubSession }) =>
   }, [running, githubSession, loads]);
 
   // For change `changeId` (a run card's, or the active one's in the panel): the server acts on the active change.
+  // Rejects with the failure, which the card or the panel that asked shows in place.
   const openPullRequest = useCallback(
-    (changeId: string) =>
-      runAction(t('lab.actions.openPullRequest', { defaultValue: 'Open pull request' }), async () => {
+    async (changeId: string) => {
+      setActionRunning(true);
+      try {
         const response = await openLabPullRequests(githubSession, changeId);
         if (response === null) {
-          reportError(
+          throw new Error(
             t('lab.chat.notActiveChange', {
               defaultValue:
                 'No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.',
             }),
           );
-          return;
         }
         setOpened(response);
-        return getLabState(githubSession);
-      }),
-    [githubSession, runAction, t],
+      } finally {
+        setActionRunning(false);
+      }
+      // The pull requests are open; a failed re-read is the state's failure, not theirs.
+      getLabState(githubSession).then(setState, (error: unknown) => setLoadError(describeNetworkError(error)));
+    },
+    [githubSession, t],
   );
 
   // The run `GET /lab/state` names: this tab may not be the one following it (another tab or device).
   const stopRun = useCallback(
     (runId: string) =>
       runAction(t('lab.actions.stopRun', { defaultValue: 'Stop the run' }), async () => {
-        if (!(await cancelSpecDrivenRun(runId))) {
+        if (!(await cancelSpecDrivenRun(runId, { githubSession }))) {
           throw new Error(t('lab.errors.stopNotAccepted', { defaultValue: 'the server did not accept the request.' }));
         }
+        setStoppingRunId(runId);
         return getLabState(githubSession);
       }),
     [githubSession, runAction, t],
@@ -259,10 +268,15 @@ const LabWorkspace: React.FC<{ githubSession: string }> = ({ githubSession }) =>
             busy={busy}
             pullRequests={opened?.pullRequests ?? []}
             checksNote={opened?.checksNote ?? ''}
+            pullRequestFailure={pullRequestFailure?.changeId === state.change?.changeId ? pullRequestFailure : null}
             onOpenPullRequest={() => {
-              if (state.change) void openPullRequest(state.change.changeId);
+              if (!state.change) return;
+              const { changeId } = state.change;
+              setPullRequestFailure(null);
+              openPullRequest(changeId).catch((error: unknown) => setPullRequestFailure({ error, changeId }));
             }}
             onStopRun={(runId) => void stopRun(runId)}
+            stoppingRunId={stoppingRunId}
             onPark={() =>
               void runAction(t('lab.actions.park', { defaultValue: 'Park' }), () => parkLabChange(githubSession))
             }
@@ -309,6 +323,16 @@ const LabWorkspace: React.FC<{ githubSession: string }> = ({ githubSession }) =>
           )}
         </div>
         <div className="shrink-0 border-t border-border/40 px-4 py-3 sm:px-6">
+          {state ? (
+            <p className="mb-2 text-xs text-muted-foreground">
+              {state.change
+                ? t('lab.composerTarget', {
+                    defaultValue: 'Active change: “{{title}}”. Park it to start a separate change.',
+                    title: state.change.title,
+                  })
+                : t('lab.composerNewChange', { defaultValue: 'Your next message starts a new change.' })}
+            </p>
+          ) : null}
           <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
             {() => (
               <MessageInput

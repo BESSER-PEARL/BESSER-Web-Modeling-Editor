@@ -114,8 +114,7 @@ import { appVersion } from '../../../shared/constants/application-constants';
 import { getGitHubSession } from '../../../shared/services/github/githubAuth';
 import { openLabPullRequests, type LabAction } from '../../../shared/api/lab';
 import { useLabMode } from '../../../shared/hooks/useLabMode';
-import { getLabEnabled } from '../../../shared/services/labConfig';
-import { describeNetworkError } from '../../../shared/utils/describeNetworkError';
+import { getLabEnabled, isLabConfigKnown, resolveLabEnabled } from '../../../shared/services/labConfig';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
@@ -1545,9 +1544,25 @@ export function useAssistantLogic({
     isSendingRef.current = true;
 
     try {
-      // Until the server config has answered, `labMode` is false: wait for it (a failed load is
-      // retried here) rather than send a lab instance's message to the modeling agent.
-      if (labMode || (await getLabEnabled())) {
+      // Until the server config has answered, `labMode` is false: wait for it rather than send a
+      // lab instance's message to the modeling agent.
+      let lab = labMode || (await getLabEnabled());
+      // A failed load reads as "not a lab". Only a connected modeling agent shows that this is not a
+      // lab's chat; otherwise retry, and when the config is still unknown, keep the text unsent.
+      if (!lab && !isLabConfigKnown() && !assistantClient.connected) {
+        const resolved = await resolveLabEnabled();
+        if (resolved === null) {
+          connection.setConnectionStatus('disconnected');
+          reportError(
+            t('lab.chat.serverUnreachable', {
+              defaultValue: 'The BESSER server cannot be reached, so your message was not sent. Try again in a moment.',
+            }),
+          );
+          return;
+        }
+        lab = resolved;
+      }
+      if (lab) {
         if (hasFiles) {
           reportError(
             t('lab.chat.noAttachments', {
@@ -2050,41 +2065,32 @@ export function useAssistantLogic({
   }, [currentProjectRef, t]);
 
   // A lab run card's "Open pull request", for that card's change. Stable, so memoised chat messages skip re-rendering.
+  // A failure rejects: the card shows it in place until the next attempt, with "Sign in again" on a 401.
   const openPullRequest = useCallback(async (changeId: string): Promise<void> => {
     const githubSession = getGitHubSession();
     if (!githubSession) {
       labSignInPrompt();
       return;
     }
-    try {
-      const opened = await openLabPullRequests(githubSession, changeId);
-      const text =
-        opened === null
-          ? t('lab.chat.notActiveChange', {
-              defaultValue:
-                'No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.',
-            })
-          : opened.pullRequests.length === 0
-          ? t('lab.chat.noPullRequests', { defaultValue: 'No pull request was opened: the change has no changed files.' })
-          : [
-              t('lab.chat.pullRequestsOpened', { defaultValue: 'Opened the draft pull requests:' }),
-              ...opened.pullRequests.map((pr) => {
-                const repo = t(`lab.repos.${pr.repo}`, { defaultValue: LAB_REPO_NAMES[pr.repo] ?? pr.repo });
-                return `- [${repo} #${pr.number}](${pr.url}): \`${pr.branch}\` into \`${pr.base}\``;
-              }),
-              // Which checks the change passed before the push (the server's words).
-              ...(opened.checksNote ? ['', opened.checksNote] : []),
-            ].join('\n');
-      setMessages((prev) => [...prev, toKitMessage('assistant', text)]);
-    } catch (error) {
-      reportError(
-        t('lab.chat.pullRequestFailed', {
-          defaultValue: 'The pull requests could not be opened: {{error}}',
-          error: describeNetworkError(error),
-        }),
-        { error },
-      );
-    }
+    const opened = await openLabPullRequests(githubSession, changeId);
+    const text =
+      opened === null
+        ? t('lab.chat.notActiveChange', {
+            defaultValue:
+              'No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.',
+          })
+        : opened.pullRequests.length === 0
+        ? t('lab.chat.noPullRequests', { defaultValue: 'No pull request was opened: the change has no changed files.' })
+        : [
+            t('lab.chat.pullRequestsOpened', { defaultValue: 'Opened the draft pull requests:' }),
+            ...opened.pullRequests.map((pr) => {
+              const repo = t(`lab.repos.${pr.repo}`, { defaultValue: LAB_REPO_NAMES[pr.repo] ?? pr.repo });
+              return `- [${repo} #${pr.number}](${pr.url}): \`${pr.branch}\` into \`${pr.base}\``;
+            }),
+            // Which checks the change passed before the push (the server's words).
+            ...(opened.checksNote ? ['', opened.checksNote] : []),
+          ].join('\n');
+    setMessages((prev) => [...prev, toKitMessage('assistant', text)]);
   }, [labSignInPrompt, setMessages, t]);
 
   // A lab plan card's "Build this plan": an explicit build of that card's change.

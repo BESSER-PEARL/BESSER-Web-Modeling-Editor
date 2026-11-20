@@ -7,6 +7,7 @@
 
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -70,6 +71,9 @@ interface DragState {
 }
 
 const FALLBACK_CLOSED_OFFSET = 640;
+
+/** The BESSER Lab page (`app/application.tsx` route). */
+const LAB_PAGE_PATH = '/lab';
 
 /** Toggle floating decoration cards on the sides of the welcome screen. */
 const SHOW_FLOATING_CARDS = false;
@@ -350,6 +354,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     clearPendingAssistantPrompt();
     void handleSubmit(undefined, { overrideText: prompt });
   }, [hasPendingPrompt, open, connectionStatus, handleSubmit]);
+
+  // The lab page has its own chat: arriving there (its run card's "Manage changes", a direct
+  // link) shows the page, not this sheet over it.
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (pathname === LAB_PAGE_PATH && open) onOpenChange(false);
+    // Only a navigation closes the sheet; reopening it on the lab page stays possible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   /* ---- Quick action handler ---- */
 

@@ -23,6 +23,7 @@ import { SseHttpError } from '@/main/shared/api/sseClient';
 import i18n from '@/main/shared/i18n';
 import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
 import { reportError } from '@/main/shared/services/errors/reportError';
+import { resetGitHubAuthForTests, signInToGitHubForTests } from '@/main/shared/services/github/githubAuth';
 import { sessionStorageLlmApiKey, sessionStorageLlmProvider } from '@/main/shared/constants/constant';
 import type { BesserProject } from '@/main/shared/types/project';
 
@@ -70,7 +71,7 @@ const LAB_DONE: LabDone = {
     },
   ],
   checks: [
-    { id: 'frontend:lint', repo: 'frontend', title: 'Lint', passed: true, skipped: false, summary: 'clean' },
+    { id: 'frontend:lint', repo: 'frontend', title: 'Lint', passed: true, skipped: false, summary: 'clean', durationSeconds: 4.2 },
   ],
   checklist: [{ id: 'editor_element.components', text: 'Registered in components.ts', done: true }],
   summary: 'frontend: 1 file',
@@ -181,6 +182,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  resetGitHubAuthForTests();
 });
 
 describe('a lab run', () => {
@@ -206,7 +208,8 @@ describe('a lab run', () => {
     expect(finished?.status).toBe('done');
     expect(finished?.liveKey).toBeUndefined();
     expect(finished?.lab?.repoChanges[0].files[0].path).toBe('packages/editor/src/main/packages/components.ts');
-    await waitFor(() => expect(labFeature.handleLabDone).toHaveBeenCalledWith(LAB_DONE));
+    // No change model went with the request (or it is not known after a reload).
+    await waitFor(() => expect(labFeature.handleLabDone).toHaveBeenCalledWith(LAB_DONE, undefined));
 
     // Only the card: no intro line and no "Generated N files" message.
     expect(conversationStore.getMessages()).toHaveLength(1);
@@ -347,14 +350,17 @@ describe('a lab run', () => {
   it('follows the run after a reload: a BESSER Lab card that gets the done payload', async () => {
     writeActiveSpecDrivenRun({ runId: RUN, projectId: 'proj-lab', lastSequence: 4, startedAt: Date.now(), kind: 'lab' });
     vi.mocked(sseClient.followSpecDrivenRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
+    // The tab's sign-in: the lab's run routes need its session (E2E C-D6).
+    signInToGitHubForTests(SESSION);
     const onRunFinished = vi.fn();
     mount(onRunFinished);
 
     await waitFor(() => expect(card()?.status).toBe('done'));
-    expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0);
+    expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, SESSION);
     expect(card()?.isLabRun).toBe(true);
     expect(card()?.lab?.changeId).toBe('0123456789ab');
-    await waitFor(() => expect(labFeature.handleLabDone).toHaveBeenCalledWith(LAB_DONE));
+    // No change model went with the request (or it is not known after a reload).
+    await waitFor(() => expect(labFeature.handleLabDone).toHaveBeenCalledWith(LAB_DONE, undefined));
     expect(onRunFinished).not.toHaveBeenCalled();
     expect(readActiveSpecDrivenRun()).toBeNull();
     expect(store.getState().specDriven.runStatus).toBe('idle');
@@ -375,7 +381,8 @@ describe('a lab run', () => {
       await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
     });
     expect(getLabState).toHaveBeenCalledWith(SESSION);
-    expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0);
+    // The lab's run routes need the lab user's session (E2E C-D6).
+    expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, SESSION);
     expect(contents().join('\n')).toMatch(/busy with another run or change action/);
     const cards = conversationStore.getMessages().filter((m) => m.specDriven).map((m) => m.specDriven!);
     expect(cards.map((c) => c.status)).toEqual(['error', 'done']);
@@ -453,7 +460,8 @@ describe('a lab run', () => {
       api.current!.abortActive();
       await running;
     });
-    expect(cancelSpecDrivenRun).toHaveBeenCalledWith(RUN, {});
+    // With the lab user's session: the lab's cancel route refuses a request without one (E2E C-D6).
+    expect(cancelSpecDrivenRun).toHaveBeenCalledWith(RUN, { githubSession: SESSION });
     expect(onRunFinished).not.toHaveBeenCalled();
     expect(card()?.liveKey).toBeUndefined();
     expect(store.getState().specDriven.runStatus).toBe('idle');
@@ -475,6 +483,122 @@ describe('a lab run', () => {
       ),
     );
     expect(card()?.status).toBe('done');
+  });
+
+  // E2E A-2: a reload during a build left "Error / network error" and "BESSER Lab stream error: network error"
+  // in the saved conversation, beside the card of the run the reloaded page followed to its end.
+  describe('when the page unloads during the run', () => {
+    /** A run that streams `start`, then fails the way the browser cuts a page's requests once it unloads. */
+    const cutOnUnload = (error: Error = new TypeError('network error')) => {
+      const controller = new AbortController();
+      return {
+        controller,
+        abort: () => controller.abort(),
+        events: (async function* () {
+          yield { ...start, sequence: 1 } as SpecDrivenEvent;
+          await new Promise<void>((resolve) => window.addEventListener('beforeunload', () => resolve(), { once: true }));
+          throw error;
+        })(),
+      };
+    };
+
+    afterEach(() => {
+      window.dispatchEvent(new Event('pageshow'));
+    });
+
+    const expectLeftForTheReload = () => {
+      expect(contents().join('\n')).not.toMatch(/stream error|network error/);
+      expect(reportError).not.toHaveBeenCalled();
+      // The card is not finalized as failed: a live card is not saved, so the reloaded page shows only the followed run.
+      expect(card()?.status).toBe('running');
+      expect(readActiveSpecDrivenRun('proj-lab')).toMatchObject({ runId: RUN, kind: 'lab' });
+      expect(store.getState().specDriven.runStatus).toBe('idle');
+    };
+
+    it('records no error for a run this tab started', async () => {
+      vi.mocked(startLabRun).mockReturnValue(cutOnUnload());
+      const api = mount();
+      let running: Promise<void> = Promise.resolve();
+      await act(async () => {
+        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+      });
+      await act(async () => {
+        window.dispatchEvent(new Event('beforeunload'));
+        await running;
+      });
+      expectLeftForTheReload();
+    });
+
+    it('does not call a request the browser aborts on unload a stop by the user', async () => {
+      vi.mocked(startLabRun).mockReturnValue(cutOnUnload(new DOMException('The operation was aborted.', 'AbortError')));
+      const api = mount();
+      let running: Promise<void> = Promise.resolve();
+      await act(async () => {
+        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+      });
+      await act(async () => {
+        window.dispatchEvent(new Event('beforeunload'));
+        await running;
+      });
+      expect(contents().join('\n')).not.toMatch(/stopped by user/);
+      expectLeftForTheReload();
+    });
+
+    it('records no error for a run followed after an earlier reload', async () => {
+      writeActiveSpecDrivenRun({ runId: RUN, projectId: 'proj-lab', lastSequence: 1, startedAt: Date.now(), kind: 'lab' });
+      vi.mocked(sseClient.followSpecDrivenRun).mockReturnValue(cutOnUnload());
+      mount();
+      await waitFor(() => expect(store.getState().specDriven.runStatus).toBe('running'));
+      await act(async () => {
+        window.dispatchEvent(new Event('beforeunload'));
+      });
+      await waitFor(() => expect(store.getState().specDriven.runStatus).toBe('idle'));
+      expectLeftForTheReload();
+    });
+
+    it('still reports a network error when the page is not unloading', async () => {
+      window.dispatchEvent(new Event('pageshow'));
+      vi.mocked(startLabRun).mockReturnValue({
+        controller: new AbortController(),
+        abort: () => undefined,
+        events: (async function* () {
+          yield { ...start, sequence: 1 } as SpecDrivenEvent;
+          throw new TypeError('network error');
+        })(),
+      });
+      const api = mount();
+      await act(async () => {
+        await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+      });
+      expect(contents()).toContain('BESSER Lab stream error: network error');
+      expect(card()?.status).toBe('error');
+    });
+  });
+
+  it("hands the lab feature the change's model the request carried, so an edit made during the run is not lost", async () => {
+    const project = {
+      ...PROJECT,
+      diagrams: {
+        ...PROJECT.diagrams,
+        ClassDiagram: [{ ...PROJECT.diagrams.ClassDiagram[0], config: { labProposalChangeId: 'c1' } }],
+      },
+    };
+    vi.mocked(startLabRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
+    const api: { current: UseSpecDrivenTriggerReturn | null } = { current: null };
+    render(
+      <Provider store={store}>
+        <Surface apiRef={api} project={project} />
+      </Provider>,
+    );
+    await act(async () => {
+      await api.current!.handleLabMessage({ message: 'Rename Note', githubSession: SESSION, action: 'plan', changeId: 'c1' });
+    });
+    // A plan step carries the change's diagram as well, not only a build.
+    const params = vi.mocked(startLabRun).mock.calls[0][0];
+    expect(params.action).toBe('plan');
+    const sentModel = (params.project as { diagrams: { ClassDiagram: Array<{ model: unknown }> } }).diagrams.ClassDiagram[0].model;
+    expect(sentModel).toEqual(PROJECT.diagrams.ClassDiagram[0].model);
+    await waitFor(() => expect(labFeature.handleLabDone).toHaveBeenCalledWith(LAB_DONE, sentModel));
   });
 
   it('ends the card with an error when the stream cannot be opened, and frees the slot', async () => {

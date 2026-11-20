@@ -3,6 +3,7 @@ import type { TFunction } from "i18next"
 import {
   CheckCircle2,
   GitBranch,
+  Github,
   GitPullRequest,
   Hammer,
   HelpCircle,
@@ -16,9 +17,13 @@ import { Link, useInRouterContext, useLocation } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { useAppSelector } from "@/main/app/store/hooks"
 import { selectHasLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import type { SpecDrivenLabView } from "@/main/features/spec-driven/types"
+import { ApiError } from "@/main/shared/api/api-client"
+import { signInWithGitHub } from "@/main/shared/services/github/githubAuth"
+import { describeNetworkError } from "@/main/shared/utils/describeNetworkError"
 
 /** The lab page (`app/application.tsx` route), where changes are parked, resumed and dropped. */
 const LAB_PATH = "/lab"
@@ -50,22 +55,51 @@ const STOP_REASONS: Record<string, string> = {
   cancelled: "It was stopped. What it did so far is in the working copy.",
 }
 
-/** A card handler that acts on the card's change: the server only acts on the active one. */
+/**
+ * A card handler that acts on the card's change: the server only acts on the active one. An "Open pull
+ * request" handler rejects with the failure for the card to show it.
+ */
 export type LabChangeAction = (changeId: string) => void | Promise<void>
 
 const isStopped = (lab: SpecDrivenLabView): boolean => lab.stopReason !== "" && lab.stopReason !== "completed"
 
 /** A plan step that ended without a plan and without a stop: the model asked the user something. */
 const isQuestion = (lab: SpecDrivenLabView): boolean => lab.step === "plan" && !lab.plan && !isStopped(lab)
+/** A plan that touches no repository: the request needs no change, so none was started and there is nothing to build. */
+const changesNothing = (lab: SpecDrivenLabView): boolean =>
+  lab.step === "plan" && lab.plan !== null && lab.plan.repos.length === 0 && !isStopped(lab)
 
 const fileCount = (lab: SpecDrivenLabView): number =>
   lab.repoChanges.reduce((sum, repo) => sum + repo.files.length, 0)
+
+/** The change's lab branch, when its repositories share one (the lab names them alike); else "". */
+export function labChangeBranch(repoChanges: { branch: string }[]): string {
+  const branches = new Set(repoChanges.map((change) => change.branch).filter(Boolean))
+  return branches.size === 1 ? [...branches][0] : ""
+}
+
+/** A check's run time in seconds, when the API sends one (`durationSeconds`, absent from older backends). */
+function checkSeconds(check: object): number | null {
+  const value = (check as { durationSeconds?: unknown }).durationSeconds
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+/** "0.2s", "53s", "1m 50s": short checks keep a decimal. */
+function formatCheckDuration(seconds: number): string {
+  if (seconds < 10) return `${seconds.toFixed(1)}s`
+  const whole = Math.round(seconds)
+  const minutes = Math.floor(whole / 60)
+  const rest = whole % 60
+  if (minutes === 0) return `${whole}s`
+  return rest === 0 ? `${minutes}m` : `${minutes}m ${rest}s`
+}
 
 /** The finished card's title for a lab run: what the step delivered, worst state first. */
 export function labRunTitle(t: TFunction, lab: SpecDrivenLabView): string {
   const stopped = isStopped(lab)
   if (lab.step === "plan") {
     if (isQuestion(lab)) return t("lab.runCard.titleQuestion", { defaultValue: "The lab agent has a question" })
+    if (changesNothing(lab)) return t("lab.runCard.titleNoChangeNeeded", { defaultValue: "No change needed" })
     return stopped || !lab.plan
       ? t("lab.runCard.titlePlanStopped", { defaultValue: "Planning stopped early" })
       : t("lab.runCard.titlePlan", { defaultValue: "Plan ready" })
@@ -120,13 +154,23 @@ function BuildPlanButton({ changeId, onBuildPlan }: { changeId: string; onBuildP
  */
 function ChangeRow({ lab, showLink }: { lab: SpecDrivenLabView; showLink: boolean }) {
   const { t } = useTranslation()
-  if (!lab.title && !showLink) return null
+  const branch = labChangeBranch(lab.repoChanges)
+  if (!lab.title && !branch && !showLink) return null
   return (
     <p className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-1.5 text-xs text-foreground">
       {lab.title ? <span className="font-medium">{lab.title}</span> : null}
       {lab.title && lab.kind ? (
         <span className="rounded border border-border/60 px-1.5 text-[11px] text-muted-foreground">
           {t(`lab.kinds.${lab.kind}`, { defaultValue: lab.kind.replace("_", " ") })}
+        </span>
+      ) : null}
+      {branch ? (
+        <span
+          className="inline-flex min-w-0 items-center gap-1 font-mono text-[11px] text-muted-foreground"
+          title={t("lab.runCard.onBranch", { defaultValue: "On branch {{branch}}", branch })}
+        >
+          <GitBranch className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">{branch}</span>
         </span>
       ) : null}
       {showLink ? (
@@ -154,14 +198,18 @@ function PlanView({ lab, onBuildPlan }: { lab: SpecDrivenLabView; onBuildPlan?: 
   return (
     <section aria-label={title} className={SECTION}>
       {plan?.summary || lab.summary ? (
-        <p className="whitespace-pre-line text-xs text-foreground">{plan?.summary || lab.summary}</p>
+        <div className="text-xs text-foreground">
+          <MarkdownRenderer>{plan?.summary || lab.summary}</MarkdownRenderer>
+        </div>
       ) : null}
       {plan && plan.steps.length > 0 ? (
         <div>
           <p className="font-medium text-foreground">{t("lab.runCard.steps", { defaultValue: "Steps" })}</p>
           <ol className="mt-0.5 list-decimal space-y-0.5 pl-4 text-muted-foreground">
             {plan.steps.map((step, i) => (
-              <li key={i}>{step}</li>
+              <li key={i}>
+                <MarkdownRenderer>{step}</MarkdownRenderer>
+              </li>
             ))}
           </ol>
         </div>
@@ -171,12 +219,23 @@ function PlanView({ lab, onBuildPlan }: { lab: SpecDrivenLabView; onBuildPlan?: 
           <p className="font-medium">{t("lab.runCard.questions", { defaultValue: "Open questions" })}</p>
           <ul className="mt-0.5 list-disc space-y-0.5 pl-4">
             {plan.questions.map((question, i) => (
-              <li key={i}>{question}</li>
+              <li key={i}>
+                <MarkdownRenderer>{question}</MarkdownRenderer>
+              </li>
             ))}
           </ul>
         </div>
       ) : null}
-      {plan ? (
+      {changesNothing(lab) ? (
+        // With a change open (`changeId`), the answer went into its notes and the change is as it was.
+        lab.changeId ? null : (
+          <p className="text-muted-foreground">
+            {t("lab.runCard.noChangeHint", {
+              defaultValue: "No change was started and no branch was created. Reply if something still needs to change.",
+            })}
+          </p>
+        )
+      ) : plan ? (
         <p className="text-muted-foreground">
           {t("lab.runCard.replyHint", {
             defaultValue: "Reply with what to change and the lab agent revises the plan, or build it as it is.",
@@ -187,7 +246,7 @@ function PlanView({ lab, onBuildPlan }: { lab: SpecDrivenLabView; onBuildPlan?: 
           {t("lab.runCard.answerHint", { defaultValue: "Reply to answer it; the lab agent then plans the change." })}
         </p>
       ) : null}
-      {plan && onBuildPlan ? <BuildPlanButton changeId={lab.changeId} onBuildPlan={onBuildPlan} /> : null}
+      {plan && onBuildPlan && !changesNothing(lab) ? <BuildPlanButton changeId={lab.changeId} onBuildPlan={onBuildPlan} /> : null}
     </section>
   )
 }
@@ -252,12 +311,22 @@ function CheckRow({ check }: { check: SpecDrivenLabView["checks"][number] }) {
     : check.passed
       ? t("lab.runCard.checkPassed", { defaultValue: "Passed" })
       : t("lab.runCard.checkFailed", { defaultValue: "Failed" })
+  const seconds = check.skipped ? null : checkSeconds(check)
   return (
     <li className="flex gap-2">
       <Icon className={cn("mt-px h-3.5 w-3.5 shrink-0", tone)} aria-label={verdict} role="img" />
       <div className="min-w-0">
         <span className="text-foreground">{check.title}</span>
         {check.repo ? <span className="text-muted-foreground"> · {repoName(t, check.repo)}</span> : null}
+        {seconds !== null ? (
+          <span
+            className="font-mono tabular-nums text-muted-foreground"
+            title={t("lab.runCard.checkDuration", { defaultValue: "Took {{seconds}} s", seconds: seconds.toFixed(1) })}
+          >
+            {" "}
+            · {formatCheckDuration(seconds)}
+          </span>
+        ) : null}
         {check.summary ? (
           <p className={cn("whitespace-pre-line break-words", check.passed || check.skipped ? "text-muted-foreground" : tone)}>
             {check.summary}
@@ -285,10 +354,47 @@ function ChecklistRow({ item }: { item: SpecDrivenLabView["checklist"][number] }
   )
 }
 
+/**
+ * Why "Open pull request" failed, in the server's own sentence, kept until the next attempt. A 401 means the
+ * GitHub session or its token was refused, so it offers "Sign in again".
+ */
+export function LabPullRequestFailure({ error, className }: { error: unknown; className?: string }) {
+  const { t } = useTranslation()
+  const signInAgain = error instanceof ApiError && error.status === 401
+  return (
+    <div role="alert" className={cn("space-y-1.5 text-red-700 dark:text-red-400", className)}>
+      <p className="break-words">
+        <span className="font-medium">
+          {t("lab.pullRequest.failed", { defaultValue: "The pull request was not opened." })}
+        </span>{" "}
+        {describeNetworkError(error)}
+      </p>
+      {signInAgain ? (
+        <Button type="button" size="xs" variant="outline" onClick={() => signInWithGitHub("lab_pull_request")}>
+          <Github />
+          {t("lab.pullRequest.signInAgain", { defaultValue: "Sign in again" })}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
 function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenPullRequest?: LabChangeAction }) {
   const { t } = useTranslation()
+  // A failure stays on the card until the next attempt; a surface that rejects puts it here.
+  const [failure, setFailure] = useState<{ error: unknown } | null>(null)
   // Pending until the handler settles, so a second click cannot push and open the pull requests twice.
-  const [opening, openPullRequest] = usePending(onOpenPullRequest && (() => onOpenPullRequest(lab.changeId)))
+  const [opening, openPullRequest] = usePending(
+    onOpenPullRequest &&
+      (async () => {
+        setFailure(null)
+        try {
+          await onOpenPullRequest(lab.changeId)
+        } catch (error) {
+          setFailure({ error })
+        }
+      }),
+  )
   const filesTitle = t("lab.runCard.filesRegion", { defaultValue: "Changed files" })
   const checksTitle = t("lab.runCard.checksRegion", { defaultValue: "Checks" })
   const checklistTitle = t("lab.runCard.checklistRegion", { defaultValue: "Checklist" })
@@ -300,7 +406,9 @@ function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenP
       {lab.finalText?.trim() ? (
         <section aria-label={accountTitle} className={SECTION}>
           <p className="font-medium text-foreground">{accountTitle}</p>
-          <p className="whitespace-pre-line break-words text-xs text-foreground">{lab.finalText.trim()}</p>
+          <div className="break-words text-xs text-foreground">
+            <MarkdownRenderer>{lab.finalText.trim()}</MarkdownRenderer>
+          </div>
         </section>
       ) : null}
       <section aria-label={filesTitle} className={SECTION}>
@@ -334,11 +442,14 @@ function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenP
         </section>
       ) : null}
       {onOpenPullRequest && changed.length > 0 ? (
-        <div className="flex justify-end border-t border-border/60 px-3 py-2">
-          <Button type="button" size="xs" onClick={() => void openPullRequest()} disabled={opening}>
-            {opening ? <Loader2 className="animate-spin" /> : <GitPullRequest />}
-            {t("lab.runCard.openPullRequest", { defaultValue: "Open pull request" })}
-          </Button>
+        <div className="space-y-2 border-t border-border/60 px-3 py-2 text-[11px]">
+          {failure ? <LabPullRequestFailure error={failure.error} /> : null}
+          <div className="flex justify-end">
+            <Button type="button" size="xs" onClick={() => void openPullRequest()} disabled={opening}>
+              {opening ? <Loader2 className="animate-spin" /> : <GitPullRequest />}
+              {t("lab.runCard.openPullRequest", { defaultValue: "Open pull request" })}
+            </Button>
+          </div>
         </div>
       ) : null}
     </>

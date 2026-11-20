@@ -27,10 +27,19 @@ const lab = vi.hoisted(() => ({
   session: 'gh-session-0123456789' as string | null,
   sendMessageCalls: 0,
   sendVoiceCalls: 0,
+  connectCalls: 0,
+  /** False: the server config could not be loaded (`serverEnabled` is then the fallback's false). */
+  configKnown: true,
+  /** Whether the modeling agent's socket is open. */
+  agentConnected: true,
 }));
 
 vi.mock('../../../../shared/hooks/useLabMode', () => ({ useLabMode: () => lab.enabled }));
-vi.mock('../../../../shared/services/labConfig', () => ({ getLabEnabled: async () => lab.serverEnabled }));
+vi.mock('../../../../shared/services/labConfig', () => ({
+  getLabEnabled: async () => lab.configKnown && lab.serverEnabled,
+  isLabConfigKnown: () => lab.configKnown,
+  resolveLabEnabled: async () => (lab.configKnown ? lab.serverEnabled : null),
+}));
 
 vi.mock('../../../../shared/services/github/githubAuth', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../shared/services/github/githubAuth')>()),
@@ -62,6 +71,7 @@ vi.mock('../../services', async (importOriginal) => {
     }
     clearHandlers() {}
     connect() {
+      lab.connectCalls += 1;
       return Promise.resolve();
     }
     disconnect() {}
@@ -82,10 +92,10 @@ vi.mock('../../services', async (importOriginal) => {
       return 'sent';
     }
     get connected() {
-      return true;
+      return lab.agentConnected;
     }
     get connectionState() {
-      return 'connected';
+      return lab.agentConnected ? 'connected' : 'disconnected';
     }
   }
   const sharedFake = new FakeAssistantClient();
@@ -146,6 +156,9 @@ beforeEach(() => {
   lab.session = 'gh-session-0123456789';
   lab.sendMessageCalls = 0;
   lab.sendVoiceCalls = 0;
+  lab.connectCalls = 0;
+  lab.configKnown = true;
+  lab.agentConnected = true;
   conversationStore.clear();
   vi.mocked(startLabRun).mockImplementation(emptyRun);
 });
@@ -219,6 +232,55 @@ describe('a lab instance whose config had not answered when the chat mounted', (
     await submit(api, 'Add a note element');
     expect(lab.sendMessageCalls).toBe(0);
     expect(startLabRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+// E2E A-3: the lab backend was down; the config load failed, read as "not a lab", and the message went down the
+// modeling agent's path with no answer.
+describe('when the server config cannot be loaded', () => {
+  it('sends nothing, says the server cannot be reached and keeps the text in the composer', async () => {
+    lab.enabled = false;
+    lab.configKnown = false;
+    lab.agentConnected = false;
+    const api = renderHarness();
+    act(() => api.current!.setInputValue('Also give each Term a language code'));
+    await act(async () => {
+      await api.current!.handleSubmit(undefined);
+    });
+    expect(startLabRun).not.toHaveBeenCalled();
+    expect(lab.sendMessageCalls).toBe(0);
+    expect(reportError).toHaveBeenCalledWith(
+      'The BESSER server cannot be reached, so your message was not sent. Try again in a moment.',
+    );
+    expect(api.current!.inputValue).toBe('Also give each Term a language code');
+    expect(contents()).toEqual([]);
+    expect(api.current!.connectionStatus).toBe('disconnected');
+  });
+
+  it('still goes to the modeling agent when its socket is open (not a lab, the backend is down)', async () => {
+    lab.enabled = false;
+    lab.configKnown = false;
+    const api = renderHarness();
+    await submit(api, 'Create a library model');
+    expect(lab.sendMessageCalls).toBe(1);
+    expect(startLabRun).not.toHaveBeenCalled();
+  });
+});
+
+// E2E A (modeling agent websocket): on a lab every page opened the socket, toasted "Could not reach the AI assistant"
+// and showed "Disconnected"; the drawer's pending prompt waited for that socket forever.
+describe("the modeling agent's socket", () => {
+  it('is not opened on a lab, and the chat shows the lab backend as connected', async () => {
+    const api = renderHarness();
+    await waitFor(() => expect(api.current!.connectionStatus).toBe('connected'));
+    expect(lab.connectCalls).toBe(0);
+  });
+
+  it('is opened on any other instance', async () => {
+    lab.enabled = false;
+    lab.serverEnabled = false;
+    renderHarness();
+    await waitFor(() => expect(lab.connectCalls).toBe(1));
   });
 });
 
@@ -323,18 +385,14 @@ describe('Open pull request', () => {
     ]);
   });
 
-  it('reports a refusal through reportError with the server detail', async () => {
+  it('rejects with the refusal, for the card to show it in place rather than as a toast (E2E A-6)', async () => {
     const refusal = new ApiError(409, 'The change touches .github/workflows/ci.yml, which the sign-in token cannot push.');
     vi.mocked(openLabPullRequests).mockRejectedValue(refusal);
     const api = renderHarness();
     await act(async () => {
-      await api.current!.openPullRequest('c1');
+      await expect(api.current!.openPullRequest('c1')).rejects.toBe(refusal);
     });
-    await waitFor(() => expect(reportError).toHaveBeenCalledTimes(1));
-    const [message, options] = vi.mocked(reportError).mock.calls[0];
-    expect(message).toMatch(/^The pull requests could not be opened: /);
-    expect(message).toContain('.github/workflows/ci.yml');
-    expect(options).toEqual({ error: refusal });
+    expect(reportError).not.toHaveBeenCalled();
     expect(contents()).toEqual([]);
   });
 

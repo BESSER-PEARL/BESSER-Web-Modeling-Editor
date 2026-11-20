@@ -1281,6 +1281,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               userModelValidationStatusById={userModelValidationStatusById}
             />
           )}
+          {/* Above the canvas, not over it: the proposed classes it asks about stay visible. */}
+          {location.pathname === '/' && <LabModelProposalBanner className="mx-3 mt-2 max-w-none shadow-none" />}
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {children}
             {location.pathname === '/' && <ModelAttributionLayer />}
@@ -1289,7 +1291,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
             <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
               <ModelProposalBanner />
-              {location.pathname === '/' && <LabModelProposalBanner />}
               {location.pathname === '/' && <ModelAttributionBanner />}
             </div>
           </div>

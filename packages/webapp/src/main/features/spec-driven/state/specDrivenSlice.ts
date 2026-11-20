@@ -260,6 +260,9 @@ export function extractLabRun(raw: unknown): SpecDrivenLabView | undefined {
         passed: c.passed === true,
         skipped: c.skipped === true,
         summary: labText(c.summary),
+        ...(typeof c.durationSeconds === 'number' && Number.isFinite(c.durationSeconds) && c.durationSeconds >= 0
+          ? { durationSeconds: c.durationSeconds }
+          : {}),
       })),
     checklist: labRecords(r.checklist)
       .filter((c) => typeof c.text === 'string' && c.text)
