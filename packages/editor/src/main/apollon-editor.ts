@@ -24,6 +24,7 @@ import { replaceColorVariables } from './utils/replace-color-variables';
 import { backwardsCompatibleModel, UMLModelCompat } from './compat';
 import { normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
 import { LineageProvider, lineageContext } from './components/lineage/LineageContext';
+import { TraceabilityProvider, traceabilityContext } from './components/traceability/TraceabilityContext';
 import { ElementPickerProvider, elementPickerContext } from './components/element-picker/ElementPickerContext';
 import { AgentDiagramLinker, agentDiagramLinkerContext } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
 import { HostProviderSlot } from './components/host-provider/host-provider';
@@ -153,6 +154,7 @@ export class ApollonEditor {
   // rebuilds and forwards setter calls to the mounted React provider root.
   private readonly lineageSlot = new HostProviderSlot<LineageProvider>(lineageContext);
   private readonly elementPickerSlot = new HostProviderSlot<ElementPickerProvider>(elementPickerContext);
+  private readonly traceabilitySlot = new HostProviderSlot<TraceabilityProvider>(traceabilityContext);
   private readonly agentDiagramLinkerSlot = new HostProviderSlot<AgentDiagramLinker>(agentDiagramLinkerContext);
 
   constructor(
@@ -297,6 +299,15 @@ export class ApollonEditor {
   }
 
   /**
+   * Register a traceability provider so element popups can render a
+   * "Show traceability" link for elements the host's trace knows.
+   * Pass `null` to clear. Safe to call before or after mount.
+   */
+  setTraceabilityProvider(provider: TraceabilityProvider | null): void {
+    this.traceabilitySlot.set(provider);
+  }
+
+  /**
    * Register an element-picker provider so cross-diagram pickers
    * (`realizes`, `manifests`) can list elements from other diagrams.
    * Pass `null` to clear. Safe before or after mount.
@@ -317,7 +328,9 @@ export class ApollonEditor {
 
   /** Wraps the application element in the host-provider roots read by the popups. */
   private wrapWithHostProviders(app: ReactElement): ReactElement {
-    return this.elementPickerSlot.wrap(this.lineageSlot.wrap(this.agentDiagramLinkerSlot.wrap(app)));
+    return this.traceabilitySlot.wrap(
+      this.elementPickerSlot.wrap(this.lineageSlot.wrap(this.agentDiagramLinkerSlot.wrap(app))),
+    );
   }
 
   /**

@@ -1,0 +1,256 @@
+/**
+ * The conversation with the assistant is recorded in the project trace: each request, the agent's
+ * progress and its answer or error, once each even with the widget and the drawer both mounted.
+ * What the client writes itself (the "still working" notice, a fallback injection text) is not the
+ * agent's and is not recorded.
+ */
+
+import React from 'react';
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { AssistantActionPayload, ChatMessage, InjectionCommand, SendStatus } from '../../services/assistant-types';
+import { workspaceReducer } from '../../../../app/store/workspaceSlice';
+import { errorReducer } from '../../../../app/store/errorManagementSlice';
+import { specDrivenReducer } from '../../../../features/spec-driven';
+import { ApollonEditorProvider } from '../../../editors';
+
+const _client = vi.hoisted(() => ({
+  messageHandlers: [] as Array<(m: ChatMessage) => void>,
+  injectionHandlers: [] as Array<(c: InjectionCommand) => void>,
+  actionHandlers: [] as Array<(p: AssistantActionPayload) => void>,
+}));
+
+vi.mock('../../services', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services')>();
+  const noopUnsub = () => {};
+  class FakeAssistantClient {
+    onMessage(handler: (m: ChatMessage) => void) {
+      _client.messageHandlers.push(handler);
+      return () => {
+        _client.messageHandlers = _client.messageHandlers.filter((h) => h !== handler);
+      };
+    }
+    onInjection(handler: (c: InjectionCommand) => void) {
+      _client.injectionHandlers.push(handler);
+      return noopUnsub;
+    }
+    onAction(handler: (p: AssistantActionPayload) => void) {
+      _client.actionHandlers.push(handler);
+      return () => {
+        _client.actionHandlers = _client.actionHandlers.filter((h) => h !== handler);
+      };
+    }
+    onConnection() {
+      return noopUnsub;
+    }
+    onTyping() {
+      return noopUnsub;
+    }
+    clearHandlers() {}
+    connect() {
+      return Promise.resolve();
+    }
+    disconnect() {}
+    resetSession() {}
+    setContextProvider() {}
+    setHistoryProvider() {}
+    get turnId() {
+      return null;
+    }
+    sendMessage(): SendStatus {
+      return 'sent';
+    }
+    sendVoiceMessage(): SendStatus {
+      return 'sent';
+    }
+    sendFrontendEvent(): SendStatus {
+      return 'sent';
+    }
+    get connected() {
+      return true;
+    }
+    get connectionState() {
+      return 'connected';
+    }
+  }
+  const sharedFake = new FakeAssistantClient();
+  return { ...actual, AssistantClient: FakeAssistantClient, getSharedAssistantClient: () => sharedFake };
+});
+
+vi.mock('../useModelInjection', () => ({
+  useModelInjection: () => ({
+    handleInjection: async () => {},
+    ensureTargetDiagramReady: async () => true,
+    handleUndo: () => {},
+    undoAvailable: false,
+    refreshUndoState: () => {},
+  }),
+}));
+
+const trace = vi.hoisted(() => ({
+  recordAssistantRequest: vi.fn(async (_project: unknown, _text: string) => {}),
+  recordAssistantReply: vi.fn((_project: unknown, _kind: string, _text: string, _usage?: unknown) => {}),
+  endAssistantConversation: vi.fn((_project: unknown) => {}),
+}));
+vi.mock('../../../../shared/traceability/traceStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/traceability/traceStore')>()),
+  ...trace,
+}));
+
+vi.mock('react-toastify', () => ({
+  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+vi.mock('../../../../shared/services/analytics/events', () => ({
+  track: vi.fn(),
+  errorProperties: () => ({ error_type: 'Error', network_error: false }),
+}));
+
+import { useAssistantLogic } from '../useAssistantLogic';
+import { INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE } from '../../services';
+import { conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
+
+interface SurfaceAPI {
+  submit: (text: string) => Promise<void>;
+  clear: () => void;
+}
+
+function Surface({ apiRef }: { apiRef: { current: SurfaceAPI | null } }) {
+  const hook = useAssistantLogic({ isActive: true, switchDiagram: async () => true, surface: 'workspace' });
+  apiRef.current = { submit: (text) => hook.handleSubmit(undefined, { overrideText: text }), clear: hook.clearConversation };
+  return null;
+}
+
+/** The widget and the drawer, sharing one client. */
+function renderTwoSurfaces() {
+  const drawer: { current: SurfaceAPI | null } = { current: null };
+  const store = configureStore({ reducer: { workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer } });
+  render(
+    <Provider store={store}>
+      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+        <Surface apiRef={drawer} />
+        <Surface apiRef={{ current: null }} />
+      </ApollonEditorProvider>
+    </Provider>,
+  );
+  return drawer;
+}
+
+const emitMessage = (message: Partial<ChatMessage>) =>
+  act(() => {
+    const msg = { id: `m_${Math.random()}`, action: 'assistant_message', timestamp: new Date(), isUser: false, ...message } as ChatMessage;
+    _client.messageHandlers.forEach((h) => h(msg));
+  });
+const emitAction = (payload: AssistantActionPayload) =>
+  act(async () => {
+    _client.actionHandlers.forEach((h) => h(payload));
+  });
+const emitInjection = (message: string) =>
+  act(async () => {
+    _client.injectionHandlers.forEach((h) => h({ action: 'modify_model', message } as InjectionCommand));
+  });
+const replies = () => trace.recordAssistantReply.mock.calls.map(([, kind, text]) => [kind, text]);
+
+beforeEach(() => {
+  // The handler lists are not reset: the shared dispatchers are wired once per module, and each
+  // surface's own handlers unsubscribe when it unmounts.
+  conversationStore.clear();
+  voicePlaceholderIdRef.current = null;
+});
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+describe('useAssistantLogic records the conversation in the trace', () => {
+  it('records the request, the progress and the answer once each', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+    expect(trace.recordAssistantRequest.mock.calls.map(([, text]) => text)).toEqual(['create a library']);
+
+    await emitAction({ action: 'progress', message: 'Designing the classes', step: 1, total: 2 });
+    await emitInjection('Added Library and Book.');
+    await emitInjection(INJECTION_FALLBACK_MESSAGE); // the client's words, not the agent's
+    // The agent's reply arrives as an action and, for display, as a message: recorded once.
+    await emitAction({ action: 'assistant_message', message: 'Your library is ready.' });
+    emitMessage({ message: 'Your library is ready.' });
+    emitMessage({ message: 'Still working on this — generating a full system can take a couple of minutes.' });
+    await emitAction({ action: 'stream_done', streamId: 's1', fullText: 'Anything else?' });
+
+    await waitFor(() =>
+      expect(replies()).toEqual([
+        ['progress', '[1/2] Designing the classes'],
+        ['answer', 'Added Library and Book.'],
+        ['answer', 'Your library is ready.'],
+        ['answer', 'Anything else?'],
+      ]),
+    );
+  });
+
+  it('records an error, a transcribed voice request, and the end of the conversation', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+
+    emitMessage({ action: 'user_message', message: 'add a Book class', isUser: true });
+    // A reply the client could not read: its own error message, which ends the turn in error.
+    emitMessage({ action: 'agent_error', message: 'Received a malformed response from the assistant. Please try again.' });
+    // The "still running" notice is not a failure: the reply can still come.
+    emitMessage({ action: 'agent_error', message: RESPONSE_STILL_RUNNING_MESSAGE });
+    act(() => drawer.current!.clear());
+
+    expect(trace.recordAssistantRequest.mock.calls.map(([, text]) => text)).toEqual(['add a Book class']);
+    expect(replies()).toEqual([['error', 'Received a malformed response from the assistant. Please try again.']]);
+    expect(trace.endAssistantConversation).toHaveBeenCalledTimes(1);
+  });
+
+  it('records the agent’s own agent_error as an error of the turn, with its model and tokens', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+
+    const llmUsage = { model: 'claude-x', provider: 'anthropic', inputTokens: 5, outputTokens: 1 };
+    await emitAction({ action: 'agent_error', message: 'The model failed: provider error', llmUsage } as AssistantActionPayload);
+    await emitAction({ action: 'agent_error', message: 'Second failure without usage' } as AssistantActionPayload);
+
+    await waitFor(() =>
+      expect(trace.recordAssistantReply.mock.calls.map(([, kind, text, usage]) => [kind, text, usage])).toEqual([
+        ['error', 'The model failed: provider error', llmUsage],
+        ['error', 'Second failure without usage', undefined],
+      ]),
+    );
+  });
+
+  it('passes the turn’s reported model and tokens (`llmUsage`) with its terminal replies, checked', async () => {
+    const drawer = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    await act(async () => {
+      await drawer.current!.submit('create a library');
+    });
+
+    const llmUsage = { model: 'claude-x', provider: 'anthropic', inputTokens: 1200, outputTokens: 300 };
+    await emitAction({ action: 'stream_done', streamId: 's1', fullText: 'Done.', llmUsage });
+    await act(async () => {
+      _client.injectionHandlers.forEach((h) =>
+        h({ action: 'modify_model', message: 'Added Book.', llmUsage: { model: '', inputTokens: -1 } } as InjectionCommand),
+      );
+    });
+    await emitAction({ action: 'trigger_export', llmUsage: { ...llmUsage, outputTokens: 350 } });
+
+    await waitFor(() =>
+      expect(trace.recordAssistantReply.mock.calls.map(([, kind, text, usage]) => [kind, text, usage])).toEqual([
+        ['answer', 'Done.', llmUsage],
+        ['answer', 'Added Book.', undefined], // a usage without a model is not one
+        ['answer', '', { ...llmUsage, outputTokens: 350 }],
+      ]),
+    );
+  });
+});

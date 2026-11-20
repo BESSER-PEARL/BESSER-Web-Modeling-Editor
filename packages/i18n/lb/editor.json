@@ -241,7 +241,8 @@
     "addTarget": "Zil derbäisetzen…",
     "lineage": "Hierkonft",
     "lineageSource": "Quell:",
-    "lineageDerivedFrom": "Ofgeleet vun"
+    "lineageDerivedFrom": "Ofgeleet vun",
+    "showTraceability": "Réckverfolgbarkeet weisen"
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -555,6 +556,7 @@
       "systemMessage": "Systemmessaggi",
       "youAreHelpfulAssistant": "Du bass en hëllefräiche Assistent.",
       "optionsOnePerLine": "Optionen (een pro Linn)",
+      "optionsLabel": "Text bei de Knäppchen (optional)",
       "audioSpeedOptional": "Audioveloschtéit (optional)",
       "default": "1,0 (Standard)",
       "latitude": "Breedtgrad",

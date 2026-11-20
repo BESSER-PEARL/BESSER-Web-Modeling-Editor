@@ -2,6 +2,7 @@ import { UMLDiagramType, type UMLModel } from '@besser/wme';
 import type { ProjectDiagram } from '../../types/project';
 import { isUMLModel } from '../../types/project';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
+import { MODEL_GENERATORS, recordDiagramUpdate } from '../../traceability/traceStore';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 
 /**
@@ -118,17 +119,19 @@ export const removeConfigurationVariantsFromProject = (
       ? LocalStorageRepository.getAgentBaseModel(agentDiagram.id)
       : null;
 
-    const success = ProjectStorageRepository.updateDiagram(
-      project.id,
-      'AgentDiagram',
-      {
-        ...agentDiagram,
-        ...(baseModel ? { model: structuredClone(baseModel) } : {}),
-        config: nextConfig,
-      },
-      index,
-    );
+    const restored = {
+      ...agentDiagram,
+      ...(baseModel ? { model: structuredClone(baseModel) } : {}),
+      config: nextConfig,
+    };
+    const success = ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', restored, index);
     if (success) didTouchDiagram = true;
+    // Restoring the base model is the personalization's doing, not an edit of the user's.
+    if (success && baseModel) {
+      recordDiagramUpdate(project, 'AgentDiagram', restored, agentDiagram.model, restored.model, {
+        generator: MODEL_GENERATORS.agentVariant,
+      });
+    }
   });
 
   return didTouchDiagram;

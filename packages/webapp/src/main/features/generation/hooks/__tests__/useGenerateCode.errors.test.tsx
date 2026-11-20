@@ -10,6 +10,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGenerateCode } from '../useGenerateCode';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { createDefaultProject } from '../../../../shared/types/project';
+import type { BesserProject } from '../../../../shared/types/project';
+
+/** These tests are about the plain endpoints: the project does not record traces (see the traceability test). */
+const untraced = (project: BesserProject): BesserProject => ({ ...project, settings: { ...project.settings, traceabilityEnabled: false } });
 import type { GenerationResult } from '../../types';
 import { ApiError } from '../../../../shared/api/api-client';
 
@@ -38,7 +42,7 @@ const errorResponse = (status: number, body: unknown) =>
 describe('useGenerateCode failures', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(createDefaultProject('P', '', ''));
+    vi.spyOn(ProjectStorageRepository, 'getCurrentProject').mockReturnValue(untraced(createDefaultProject('P', '', '')));
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });

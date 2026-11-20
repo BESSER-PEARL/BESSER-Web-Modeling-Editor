@@ -681,7 +681,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Export Project As Buml */
+        /**
+         * Export Project As Buml
+         * @description The project as a B-UML file, with its trace when that keeps it importable.
+         *
+         *     When the trace is left out (``project_code_with_trace``), the ``X-BESSER-Warning`` header says so.
+         */
         post: operations["export_project_as_buml_besser_api_export_project_as_buml_post"];
         delete?: never;
         options?: never;
@@ -1833,6 +1838,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/traceability/generate-output": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Traced Output
+         * @description Generate code from a diagram and return the file together with the trace of the run.
+         *
+         *     Same input as ``/generate-output`` plus ``actorName``, for any generator it accepts;
+         *     the diagram ``id`` is required. The file comes back base64-encoded in JSON, byte for
+         *     byte what ``/generate-output`` delivers, so the trace can travel with it.
+         */
+        post: operations["generate_traced_output_besser_api_traceability_generate_output_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/traceability/generate-output-from-project": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Traced Output From Project
+         * @description Generate code from a project and return the file together with the trace of the run.
+         *
+         *     Same input as ``/generate-output-from-project`` plus ``actorName``, for generators that
+         *     read several diagrams; every diagram the generator reads needs its ``id``. The file comes
+         *     back base64-encoded in JSON, byte for byte what ``/generate-output-from-project`` delivers.
+         */
+        post: operations["generate_traced_output_from_project_besser_api_traceability_generate_output_from_project_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -2946,6 +2999,10 @@ export interface components {
              * @default 1.0.0
              */
             version: string;
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            } | null;
             /** Warnings */
             warnings: {
                 [key: string]: unknown;
@@ -2977,6 +3034,10 @@ export interface components {
             };
             /** Settings */
             settings?: {
+                [key: string]: unknown;
+            } | null;
+            /** Trace */
+            trace?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -3191,6 +3252,30 @@ export interface components {
              */
             model_paths: string[];
         };
+        /**
+         * RequirementInput
+         * @description A requirement the modeling assistant extracted from the user's request.
+         *
+         *     ``id`` is the ``RequirementArtifact`` id in the project trace; the frontend
+         *     side of this shape is ``RequirementInput`` in the webapp's
+         *     ``features/spec-driven/services/specDrivenSseClient.ts``.
+         */
+        RequirementInput: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            kind: components["schemas"]["RequirementKind"];
+        };
+        /**
+         * RequirementKind
+         * @description What a :class:`RequirementArtifact` asks for, which decides the models that can realize it.
+         *
+         *     The values are lowercase because the same words name a requirement's kind in the modeling
+         *     agent's protocol and the Spec-Driven Agent's requirements ledger.
+         * @enum {string}
+         */
+        RequirementKind: "data" | "uniqueness" | "validation" | "rule" | "computed" | "transition" | "action" | "ui" | "integration" | "quality" | "technical";
         /**
          * SaveProjectRequest
          * @description Request to save project to GitHub.
@@ -3422,11 +3507,33 @@ export interface components {
          *         Soft cap for LLM spend in USD. Clamped to the server hard cap.
          *     max_runtime_seconds
          *         Soft cap for total wall-clock runtime. Clamped to the server hard cap.
+         *     requirements
+         *         Optional requirements the modeling assistant extracted from the
+         *         user's request. When given, the requirements ledger is built from
+         *         them instead of extracting its own, and each verdict names its
+         *         requirement's trace id. Left out, the run extracts them.
+         *     actorName
+         *         Optional name of the person starting the run (the project owner), the
+         *         Person the run's trace (``done.trace``) records besides the agent.
+         *         Left out, the trace names only the Spec-Driven Agent.
+         *     traceabilityEnabled
+         *         Whether the project records traces (opt-in, off by default). Only
+         *         then does the run build its trace, send it as ``done.trace`` and ship
+         *         it in the ZIP.
          */
         SmartGenerateRequest: {
             project: components["schemas"]["ProjectInput"];
             /** Instructions */
             instructions: string;
+            /** Requirements */
+            requirements?: components["schemas"]["RequirementInput"][] | null;
+            /** Actorname */
+            actorName?: string | null;
+            /**
+             * Traceabilityenabled
+             * @default false
+             */
+            traceabilityEnabled: boolean;
             /** Api Key */
             api_key?: string | null;
             /**
@@ -3701,6 +3808,105 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * TracedGenerationInput
+         * @description A ``/generate-output`` request whose response also carries the trace of the run.
+         *
+         *     ``id`` (the diagram id) is required by the endpoint: the trace refers to the
+         *     model by it.
+         */
+        TracedGenerationInput: {
+            /**
+             * Actorname
+             * @default anonymous
+             */
+            actorName: string;
+            /** Id */
+            id?: string | null;
+            /** Title */
+            title: string;
+            /** Model */
+            model: {
+                [key: string]: unknown;
+            };
+            /** Lastupdate */
+            lastUpdate?: string | null;
+            /** Generator */
+            generator?: string | null;
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Configyaml */
+            configYaml?: string | null;
+            /** Referencediagramdata */
+            referenceDiagramData?: {
+                [key: string]: unknown;
+            } | null;
+            /** References */
+            references?: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * TracedGenerationResponse
+         * @description The generated file, as the plain download would deliver it, plus the trace fragment of the run.
+         */
+        TracedGenerationResponse: {
+            /** Filename */
+            fileName: string;
+            /** Mediatype */
+            mediaType: string;
+            /** Contentbase64 */
+            contentBase64: string;
+            /** Trace */
+            trace: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * TracedProjectGenerationInput
+         * @description A ``/generate-output-from-project`` request whose response also carries the trace of the run.
+         *
+         *     Every diagram the generator reads needs its ``id``: the trace refers to each model by it.
+         */
+        TracedProjectGenerationInput: {
+            /**
+             * Actorname
+             * @default anonymous
+             */
+            actorName: string;
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Owner */
+            owner?: string | null;
+            /** Createdat */
+            createdAt: string;
+            /** Currentdiagramtype */
+            currentDiagramType?: string | null;
+            /** Currentdiagramindices */
+            currentDiagramIndices?: {
+                [key: string]: number;
+            } | null;
+            /** Diagrams */
+            diagrams: {
+                [key: string]: components["schemas"]["DiagramInput"][];
+            };
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
+            /** Trace */
+            trace?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -6240,6 +6446,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimulationSessionStopResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_traced_output_besser_api_traceability_generate_output_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TracedGenerationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TracedGenerationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_traced_output_from_project_besser_api_traceability_generate_output_from_project_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TracedProjectGenerationInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TracedGenerationResponse"];
                 };
             };
             /** @description Validation Error */

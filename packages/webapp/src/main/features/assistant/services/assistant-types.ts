@@ -1,3 +1,4 @@
+import type { TraceDigest } from '../../../shared/traceability/traceDigest';
 import type { GenerationKey, LastGeneration } from '../../spec-driven';
 
 export type AssistantClientMode = 'widget' | 'workspace';
@@ -36,6 +37,12 @@ export interface AssistantWorkspaceContext {
   pilotParticipant?: string;
   /** The GitHub repo the project is linked to, so the agent can tell an app is already there. */
   githubRepo?: AssistantGitHubRepo;
+  /** A bounded summary of the project's trace (`context.traceDigest`, contract section 3). Present only when
+   *  the project records traces and has recorded something. */
+  traceDigest?: TraceDigest;
+  /** The project records traces (opt-in). The agent extracts a request's requirements only then: the trace is
+   *  the one place they go. */
+  traceabilityEnabled?: boolean;
   /** What the next Spec-Driven run would use; never the key. */
   generationKey?: GenerationKey;
   /** The project's last Spec-Driven run known to this browser. */
@@ -53,7 +60,8 @@ export interface AssistantGitHubRepo {
 export interface AssistantClientOptions {
   clientMode?: AssistantClientMode;
   sessionId?: string;
-  contextProvider?: () => AssistantWorkspaceContext | undefined;
+  /** `message` is the text about to be sent (absent for a voice message, whose transcript is not known yet). */
+  contextProvider?: (message?: string) => AssistantWorkspaceContext | undefined;
 }
 
 export type AssistantActionName =
@@ -72,7 +80,8 @@ export type AssistantActionName =
   | 'progress'
   | 'stream_start'
   | 'stream_chunk'
-  | 'stream_done';
+  | 'stream_done'
+  | 'show_trace';
 
 export interface AssistantActionPayload {
   action: AssistantActionName | string;
@@ -81,7 +90,18 @@ export interface AssistantActionPayload {
   turnId?: string;
   /** Per-turn frame sequence number, set alongside turnId. */
   replySeq?: number;
+  /** On a terminal reply of a turn: the totals of the turn's LLM calls. Untrusted; read by `readLlmUsage`. */
+  llmUsage?: AssistantLlmUsage | unknown;
   [key: string]: unknown;
+}
+
+/** The LLM a turn ran and the tokens it used, as the modeling agent reports them on a terminal reply
+ *  (`llmUsage`; the cross-repo traceability contract, section 3). Recorded on the turn in the project trace. */
+export interface AssistantLlmUsage {
+  model: string;
+  provider: string;
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export interface ChatMessage {
@@ -111,8 +131,16 @@ export interface InjectionCommand {
   diagramType?: string;
   diagramId?: string;
   replaceExisting?: boolean;
+  /** `inject_complete_system` of a class diagram: the requirements the assistant extracted, what realizes
+   *  them and the LLM that extracted them. Untrusted; read by `readAssistantRequirements`
+   *  (`shared/traceability/assistantRequirements.ts`). */
+  requirements?: unknown;
+  realizations?: unknown;
+  requirementsModel?: unknown;
   /** Echo of the user_message's turnId (agents that support turn-scoped replay). */
   turnId?: string;
+  /** The turn's LLM and tokens (see {@link AssistantLlmUsage}). Untrusted. */
+  llmUsage?: unknown;
 }
 
 export type MessageHandler = (message: ChatMessage) => void;

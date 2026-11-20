@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation, Trans } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { AgentRuntimeConfig } from '../../../../shared/services/storage/local-storage-repository';
@@ -85,7 +86,12 @@ export function RuntimeSettingsSection({ agentRuntimeConfig, updateAgentRuntimeC
               />
               {agentLLMElements.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  <Trans i18nKey="agentConfig.runtime.defineLlmsHint" components={{ strong: <strong /> }} />
+                  <Trans
+                    i18nKey="agentConfig.runtime.defineLlmsHint"
+                    components={{
+                      components: <Link to="/agent-components" className="font-semibold text-brand underline-offset-2 hover:underline" />,
+                    }}
+                  />
                 </p>
               )}
             </div>

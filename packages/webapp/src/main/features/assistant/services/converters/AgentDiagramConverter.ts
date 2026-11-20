@@ -7,6 +7,10 @@
 
 import { AgentComponentType } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
+import { buildTransitionTrigger } from '../agentTransitionTrigger';
+
+/** Text shown with option buttons when the reply names none: BAF's own default (personalization translates it). */
+const DEFAULT_OPTIONS_LABEL = 'Choose an option';
 
 function estimateWidth(texts: string[], baseWidth: number): number {
   let maxW = baseWidth;
@@ -119,6 +123,7 @@ export function buildAgentStateBody(
   }
   if (actionType === 'WebSocketReplyOptionsAction') {
     el.ws_options = body.ws_options || '';
+    el.ws_options_label = body.ws_options_label ?? DEFAULT_OPTIONS_LABEL;
   }
   if (actionType === 'WebSocketReplyLocationAction') {
     el.ws_latitude = body.ws_latitude ?? 0;
@@ -359,21 +364,7 @@ export class AgentDiagramConverter implements DiagramConverter {
         };
 
         if (!isInitialTransition && transition.condition) {
-          rel.transitionType = 'predefined';
-          if (transition.condition === 'when_intent_matched') {
-            rel.predefined = {
-              predefinedType: 'when_intent_matched',
-              intentName: transition.conditionValue || '',
-            };
-          } else if (transition.condition === 'when_no_intent_matched') {
-            rel.predefined = { predefinedType: 'when_no_intent_matched' };
-          } else {
-            rel.predefined = {
-              predefinedType: transition.condition,
-              conditionValue: transition.conditionValue || '',
-            };
-          }
-          rel.custom = { condition: [] };
+          Object.assign(rel, buildTransitionTrigger(transition));
         }
 
         allRelationships[transId] = rel;

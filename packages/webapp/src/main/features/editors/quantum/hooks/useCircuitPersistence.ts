@@ -4,6 +4,7 @@ import { serializeCircuit, deserializeCircuit } from '../utils';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { track, trackFailure } from '../../../../shared/services/analytics/events';
 import { QuantumCircuitData, isQuantumCircuitData, BesserProject, getActiveDiagram } from '../../../../shared/types/project';
+import { recordDiagramUpdate } from '../../../../shared/traceability/traceStore';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -57,17 +58,21 @@ export function useCircuitPersistence(
                 version: '1.0.0'
             };
 
+            const previous = getActiveDiagram(project, 'QuantumCircuitDiagram');
+            const saved = {
+                ...(previous ?? {}),
+                model: quantumData,
+                lastUpdate: new Date().toISOString(),
+            };
             const updated = ProjectStorageRepository.updateDiagram(
                 project.id,
                 'QuantumCircuitDiagram',
-                {
-                    ...(getActiveDiagram(project, 'QuantumCircuitDiagram') ?? {}),
-                    model: quantumData,
-                    lastUpdate: new Date().toISOString(),
-                }
+                saved,
             );
 
             if (updated) {
+                // The circuit editor saves straight to storage: its edits are recorded here.
+                if (previous) recordDiagramUpdate(project, 'QuantumCircuitDiagram', { ...previous, ...saved }, previous.model, quantumData, 'user');
                 // Redux sync happens automatically via useStorageSync
                 setSaveStatus('saved');
             } else {

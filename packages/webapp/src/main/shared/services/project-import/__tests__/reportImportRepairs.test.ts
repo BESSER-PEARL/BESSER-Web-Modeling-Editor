@@ -8,6 +8,8 @@ import { reportImportRepairs } from '../reportImportRepairs';
 import { importProjectFromBUML } from '../projectImport';
 import { buildProjectExportEnvelope } from '../../../utils/projectExportUtils';
 import { createDefaultProject } from '../../../types/project';
+import { loadProjectTrace, setTraceStorage } from '../../../traceability/traceStore';
+import { memoryTraceStorage } from '../../../traceability/traceDatabase';
 
 const ownerEnd = (association: string, end: string) => ({
   code: 'buml-import-repaired',
@@ -15,6 +17,7 @@ const ownerEnd = (association: string, end: string) => ({
 });
 
 beforeEach(() => {
+  setTraceStorage(memoryTraceStorage());
   toast.warn.mockReset();
   localStorage.clear();
 });
@@ -53,6 +56,27 @@ describe('importProjectFromBUML', () => {
 
     expect(project.name).toBe('algorithme');
     expect(toast.warn).toHaveBeenCalledWith(repair.message, expect.anything());
+    vi.unstubAllGlobals();
+  });
+
+  it('imports the project without a trace and shows the backend\'s trace-not-imported warning', async () => {
+    const project = createDefaultProject('algorithme', '', 'me');
+    const envelope = buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
+    const warning = {
+      code: 'trace-not-imported',
+      message: 'The trace in this file could not be loaded and was not imported: unknown trace artifact.',
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...envelope, trace: null, warnings: [warning] }) }),
+    );
+
+    const imported = await importProjectFromBUML(new File(['x = 1'], 'algorithme.py'));
+
+    expect(imported.name).toBe('algorithme');
+    expect(toast.warn).toHaveBeenCalledTimes(1);
+    expect(toast.warn).toHaveBeenCalledWith(warning.message, expect.anything());
+    expect((await loadProjectTrace(imported.id)).artifacts).toEqual([]); // imported without a trace
     vi.unstubAllGlobals();
   });
 });

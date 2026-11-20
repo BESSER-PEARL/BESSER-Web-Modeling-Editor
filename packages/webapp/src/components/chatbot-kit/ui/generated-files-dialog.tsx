@@ -29,6 +29,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useDownloadTtlMinutes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import {
+  isAgentTracePath,
+  readRunAttribution,
+  type FileAttribution,
+  type LineAuthor,
+  type RunAttribution,
+} from "@/components/chatbot-kit/ui/agent-trace"
 import "./code-surface.css"
 import "./generated-files-dialog.css"
 
@@ -53,6 +60,8 @@ const EXT_LANG: Record<string, keyof typeof LANGUAGES | "markdown"> = {
 // Past these sizes a file is not shown / not highlighted (hljs is synchronous).
 const MAX_PREVIEW_BYTES = 512 * 1024
 const MAX_HIGHLIGHT_BYTES = 200 * 1024
+// The Agent Trace record is read whole, past the preview cap: a large app's record outgrows it.
+const MAX_TRACE_BYTES = 16 * 1024 * 1024
 
 export interface GeneratedFile {
   path: string
@@ -124,10 +133,13 @@ export async function readGeneratedFiles(
     if (entry.dir) continue
     const bytes = await entry.async("uint8array")
     const binary = bytes.subarray(0, 8000).includes(0)
+    // The record sits at the zip root, or under the one shared top folder lifted below.
+    const isTrace = isAgentTracePath(entry.name) || isAgentTracePath(entry.name.slice(entry.name.indexOf("/") + 1))
+    const limit = isTrace ? MAX_TRACE_BYTES : MAX_PREVIEW_BYTES
     files.push({
       path: entry.name,
       size: bytes.length,
-      text: binary || bytes.length > MAX_PREVIEW_BYTES ? null : decoder.decode(bytes),
+      text: binary || bytes.length > limit ? null : decoder.decode(bytes),
     })
   }
   const first = files[0]?.path.split("/")[0]
@@ -162,6 +174,7 @@ function FileTree({
   depth,
   selected,
   closed,
+  aiFiles,
   onToggle,
   onSelect,
 }: {
@@ -170,9 +183,12 @@ function FileTree({
   depth: number
   selected: string | null
   closed: Set<string>
+  /** Files with lines the AI wrote. */
+  aiFiles: Set<string>
   onToggle: (dir: string) => void
   onSelect: (path: string) => void
 }) {
+  const { t } = useTranslation()
   const dirs = [...node.dirs.keys()].sort()
   return (
     <>
@@ -201,6 +217,7 @@ function FileTree({
                 depth={depth + 1}
                 selected={selected}
                 closed={closed}
+                aiFiles={aiFiles}
                 onToggle={onToggle}
                 onSelect={onSelect}
               />
@@ -226,6 +243,14 @@ function FileTree({
           >
             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", active ? "bg-brand" : "bg-border")} />
             <span className="truncate">{name}</span>
+            {aiFiles.has(f.path) ? (
+              <span
+                title={t("assistant.generatedFiles.aiTagTitle")}
+                className="gfd-ai-tag shrink-0 rounded px-1 font-mono text-[9px] font-semibold leading-[14px]"
+              >
+                {t("assistant.generatedFiles.aiTag")}
+              </span>
+            ) : null}
             {ext ? (
               <span className="ml-auto pl-2 font-mono text-[10px] text-muted-foreground/70">{ext}</span>
             ) : null}
@@ -236,7 +261,48 @@ function FileTree({
   )
 }
 
-function CodeView({ file }: { file: GeneratedFile }) {
+const AUTHORS: LineAuthor[] = ["ai", "generator", "human", "unknown"]
+
+/** Consecutive lines with the same author, for the gutter bar. */
+function authorRuns(authors: LineAuthor[]): { author: LineAuthor; count: number }[] {
+  const runs: { author: LineAuthor; count: number }[] = []
+  for (const author of authors) {
+    const last = runs[runs.length - 1]
+    if (last && last.author === author) last.count++
+    else runs.push({ author, count: 1 })
+  }
+  return runs
+}
+
+/** Who wrote this file's lines, as a legend with counts. */
+function AuthorshipLegend({ attribution }: { attribution: FileAttribution }) {
+  const { t } = useTranslation()
+  return (
+    <span
+      role="list"
+      aria-label={t("assistant.generatedFiles.authorship")}
+      className="code-surface-muted flex shrink-0 items-center gap-2.5 font-mono text-[11px]"
+    >
+      {AUTHORS.filter((a) => attribution.counts[a] > 0).map((author) => (
+        <span key={author} role="listitem" className="inline-flex items-center gap-1">
+          <span aria-hidden className={`gfd-author-${author} h-2 w-2 rounded-sm`} />
+          {t(`assistant.generatedFiles.author.${author}`)} {attribution.counts[author]}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+function CodeView({
+  file,
+  attribution,
+  stale,
+}: {
+  file: GeneratedFile
+  attribution?: FileAttribution
+  /** The run recorded who wrote this file, but the file changed afterwards. */
+  stale?: boolean
+}) {
   const { t } = useTranslation()
   const lang = langOf(file.path)
   const html = useMemo(() => {
@@ -258,7 +324,21 @@ function CodeView({ file }: { file: GeneratedFile }) {
           <FileText className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{file.path}</span>
         </span>
-        <span className="code-surface-muted ml-auto shrink-0 font-mono text-[11px]">
+        {attribution ? (
+          <span className="ml-auto">
+            <AuthorshipLegend attribution={attribution} />
+          </span>
+        ) : stale ? (
+          <span className="code-surface-muted ml-auto shrink-0 text-[11px]">
+            {t("assistant.generatedFiles.authorshipStale")}
+          </span>
+        ) : null}
+        <span
+          className={cn(
+            "code-surface-muted shrink-0 font-mono text-[11px]",
+            attribution || stale ? "ml-3" : "ml-auto",
+          )}
+        >
           {file.text === null
             ? formatSize(file.size)
             : t("assistant.generatedFiles.fileMeta", {
@@ -277,6 +357,19 @@ function CodeView({ file }: { file: GeneratedFile }) {
       ) : (
         <div className="gfd-code min-h-0 flex-1 overflow-auto font-mono text-xs leading-5">
           <div className="flex min-w-max py-2.5 pb-10">
+            {attribution ? (
+              <div data-testid="authorship-bar" className="flex w-1 shrink-0 flex-col">
+                {authorRuns(attribution.authors).map((run, i) => (
+                  <span
+                    key={i}
+                    data-author={run.author}
+                    title={t(`assistant.generatedFiles.authorLines.${run.author}`, { count: run.count })}
+                    className={`gfd-author-${run.author} block`}
+                    style={{ height: `${run.count * 1.25}rem` }}
+                  />
+                ))}
+              </div>
+            ) : null}
             <pre aria-hidden className="gfd-gutter m-0 select-none px-4 text-right">
               {Array.from({ length: lines }, (_, i) => i + 1).join("\n")}
             </pre>
@@ -311,6 +404,7 @@ export default function GeneratedFilesDialog({
   load,
   fileName,
   meta,
+  runId,
   onDownload,
 }: {
   open: boolean
@@ -319,6 +413,8 @@ export default function GeneratedFilesDialog({
   load: () => Promise<Blob | null>
   fileName: string
   meta?: string
+  /** Picks this run's Agent Trace record when the zip holds several. */
+  runId?: string
   onDownload?: () => void
 }) {
   const { t } = useTranslation()
@@ -329,6 +425,7 @@ export default function GeneratedFilesDialog({
   >({ kind: "loading" })
   const [selected, setSelected] = useState<string | null>(null)
   const [closed, setClosed] = useState<Set<string>>(new Set())
+  const [attribution, setAttribution] = useState<RunAttribution | null>(null)
 
   useEffect(() => {
     if (!open || state.kind === "ready") return
@@ -343,6 +440,12 @@ export default function GeneratedFilesDialog({
         return
       }
       setState({ kind: "ready", ...result })
+      // Who wrote which lines; best-effort, the files show without it.
+      readRunAttribution(result.files, runId)
+        .then((found) => {
+          if (!cancelled) setAttribution(found)
+        })
+        .catch(() => undefined)
       const readme = result.files.find((f) => /^readme(\.md)?$/i.test(f.path))
       setSelected((readme ?? result.files[0]).path)
     })()
@@ -356,6 +459,23 @@ export default function GeneratedFilesDialog({
   const tree = useMemo(() => (state.kind === "ready" ? buildTree(state.files) : null), [state])
   const file = state.kind === "ready" ? state.files.find((f) => f.path === selected) : undefined
   const title = state.kind === "ready" && state.root ? `${state.root}/` : fileName
+  const aiFiles = useMemo(() => {
+    const paths = new Set<string>()
+    attribution?.files.forEach((f, path) => {
+      if (f.counts.ai > 0) paths.add(path)
+    })
+    return paths
+  }, [attribution])
+  const aiShare = useMemo(() => {
+    if (!attribution) return null
+    let ai = 0
+    let total = 0
+    attribution.files.forEach((f) => {
+      ai += f.counts.ai
+      total += f.authors.length
+    })
+    return total > 0 ? Math.round((100 * ai) / total) : null
+  }, [attribution])
 
   const toggle = (dir: string) =>
     setClosed((prev) => {
@@ -375,7 +495,11 @@ export default function GeneratedFilesDialog({
           </DialogTitle>
           <DialogDescription className="min-w-0 truncate text-xs">
             {state.kind === "ready"
-              ? [t("assistant.generatedFiles.fileCount", { count: state.files.length }), meta].filter(Boolean).join(" · ")
+              ? [
+                  t("assistant.generatedFiles.fileCount", { count: state.files.length }),
+                  meta,
+                  aiShare !== null ? t("assistant.generatedFiles.aiShare", { pct: aiShare }) : null,
+                ].filter(Boolean).join(" · ")
               : meta}
           </DialogDescription>
           {onDownload ? (
@@ -407,11 +531,21 @@ export default function GeneratedFilesDialog({
                 depth={0}
                 selected={selected}
                 closed={closed}
+                aiFiles={aiFiles}
                 onToggle={toggle}
                 onSelect={setSelected}
               />
             </nav>
-            {file ? <CodeView key={file.path} file={file} /> : <div className="code-surface" />}
+            {file ? (
+              <CodeView
+                key={file.path}
+                file={file}
+                attribution={attribution?.files.get(file.path)}
+                stale={attribution?.stale.has(file.path)}
+              />
+            ) : (
+              <div className="code-surface" />
+            )}
           </div>
         )}
       </DialogContent>

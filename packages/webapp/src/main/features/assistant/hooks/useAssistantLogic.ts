@@ -44,7 +44,7 @@ import {
   autoFixRemainingMessage,
   autoFixResolvedMessage,
 } from './autoFixMessages';
-import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload, type AssistantClientMode } from '../services';
+import { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE, type AssistantActionPayload, type AssistantClientMode } from '../services';
 import {
   autoFixRef,
   conversationStore,
@@ -78,9 +78,20 @@ import {
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
+import {
+  endAssistantConversation,
+  expectAssistantRequirements,
+  isTraceabilityEnabled,
+  loadProjectTrace,
+  readLlmUsage,
+  recordAssistantReply,
+  recordAssistantRequest,
+} from '../../../shared/traceability/traceStore';
 import type { GeneratorType } from '../../../shared/types/workspace-types';
 import type { GenerationResult } from '../../generation';
 
+import { readShowTrace } from './suggestedActionRouting';
+import { buildAssistantTraceDigest } from '../services/traceDigestContext';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
@@ -144,6 +155,9 @@ export interface SuggestedAction {
    * a label/prompt regex fallback even without this field.
    */
   action?: string;
+  /** `show-trace` chips (the agent's `show_trace` reply): the Traceability view and artifact to open. */
+  traceView?: string;
+  traceArtifactId?: string;
 }
 
 export interface MessageMeta {
@@ -451,6 +465,12 @@ export function useAssistantLogic({
     );
   }, []);
 
+  // The digest is built synchronously from the loaded trace: load it as soon as a recording project is open.
+  useEffect(() => {
+    const project = currentProjectRef.current;
+    if (project && isTraceabilityEnabled(project)) void loadProjectTrace(project.id);
+  }, [currentProjectId, currentProjectRef]);
+
   /* ---- singleton services ---- */
 
   // Shared singleton: the floating widget and the workspace drawer use ONE
@@ -647,7 +667,7 @@ export function useAssistantLogic({
         const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
         autoFixRef.current.progressMessageId = progressMessage.id;
         setMessages((prev) => [...prev, progressMessage]);
-        const context = buildWorkspaceContext();
+        const context = workspaceContextWithoutDigest();
         const repairRequest =
           '[auto-fix] The last change left the diagram with validation errors. ' +
           'Fix exactly these, changing only what is necessary:\n' +
@@ -664,6 +684,7 @@ export function useAssistantLogic({
           settleAutoFixProgress(autoFixFailedMessage(errors), true);
           return;
         }
+        void recordAssistantRequest(currentProjectRef.current, repairRequest);
         autoFixRef.current.turnId = sent === 'sent' ? assistantClient.turnId : null;
       } catch (loopError) {
         console.warn('[auto-fix] validation loop skipped:', loopError);
@@ -752,7 +773,16 @@ export function useAssistantLogic({
 
   /* ---- workspace context builder ---- */
 
-  function buildWorkspaceContext() {
+  /** The workspace context the client sends with a message (its context provider), with the trace digest built
+   *  from that message (its focus); the digest is left out unless the project records traces and has recorded
+   *  something. */
+  function buildWorkspaceContext(message?: string) {
+    return { ...workspaceContextWithoutDigest(), traceDigest: buildAssistantTraceDigest(currentProjectRef.current, message) };
+  }
+
+  /** The context a send passes as its override: without the digest, which the client's provider builds once, from the
+   *  message being sent (also when a queued message is sent later); an override's digest would replace it. */
+  function workspaceContextWithoutDigest() {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || 'ClassDiagram';
     const diagrams = project?.diagrams?.[activeType as keyof typeof project.diagrams];
@@ -794,6 +824,7 @@ export function useAssistantLogic({
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
       githubRepo: githubRepoContext(project?.id),
+      traceabilityEnabled: isTraceabilityEnabled(project),
       ...readGenerationContext(project?.id),
     };
   }
@@ -832,7 +863,29 @@ export function useAssistantLogic({
   /*  handleAction                                                     */
   /* ================================================================ */
 
+  /** Record an agent reply in the project trace: a progress step, an answer (a message or a finished stream), or the
+   *  agent's error (an `agent_error` frame comes only as an action), each with the turn's model and tokens. */
+  const recordReply = (payload: AssistantActionPayload) => {
+    const project = currentProjectRef.current;
+    if (payload.action === 'progress' && typeof payload.message === 'string') {
+      const { step, total } = payload as { step?: unknown; total?: unknown };
+      const label = typeof step === 'number' && typeof total === 'number' ? `[${step}/${total}] ${payload.message}` : payload.message;
+      recordAssistantReply(project, 'progress', label);
+    } else if (payload.action === 'assistant_message' && typeof payload.message === 'string') {
+      recordAssistantReply(project, 'answer', payload.message, readLlmUsage(payload.llmUsage));
+    } else if (payload.action === 'stream_done' && typeof payload.fullText === 'string') {
+      recordAssistantReply(project, 'answer', payload.fullText, readLlmUsage(payload.llmUsage));
+    } else if (payload.action === 'agent_error') {
+      const message = typeof payload.message === 'string' && payload.message.trim() ? payload.message : t('assistant.errors.genericAgentError');
+      recordAssistantReply(project, 'error', message, readLlmUsage(payload.llmUsage));
+    } else if (payload.llmUsage !== undefined) {
+      // Another terminal reply of the turn (a generation, an export) with the turn's model and tokens.
+      recordAssistantReply(project, 'answer', '', readLlmUsage(payload.llmUsage));
+    }
+  };
+
   const handleAction = async (payload: AssistantActionPayload) => {
+    recordReply(payload);
     // Let the streaming sub-hook handle streaming/progress actions first
     if (streaming.handleStreamingAction(payload, setMessages)) {
       if (payload.action === 'stream_done') trackReply('stream', payload.diagramType);
@@ -874,6 +927,22 @@ export function useAssistantLogic({
       return;
     }
 
+    // The agent's answer about the trace comes with a button that opens the Traceability page. It is shown
+    // under the answer like any suggested action and never navigates by itself. Not a model edit.
+    if (payload.action === 'show_trace') {
+      const chip = readShowTrace(payload as Record<string, unknown>, t('assistant.chat.openTrace'));
+      if (!chip) return;
+      const lastAssistant = [...conversationStore.getMessages()].reverse().find((m) => m.role === 'assistant');
+      if (!lastAssistant) return;
+      setMessageMeta((prev) => {
+        const existing = prev[lastAssistant.id]?.suggestedActions ?? [];
+        const same = (a: SuggestedAction) => a.action === chip.action && a.traceView === chip.traceView && a.traceArtifactId === chip.traceArtifactId;
+        if (existing.some(same)) return prev; // a replayed reply
+        return { ...prev, [lastAssistant.id]: { ...prev[lastAssistant.id], suggestedActions: [...existing, chip] } };
+      });
+      return;
+    }
+
     if (payload.action === 'create_diagram_tab') {
       const diagramType = typeof payload.diagramType === 'string' ? payload.diagramType : '';
       if (!diagramType) return;
@@ -885,6 +954,7 @@ export function useAssistantLogic({
         const result = await dispatch(addDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
+          traceSource: 'assistant',
         })).unwrap();
 
         if (result?.index !== undefined) {
@@ -1252,6 +1322,15 @@ export function useAssistantLogic({
       // in place with the real transcribed text instead of appending a second
       // user bubble (which would leave a duplicate). This keeps exactly ONE
       // user bubble for the voice message.
+      // A transcribed voice message is the user's request. The agent's replies, its errors included, are recorded
+      // from the action handler, which also sees those that are not displayed; an `agent_error` that comes as a
+      // message is the client's own (a reply it could not read): it ends the turn in error, and carries no usage.
+      // The "still running" notice is not a failure: the reply can still come.
+      if (message.isUser) void recordAssistantRequest(currentProjectRef.current, toAssistantText(message.message));
+      else if (message.action === 'agent_error' && message.message !== RESPONSE_STILL_RUNNING_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message));
+      }
+
       if (message.isUser && voicePlaceholderIdRef.current) {
         const placeholderId = voicePlaceholderIdRef.current;
         voicePlaceholderIdRef.current = null;
@@ -1311,6 +1390,14 @@ export function useAssistantLogic({
     };
 
     const onInjection = (command: InjectionCommand) => {
+      const usage = readLlmUsage(command.llmUsage);
+      if (typeof command.message === 'string' && command.message !== INJECTION_FALLBACK_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'answer', command.message, usage);
+      } else if (usage) {
+        recordAssistantReply(currentProjectRef.current, 'answer', '', usage);
+      }
+      // Before the edits apply: they are recorded with the requirements they realize.
+      if (command.action === 'inject_complete_system') expectAssistantRequirements(currentProjectRef.current, command);
       trackReply(command.action, command.diagramType);
       enqueueAssistantTask(() => injection.handleInjection(command));
     };
@@ -1465,12 +1552,15 @@ export function useAssistantLogic({
         }
       }
 
-      const context = buildWorkspaceContext();
+      const context = workspaceContextWithoutDigest();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments, surface);
-      if (sendResult !== 'error') markMessageSent();
+      if (sendResult !== 'error') {
+        void recordAssistantRequest(currentProjectRef.current, displayText);
+        markMessageSent();
+      }
 
       const activeModel = modelSnapshot as any;
       const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
@@ -1537,7 +1627,7 @@ export function useAssistantLogic({
       voicePlaceholderIdRef.current = voicePlaceholder.id;
       setMessages((prev) => [...prev, voicePlaceholder]);
 
-      const context = buildWorkspaceContext();
+      const context = workspaceContextWithoutDigest();
       const mimeType = audioBlob.type || 'audio/wav';
       const sendResult = assistantClient.sendVoiceMessage(
         audioBase64,
@@ -1620,6 +1710,8 @@ export function useAssistantLogic({
   };
 
   const clearConversation = () => {
+    // A new chat ends the conversation in the project trace too (a project switch keeps it).
+    endAssistantConversation(currentProjectRef.current);
     resetTurnState();
     conversationStore.clear();
   };

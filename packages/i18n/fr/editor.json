@@ -241,7 +241,8 @@
     "addTarget": "Ajouter une cible…",
     "lineage": "Provenance",
     "lineageSource": "Source :",
-    "lineageDerivedFrom": "Dérivé de"
+    "lineageDerivedFrom": "Dérivé de",
+    "showTraceability": "Afficher la traçabilité"
   },
   "assessment": {
     "assessment": "Évaluation pour",
@@ -555,6 +556,7 @@
       "systemMessage": "Message système",
       "youAreHelpfulAssistant": "Vous êtes un assistant utile.",
       "optionsOnePerLine": "Options (une par ligne)",
+      "optionsLabel": "Texte affiché avec les boutons (facultatif)",
       "audioSpeedOptional": "Vitesse audio (facultatif)",
       "default": "1,0 (par défaut)",
       "latitude": "Latitude",

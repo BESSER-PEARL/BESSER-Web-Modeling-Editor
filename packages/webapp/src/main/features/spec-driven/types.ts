@@ -70,6 +70,11 @@ export interface PhaseEvent {
   event: 'phase';
   phase: SpecDrivenPhase;
   message: string;
+  /** The run's totals when this phase started, measured like the `cost`
+   * event. Absent from older backends. */
+  usd?: number | null;
+  turns?: number | null;
+  elapsedSeconds?: number | null;
 }
 
 /**
@@ -123,6 +128,22 @@ export interface CostEvent {
 }
 
 /**
+ * One Phase 3 validation round. `attempt` is 0 for the first check and n for
+ * the re-check after fix attempt n; the tool calls between two findings events
+ * are that attempt's repairs. `restored`: the run went back to a better earlier
+ * version, which these findings describe. `blockers` is capped (and each
+ * message clipped); the counts are true totals.
+ */
+export interface FindingsEvent {
+  event: 'findings';
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored?: boolean;
+}
+
+/**
  * What the run checked, could not check, and shipped unenforced.
  *
  * A blocker count is one number over three different results. An app scored
@@ -141,6 +162,8 @@ export interface SpecDrivenVerificationItem {
   kind: SpecDrivenVerificationKind;
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the run's trace (`done.trace`); `id` keeps `R<n>`. */
+  traceRef?: string;
   /** What the thing is, in the user's terms. */
   what: string;
   /** Set on a VERIFIED item: what was actually run or re-checked. */
@@ -220,6 +243,11 @@ export interface DoneEvent {
   changedFileCount?: number;
   /** How the model differs from the one the base app was built from (modify runs). */
   modelChanges?: string[];
+  /** The trace of the run (a trace file fragment, `projectId` null): its generator and LLM calls, the files the
+   *  LLM wrote, and requirement -> code links whose requirements are the RequirementArtifact ids the editor sent.
+   *  Absent from an older backend; untrusted, checked and migrated before it is merged (cross-repo traceability
+   *  contract, section 2). */
+  trace?: unknown;
 }
 
 export interface SpecDrivenErrorEvent {
@@ -240,6 +268,7 @@ export type SpecDrivenEvent = (
   | ModelUpdateEvent
   | ToolCallEvent
   | CostEvent
+  | FindingsEvent
   | DoneEvent
   | SpecDrivenErrorEvent
 ) & {
@@ -301,11 +330,33 @@ export interface SpecDrivenToolCallView {
   detail?: string | null;
 }
 
+/** The run's cost, turns and elapsed seconds at one point (a phase's start). */
+export interface SpecDrivenRunTotals {
+  usd: number;
+  turns: number;
+  elapsedSeconds: number;
+}
+
+/** One validation round on the validate row, placed among its tool calls. */
+export interface SpecDrivenFindingsView {
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored: boolean;
+  /** How many of the row's tool calls came before this round. */
+  afterToolCalls: number;
+}
+
 export interface SpecDrivenPhaseView {
   phase: string;
   label: string;
   message: string;
   toolCalls: SpecDrivenToolCallView[];
+  /** Run totals when the phase started; absent from older backends. */
+  startedAt?: SpecDrivenRunTotals;
+  /** Validation rounds (validate row only), in order. */
+  findings?: SpecDrivenFindingsView[];
   /**
    * Long-form details attached to a phase after the fact (e.g. the gap
    * analyser's task list). Rendered behind a chevron in
@@ -336,6 +387,8 @@ export interface SpecDrivenVerificationItemView {
   kind: 'requirement' | 'ocl_constraint' | 'api_workflow' | 'check';
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the project trace. */
+  traceRef?: string;
   what: string;
   /** VERIFIED items: what was actually run or re-checked. */
   how?: string;
@@ -392,6 +445,8 @@ export interface SpecDrivenMessageState {
   costUsd?: number;
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
   elapsedSeconds?: number;
+  /** LLM turns so far (from the backend's 2s cost events). */
+  turns?: number;
   /** Cost budget for this run in USD (from the start event). */
   maxCost?: number;
   /** Runtime budget for this run in seconds (from the start event). */

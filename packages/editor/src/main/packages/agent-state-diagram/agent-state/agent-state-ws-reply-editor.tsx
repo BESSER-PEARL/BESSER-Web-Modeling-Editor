@@ -116,6 +116,12 @@ export const renderWebSocketReplyEditor = (
             }}
             placeholder={translate('packages.AgentDiagram.optionsPlaceholder')}
           />
+          <Header>{translate('packages.AgentDiagram.optionsLabel')}</Header>
+          <Textfield
+            outline
+            value={action.ws_options_label || ''}
+            onChange={(v) => update<AgentStateMember>(action.id, { ws_options_label: v })}
+          />
         </LlmFieldRow>
       );
       break;

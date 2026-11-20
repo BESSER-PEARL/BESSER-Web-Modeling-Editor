@@ -24,6 +24,7 @@ import {
 import { notifyError, reportError } from '../../../shared/services/errors/reportError';
 import { isAgenticModeEnabled } from '../../../shared/perspectives';
 import { useAgentDiagramLinker, useElementPickerProvider } from '../../inter-diagram';
+import { useTraceabilityProvider } from '../../traceability';
 
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +72,11 @@ export const ApollonEditorComponent: React.FC = () => {
   const elementPicker = useElementPickerProvider();
   const elementPickerRef = useRef(elementPicker);
   elementPickerRef.current = elementPicker;
+
+  // Host-side traceability provider: "Show traceability" in the popups of traced elements.
+  const traceability = useTraceabilityProvider(project);
+  const traceabilityRef = useRef(traceability);
+  traceabilityRef.current = traceability;
 
   // Lineage provider for derived diagrams: resolves a derived element to its
   // source element and opens the source diagram with that element selected.
@@ -319,6 +325,7 @@ export const ApollonEditorComponent: React.FC = () => {
       nextEditor.setAgentDiagramLinker(linkerRef.current);
       nextEditor.setLineageProvider(lineageProviderRef.current);
       nextEditor.setElementPickerProvider(elementPickerRef.current);
+      nextEditor.setTraceabilityProvider(traceabilityRef.current);
 
       setEditor!(nextEditor);
 
@@ -364,6 +371,10 @@ export const ApollonEditorComponent: React.FC = () => {
   useEffect(() => {
     editorRef.current?.setElementPickerProvider(elementPicker);
   }, [elementPicker]);
+
+  useEffect(() => {
+    editorRef.current?.setTraceabilityProvider(traceability);
+  }, [traceability]);
 
   useEffect(() => {
     editorRef.current?.setAgentDiagramLinker(linker);
