@@ -737,6 +737,7 @@ export function useAssistantLogic({
             runId: result.runId,
             costUsd: result.costUsd,
             generator_used: result.generatorUsed,
+            mode: result.mode,
             errorCode: result.errorCode,
             incomplete: result.incomplete,
             incompleteReason: result.incompleteReason,

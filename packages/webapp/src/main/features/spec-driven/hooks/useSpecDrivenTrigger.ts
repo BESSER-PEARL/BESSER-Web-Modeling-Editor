@@ -127,6 +127,7 @@ import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry'
 import type {
   SpecDrivenEvent,
   SpecDrivenMessageState,
+  SpecDrivenMode,
   SpecDrivenProvider,
   TriggerSpecDrivenPayload,
 } from '../types';
@@ -199,6 +200,8 @@ export interface SpecDrivenRunResult {
   fileName?: string;
   costUsd?: number;
   generatorUsed?: string;
+  /** What the run did, from its done event: "modify" when it edited an existing app. */
+  mode?: 'create' | 'modify';
   /** Set on a successful run that was nonetheless cut short — the output
    * may be missing requested changes. Carried so the modeling agent can
    * report the outcome honestly instead of an unqualified success. */
@@ -511,7 +514,7 @@ export function useSpecDrivenTrigger(
   const handleSseEvent = useCallback(
     async (
       event: SpecDrivenEvent,
-      run: { liveKey: string; streamingId: string; projectId: string },
+      run: { liveKey: string; streamingId: string; projectId: string; mode?: SpecDrivenMode },
     ): Promise<void> => {
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
@@ -690,15 +693,15 @@ export function useSpecDrivenTrigger(
               ? ` with BESSER's \`${generatorUsed}\` generator`
               : '';
             // An edit of an existing app says what it changed, not what it generated.
+            const edited = event.mode === 'modify';
             const changed = event.changedFileCount;
-            const whatPhrase =
-              event.mode !== 'modify'
-                ? `Generated ${filesPhrase}${withGen}`
-                : typeof changed !== 'number'
-                  ? i18n.t('assistant.runCard.updatedApp')
-                  : changed === 0
-                    ? i18n.t('assistant.runCard.updatedNoFiles')
-                    : i18n.t('assistant.runCard.updatedFiles', { count: changed });
+            const whatPhrase = !edited
+              ? `Generated ${filesPhrase}${withGen}`
+              : typeof changed !== 'number'
+                ? 'Updated your application'
+                : changed === 0
+                  ? 'Changed no files of your application'
+                  : `Updated **${changed}** file${changed === 1 ? '' : 's'} of your application`;
             // Only list top-level entries when they actually say something —
             // "Top level: .gitignore, web_app" is noise. Drop the phrase when it
             // would just echo a wrapper dir and dotfiles.
@@ -732,8 +735,8 @@ export function useSpecDrivenTrigger(
             //     error, cancellation) — "stopped early" is accurate.
             const incompleteMessage =
               blockerCount > 0
-                ? `⚠️ ${whatPhrase}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
-                : `⚠️ ${whatPhrase}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
+                ? `⚠️ ${whatPhrase}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The ${edited ? 'updated' : 'generated'} app is **not verified complete**.${topPhrase} Start a follow-up ${edited ? 'run' : 'generation'} to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                : `⚠️ ${whatPhrase}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another ${edited ? 'run' : 'generation'} to finish the remaining changes, or use the **Download** button on the run card to save it.`;
             // Stated separately from the blocker count: the app was
             // delivered and these rules are NOT in it.
             const unenforcedPhrase =
@@ -757,7 +760,7 @@ export function useSpecDrivenTrigger(
                 `Delivered — ${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} not enforced`,
               );
             } else if (incomplete) {
-              toast.warning('Generation incomplete — output available to inspect');
+              toast.warning(`${edited ? 'Update' : 'Generation'} incomplete — output available to inspect`);
             } else {
               toast.success('Spec-Driven Agent finished -- ready to download');
             }
@@ -770,6 +773,7 @@ export function useSpecDrivenTrigger(
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
+            mode: event.mode,
             incomplete,
             incompleteReason: event.incompleteReason,
             stoppedByUser,
@@ -846,8 +850,9 @@ export function useSpecDrivenTrigger(
           // the user can see the run failed without scrolling to the toast.
           finalizeLiveRun(run.liveKey, run.streamingId);
           if (event.code === 'CANCELLED' && event.reason === 'abandoned') {
-            appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
-            toast.warning('Generation stopped after the disconnect grace period');
+            const what = run.mode === 'modify' ? 'Update' : 'Generation';
+            appendAssistantMessage(`⏹ ${what} stopped after disconnect. ${event.message}`);
+            toast.warning(`${what} stopped after the disconnect grace period`);
           } else {
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
@@ -1379,7 +1384,7 @@ export function useSpecDrivenTrigger(
 
       abortRef.current = handle.abort;
 
-      const runCtx = { liveKey, streamingId, projectId: runProject.id };
+      const runCtx = { liveKey, streamingId, projectId: runProject.id, mode: runDecision.mode };
       let terminalEventSeen = false;
       let eventsReceived = 0;
       try {
@@ -1398,7 +1403,7 @@ export function useSpecDrivenTrigger(
           await handleSseEvent(event, runCtx);
         }
         if (!abortRequestedRef.current && !terminalEventSeen) {
-          const message = 'The generation stream closed before reporting a final result.';
+          const message = `The ${runDecision.mode === 'modify' ? 'update' : 'generation'} stream closed before reporting a final result.`;
           // Synthetic terminal event through the SAME single write path
           // as real SSE errors — the card gets the red status + notice.
           dispatch(

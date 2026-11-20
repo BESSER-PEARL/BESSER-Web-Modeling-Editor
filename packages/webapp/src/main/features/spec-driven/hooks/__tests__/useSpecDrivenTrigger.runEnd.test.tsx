@@ -15,6 +15,7 @@ import { readProjectLastRun, writeProjectLastRun } from '@/main/features/spec-dr
 import { readLastGeneration } from '@/main/features/spec-driven/lastGeneration';
 import { SPEC_DRIVEN_RUN_SUCCEEDED_EVENT } from '@/main/features/spec-driven/runSucceeded';
 import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
+import { toast } from 'react-toastify';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
 import { sessionStorageLlmApiKey, sessionStorageLlmProvider } from '@/main/shared/constants/constant';
@@ -38,6 +39,7 @@ vi.mock('@/main/shared/services/specDrivenConfig', async (importOriginal) => {
 });
 
 const PROJECT_ID = 'proj-run-record';
+const finished = vi.fn();
 const RUN = 'd'.repeat(32);
 
 type TriggerFn = (p: TriggerSpecDrivenPayload) => Promise<void>;
@@ -54,6 +56,7 @@ function Surface({ apiRef }: { apiRef: { current: TriggerFn | null } }) {
     currentProjectRef,
     setMessages: conversationStore.setMessages,
     setIsGenerating,
+    onRunFinished: finished,
   }).handleTrigger;
   return null;
 }
@@ -385,5 +388,44 @@ describe('the summary after a run', () => {
     const id = 'a'.repeat(32);
     await runWith([start(id), done({ mode: 'create', fileCount: 40, changedFileCount: 40 }, id)], 'Build a task board.', id);
     expect(summary()).toMatch(/^✅ Generated \*\*40\*\* files\./);
+  });
+
+  it('an edit left with issues speaks of the update and a follow-up run, not of generating', async () => {
+    const id = 'b'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'modify', changedFileCount: 2, incomplete: true, blockerCount: 2 }, id)],
+      'Fix the save button.',
+      id,
+    );
+    expect(summary()).toBe(
+      '⚠️ Updated **2** files of your application, but the run **finished with 2 unresolved implementation or '
+      + 'verification issues**. The updated app is **not verified complete**. Start a follow-up run to address '
+      + 'them, or use the **Download** button on the run card to save the code as-is.',
+    );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith('Update incomplete — output available to inspect');
+    expect(finished).toHaveBeenCalledWith(expect.objectContaining({ ok: true, mode: 'modify' }));
+  });
+
+  it('an edit that stopped early suggests another run', async () => {
+    const id = 'c'.repeat(32);
+    await runWith([start(id), done({ mode: 'modify', changedFileCount: 1, incomplete: true }, id)], 'Fix the save button.', id);
+    expect(summary()).toContain('Start another run to finish the remaining changes');
+    expect(summary()).not.toMatch(/generat/i);
+  });
+
+  it('a generation left with issues reads exactly as before', async () => {
+    const id = 'e'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'create', fileCount: 40, incomplete: true, blockerCount: 2 }, id)],
+      'Build a task board.',
+      id,
+    );
+    expect(summary()).toBe(
+      '⚠️ Generated **40** files, but the run **finished with 2 unresolved implementation or verification '
+      + 'issues**. The generated app is **not verified complete**. Start a follow-up generation to address them, '
+      + 'or use the **Download** button on the run card to save the code as-is.',
+    );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith('Generation incomplete — output available to inspect');
+    expect(finished).toHaveBeenCalledWith(expect.objectContaining({ ok: true, mode: 'create' }));
   });
 });

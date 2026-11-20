@@ -207,6 +207,13 @@ describe('the line before the run card says what the run does', () => {
     expect(intro()).toBe(GENERATE_INTRO);
   });
 
+  it('an edit whose stream closes early says the update stream closed', async () => {
+    vi.mocked(modelChange.fetchModelChange).mockResolvedValue(change('small', 0, [], []));
+    expect((await trigger()).mode).toBe('modify');
+    await waitFor(() => expect(conversationStore.getMessages().some(
+      (m) => m.content?.includes('The update stream closed before reporting a final result.'))).toBe(true));
+  });
+
   it('a first run says it generates the application', async () => {
     window.localStorage.clear();
     expect((await trigger()).mode).toBe('generate');

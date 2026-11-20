@@ -20,7 +20,19 @@ import type { GenerationResult } from '../../../generation';
 const fake = vi.hoisted(() => ({
   actionHandlers: [] as Array<(payload: Record<string, unknown>) => void>,
   sendFrontendEvent: vi.fn(() => 'sent' as const),
+  onRunFinished: undefined as undefined | ((result: Record<string, unknown>) => void),
 }));
+
+vi.mock('../../../spec-driven', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../spec-driven')>();
+  return {
+    ...actual,
+    useSpecDrivenTrigger: (options: Parameters<typeof actual.useSpecDrivenTrigger>[0]) => {
+      fake.onRunFinished = options.onRunFinished as typeof fake.onRunFinished;
+      return actual.useSpecDrivenTrigger(options);
+    },
+  };
+});
 
 vi.mock('../../services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services')>();
@@ -113,4 +125,18 @@ describe('generator_result sent to the agent', () => {
     });
   });
 
+});
+
+describe('a Spec-Driven run reported to the agent', () => {
+  it.each(['modify', 'create', undefined])('says the mode the run had (%s)', async (mode) => {
+    const apiRef = renderHarness(vi.fn<OnGenerate>());
+    await waitFor(() => expect(fake.onRunFinished).toBeDefined());
+    expect(apiRef.current).not.toBeNull();
+
+    fake.onRunFinished!({ ok: true, runId: 'r'.repeat(32), mode });
+
+    expect(fake.sendFrontendEvent).toHaveBeenCalledWith('generator_result', expect.objectContaining({
+      metadata: expect.objectContaining({ smart: true, mode }),
+    }));
+  });
 });
