@@ -261,7 +261,7 @@
       "llm": "LLM",
       "useDefault": "(Standard benotzen)",
       "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen.",
-      "defineLlmsHint": "Definéier LLMen op der Säit <strong>Agent-Komponenten</strong>.",
+      "defineLlmsHint": "Definéier LLMen op der Säit <components>Agent-Komponenten</components>.",
       "enabled": "Aktivéiert",
       "boolTrue": "Wouer",
       "boolFalse": "Falsch",

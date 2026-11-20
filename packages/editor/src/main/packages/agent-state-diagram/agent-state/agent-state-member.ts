@@ -41,6 +41,7 @@ interface IAgentStateMemberValues extends IUMLElement {
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
+  ws_options_label?: string;
   ws_latitude?: number;
   ws_longitude?: number;
   guiId?: string;
@@ -91,6 +92,7 @@ export abstract class AgentStateMember extends UMLElement {
   ws_message: string = '';
   ws_audio_speed: number | null = null;
   ws_options: string = '';
+  ws_options_label: string = '';
   ws_latitude: number = 0;
   ws_longitude: number = 0;
   guiId: string = '';
@@ -184,6 +186,9 @@ export abstract class AgentStateMember extends UMLElement {
     }
     if (values?.ws_options !== undefined) {
       this.ws_options = values.ws_options ?? '';
+    }
+    if (values?.ws_options_label !== undefined) {
+      this.ws_options_label = values.ws_options_label ?? '';
     }
     if (values?.ws_latitude !== undefined) {
       this.ws_latitude = values.ws_latitude ?? 0;
@@ -321,6 +326,7 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.ws_message = this.ws_message;
       serialized.ws_audio_speed = this.ws_audio_speed;
       serialized.ws_options = this.ws_options;
+      serialized.ws_options_label = this.ws_options_label;
       serialized.ws_latitude = this.ws_latitude;
       serialized.ws_longitude = this.ws_longitude;
       if (this.replyType === 'ws_markdown' || this.replyType === 'ws_html' || this.replyType === 'ws_speech') {
@@ -367,6 +373,7 @@ export abstract class AgentStateMember extends UMLElement {
     ws_message?: string;
     ws_audio_speed?: number | null;
     ws_options?: string;
+    ws_options_label?: string;
     ws_latitude?: number;
     ws_longitude?: number;
     guiId?: string;
@@ -416,6 +423,7 @@ export abstract class AgentStateMember extends UMLElement {
     this.ws_message = values.ws_message ?? '';
     this.ws_audio_speed = values.ws_audio_speed ?? null;
     this.ws_options = values.ws_options ?? '';
+    this.ws_options_label = values.ws_options_label ?? '';
     this.ws_latitude = values.ws_latitude != null ? Number(values.ws_latitude) : 0;
     this.ws_longitude = values.ws_longitude != null ? Number(values.ws_longitude) : 0;
     this.guiId = values.guiId ?? '';

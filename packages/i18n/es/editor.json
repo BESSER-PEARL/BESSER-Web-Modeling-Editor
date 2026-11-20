@@ -556,6 +556,7 @@
       "systemMessage": "Mensaje del sistema",
       "youAreHelpfulAssistant": "Eres un asistente útil.",
       "optionsOnePerLine": "Opciones (una por línea)",
+      "optionsLabel": "Texto mostrado con los botones (opcional)",
       "audioSpeedOptional": "Velocidad de audio (opcional)",
       "default": "1.0 (predeterminado)",
       "latitude": "Latitud",
