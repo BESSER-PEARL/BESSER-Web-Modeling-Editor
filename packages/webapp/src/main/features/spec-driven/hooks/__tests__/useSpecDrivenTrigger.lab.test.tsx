@@ -1,8 +1,9 @@
 /**
  * A BESSER Lab run in the chat: the same run slot, live card, event loop and
- * reattach after a reload as a Spec-Driven run, without the key dialog, the
- * run-mode decision, the "Generated N files" line and the report to the
- * modeling agent. Its `done` hands the `lab` payload to the lab feature.
+ * reattach as a Spec-Driven run, without the key dialog, the run-mode decision,
+ * the "Generated N files" line and the report to the modeling agent. Every
+ * message goes to a named change. Its `done` hands the `lab` payload to the lab
+ * feature and puts the run's details on its card.
  */
 import React from 'react';
 import { Provider } from 'react-redux';
@@ -18,7 +19,7 @@ import {
 import { readActiveSpecDrivenRun, writeActiveSpecDrivenRun } from '@/main/features/spec-driven/storage';
 import type { SpecDrivenEvent } from '@/main/features/spec-driven/types';
 import * as sseClient from '@/main/features/spec-driven/services/specDrivenSseClient';
-import { getLabState, startLabRun, type LabDone } from '@/main/shared/api/lab';
+import { getLabChange, startLabRun, type LabDone } from '@/main/shared/api/lab';
 import { SseHttpError } from '@/main/shared/api/sseClient';
 import i18n from '@/main/shared/i18n';
 import { cancelSpecDrivenRun } from '@/main/shared/api/specDriven';
@@ -31,7 +32,22 @@ vi.mock('react-toastify', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock('@/main/shared/api/lab', () => ({ startLabRun: vi.fn(), getLabState: vi.fn(async () => ({ run: null })) }));
+vi.mock('@/main/shared/api/lab', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/main/shared/api/lab')>()),
+  startLabRun: vi.fn(),
+  getLabChange: vi.fn(async () => ({ run: null })),
+}));
+
+const build = vi.hoisted(() => ({ lab: false }));
+vi.mock('@/main/shared/constants/constant', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/main/shared/constants/constant')>();
+  return {
+    ...actual,
+    get LAB_BUILD() {
+      return build.lab;
+    },
+  };
+});
 
 vi.mock('@/main/shared/api/specDriven', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/main/shared/api/specDriven')>()),
@@ -54,6 +70,7 @@ vi.mock('@/main/features/lab', async (importOriginal) => ({
 
 const RUN = 'a1'.repeat(16);
 const SESSION = 'gh-session-0123456789';
+const CHANGE = '0123456789ab';
 
 const LAB_DONE: LabDone = {
   step: 'build',
@@ -180,6 +197,7 @@ const card = () => conversationStore.getMessages().find((m) => m.specDriven)?.sp
 
 beforeEach(() => {
   vi.clearAllMocks();
+  build.lab = false;
   conversationStore.clear();
   window.sessionStorage.clear();
   window.localStorage.clear();
@@ -197,16 +215,18 @@ describe('a lab run', () => {
     const api = mount(onRunFinished);
 
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add a note element', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add a note element', githubSession: SESSION, changeId: CHANGE });
     });
 
     // No key in the tab: a Spec-Driven run would have opened the key dialog instead.
     expect(store.getState().specDriven.byokDialogOpen).toBe(false);
     expect(sseClient.startSpecDrivenRun).not.toHaveBeenCalled();
     expect(startLabRun).toHaveBeenCalledTimes(1);
+    // The change the message goes to, always: the server refuses a request without one.
     expect(vi.mocked(startLabRun).mock.calls[0][0]).toMatchObject({
       message: 'Add a note element',
       githubSession: SESSION,
+      changeId: CHANGE,
     });
 
     const finished = card();
@@ -264,14 +284,14 @@ describe('a lab run', () => {
     expect(sent.currentDiagramIndices.ClassDiagram).toBe(0);
   });
 
-  it('sends no diagram when the change has no proposal, or the message continues no change', async () => {
+  it('sends no diagram when the change has no proposal', async () => {
     vi.mocked(startLabRun).mockImplementation(() => scriptedHandle([start, labDoneEvent()]));
     const api = mount();
     await act(async () => {
       await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, action: 'build', changeId: 'c1' });
     });
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add a TOML generator', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add a TOML generator', githubSession: SESSION, changeId: CHANGE });
     });
     expect(vi.mocked(startLabRun).mock.calls.map(([params]) => params.project)).toEqual([null, null]);
   });
@@ -285,7 +305,7 @@ describe('a lab run', () => {
     const api = mount();
     let running: Promise<void> = Promise.resolve();
     await act(async () => {
-      running = api.current!.handleLabMessage({ message: 'One', githubSession: SESSION });
+      running = api.current!.handleLabMessage({ message: 'One', githubSession: SESSION, changeId: CHANGE });
     });
     const liveKey = card()?.liveKey as string;
     expect(store.getState().specDriven.runs[liveKey]?.isLabRun).toBe(true);
@@ -297,6 +317,8 @@ describe('a lab run', () => {
   });
 
   it.each([
+    [409, { detail: { code: 'change_busy', message: '@ana is building this change (3 min).' } }, /^@ana is building this change \(3 min\)\.$/m],
+    [429, { detail: { code: 'runs_full', message: '2 of 2 runs are in progress.' } }, /2 of 2 runs are in progress\./],
     [409, { detail: 'A lab run or another change action is in progress.' }, /busy with another run or change action/],
     [401, { detail: 'GitHub session expired' }, /GitHub session has expired\. Sign in again/],
     [403, { detail: 'Not allowed' }, /not allowed to use BESSER Lab/],
@@ -311,7 +333,7 @@ describe('a lab run', () => {
     });
     const api = mount();
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     const text = contents().join('\n');
     expect(text).toMatch(expected);
@@ -338,7 +360,7 @@ describe('a lab run', () => {
     const api = mount();
     let running: Promise<void> = Promise.resolve();
     await act(async () => {
-      running = api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      running = api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     try {
       expect(readActiveSpecDrivenRun('proj-lab')).toMatchObject({ runId: RUN, projectId: 'proj-lab', kind: 'lab' });
@@ -371,27 +393,104 @@ describe('a lab run', () => {
     expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 
-  it('follows the run in progress the lab names when it refuses a message as busy', async () => {
+  it('follows the run in progress on the change when the lab refuses a message as busy', async () => {
     vi.mocked(startLabRun).mockReturnValue({
       controller: new AbortController(),
       abort: () => undefined,
       events: (async function* () {
-        throw new SseHttpError(409, JSON.stringify({ detail: 'A lab run or another change action is in progress.' }));
+        throw new SseHttpError(409, JSON.stringify({ detail: { code: 'change_busy', message: '@ana is building this change.' } }));
       })(),
     });
-    vi.mocked(getLabState).mockResolvedValueOnce({ run: { runId: RUN, startedAt: 1_763_500_000 } } as never);
+    vi.mocked(getLabChange).mockResolvedValueOnce({
+      run: { runId: RUN, changeId: CHANGE, login: 'ana', step: 'build', startedAt: 1_763_500_000 },
+    } as never);
     vi.mocked(sseClient.followSpecDrivenRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
     const api = mount();
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
-    expect(getLabState).toHaveBeenCalledWith(SESSION);
+    // The run of this change, not "the active one" of phase 1.
+    expect(getLabChange).toHaveBeenCalledWith(SESSION, CHANGE);
     // The lab's run routes need the lab user's session (E2E C-D6).
     expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, SESSION);
-    expect(contents().join('\n')).toMatch(/busy with another run or change action/);
+    expect(contents().join('\n')).toMatch(/@ana is building this change\./);
     const cards = conversationStore.getMessages().filter((m) => m.specDriven).map((m) => m.specDriven!);
     expect(cards.map((c) => c.status)).toEqual(['error', 'done']);
     expect(cards[1].lab?.title).toBe('Add a note element');
+    expect(store.getState().specDriven.runStatus).toBe('idle');
+  });
+
+  it("puts the run's details on its card, numbering the change's plans", async () => {
+    const plan = (): LabDone => ({
+      ...LAB_DONE,
+      step: 'plan',
+      repoChanges: [],
+      checks: [],
+      checklist: [],
+      plan: { kind: 'editor_element', title: 'Note', summary: 's', steps: [], repos: ['frontend'], questions: [] },
+      cost: { usd: 0.4, turns: 3, elapsedSeconds: 20, runs: 1 },
+    });
+    vi.mocked(startLabRun).mockImplementation(() => scriptedHandle([start, labDoneEvent(plan())]));
+    const api = mount();
+    await act(async () => {
+      await api.current!.handleLabMessage({ message: 'Plan it', githubSession: SESSION, changeId: CHANGE, action: 'plan' });
+    });
+    await act(async () => {
+      await api.current!.handleLabMessage({ message: 'Revise it', githubSession: SESSION, changeId: CHANGE, action: 'plan' });
+    });
+    vi.mocked(startLabRun).mockImplementation(() =>
+      scriptedHandle([
+        start,
+        labDoneEvent({ ...LAB_DONE, report: { summary: 'Done.', deviations: [], notDone: ['Docs'] }, noteProposals: [] }),
+      ]),
+    );
+    await act(async () => {
+      await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, changeId: CHANGE, action: 'build' });
+    });
+    const details = conversationStore.getMessages().filter((m) => m.specDriven).map((m) => m.labRun);
+    expect(details.map((d) => d?.planVersion)).toEqual([1, 2, null]);
+    expect(details[0]?.cost).toEqual({ usd: 0.4, turns: 3, elapsedSeconds: 20, runs: 1 });
+    expect(details[2]?.report?.notDone).toEqual(['Docs']);
+  });
+
+  it("follows a run of the change the thread names, with the lab user's session", async () => {
+    vi.mocked(sseClient.followSpecDrivenRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
+    const api = mount();
+    await act(async () => {
+      await api.current!.followLabRun({ runId: RUN, startedAt: Date.now(), githubSession: SESSION });
+    });
+    expect(sseClient.followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, SESSION);
+    expect(card()).toMatchObject({ status: 'done', isLabRun: true });
+    expect(store.getState().specDriven.runStatus).toBe('idle');
+  });
+
+  it('in the lab build follows runs from the thread only, not from the pointer a reload left', async () => {
+    build.lab = true;
+    writeActiveSpecDrivenRun({ runId: RUN, projectId: 'proj-lab', lastSequence: 4, startedAt: Date.now(), kind: 'lab' });
+    signInToGitHubForTests(SESSION);
+    mount();
+    await act(async () => undefined);
+    expect(sseClient.followSpecDrivenRun).not.toHaveBeenCalled();
+  });
+
+  it('stops following a run without stopping it on the server, and says nothing of it, when another change opens', async () => {
+    vi.mocked(startLabRun).mockReturnValue(scriptedHandle([start], new Promise<void>(() => undefined)));
+    const api = mount();
+    let running: Promise<void> = Promise.resolve();
+    await act(async () => {
+      running = api.current!.handleLabMessage({ message: 'Long one', githubSession: SESSION, changeId: CHANGE });
+    });
+    await waitFor(() => expect(store.getState().specDriven.runStatus).toBe('running'));
+    const liveKey = card()?.liveKey as string;
+    await act(async () => {
+      api.current!.detachActive();
+      await running;
+    });
+    expect(cancelSpecDrivenRun).not.toHaveBeenCalled();
+    expect(store.getState().specDriven.runs[liveKey]).toBeUndefined();
+    expect(contents().join('\n')).not.toMatch(/stopped|error/i);
+    expect(reportError).not.toHaveBeenCalled();
+    // This tab is free for the other change.
     expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 
@@ -402,7 +501,7 @@ describe('a lab run', () => {
     });
     const api = mount();
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     expect(translate).toHaveBeenCalledWith(
       'lab.chat.startFailed',
@@ -420,10 +519,10 @@ describe('a lab run', () => {
     const api = mount();
     let first: Promise<void> = Promise.resolve();
     await act(async () => {
-      first = api.current!.handleLabMessage({ message: 'One', githubSession: SESSION });
+      first = api.current!.handleLabMessage({ message: 'One', githubSession: SESSION, changeId: CHANGE });
     });
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Two', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Two', githubSession: SESSION, changeId: CHANGE });
     });
     expect(startLabRun).toHaveBeenCalledTimes(1);
     expect(contents()).toContain('BESSER Lab is already running — please wait for it to finish or click Stop.');
@@ -443,7 +542,7 @@ describe('a lab run', () => {
     const onRunFinished = vi.fn();
     const api = mount(onRunFinished);
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Fix it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Fix it', githubSession: SESSION, changeId: CHANGE });
     });
     expect(window.sessionStorage.getItem(sessionStorageLlmApiKey)).toBe('sk-user');
     expect(contents()).toContain('❌ BESSER Lab error (INVALID_KEY): The key was refused.');
@@ -458,7 +557,7 @@ describe('a lab run', () => {
     const api = mount(onRunFinished);
     let running: Promise<void> = Promise.resolve();
     await act(async () => {
-      running = api.current!.handleLabMessage({ message: 'Long one', githubSession: SESSION });
+      running = api.current!.handleLabMessage({ message: 'Long one', githubSession: SESSION, changeId: CHANGE });
     });
     await waitFor(() => expect(store.getState().specDriven.runStatus).toBe('running'));
     await act(async () => {
@@ -479,7 +578,7 @@ describe('a lab run', () => {
     vi.mocked(startLabRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
     const api = mount();
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     await waitFor(() =>
       expect(reportError).toHaveBeenCalledWith(
@@ -525,7 +624,7 @@ describe('a lab run', () => {
       const api = mount();
       let running: Promise<void> = Promise.resolve();
       await act(async () => {
-        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, changeId: CHANGE });
       });
       await act(async () => {
         window.dispatchEvent(new Event('beforeunload'));
@@ -539,7 +638,7 @@ describe('a lab run', () => {
       const api = mount();
       let running: Promise<void> = Promise.resolve();
       await act(async () => {
-        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+        running = api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, changeId: CHANGE });
       });
       await act(async () => {
         window.dispatchEvent(new Event('beforeunload'));
@@ -573,7 +672,7 @@ describe('a lab run', () => {
       });
       const api = mount();
       await act(async () => {
-        await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION });
+        await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, changeId: CHANGE });
       });
       expect(contents()).toContain('BESSER Lab stream error: network error');
       expect(card()?.status).toBe('error');
@@ -612,7 +711,7 @@ describe('a lab run', () => {
     });
     const api = mount();
     await act(async () => {
-      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION });
+      await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     expect(card()?.status).toBe('error');
     expect(contents()).toContain('BESSER Lab failed to start: offline');

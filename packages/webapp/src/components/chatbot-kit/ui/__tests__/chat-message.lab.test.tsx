@@ -1,9 +1,11 @@
-/** The finished run card of a BESSER Lab run: the plan, or the change with its checks and checklist. */
+/**
+ * The finished run card of a BESSER Lab run: the plan, or the change with its checks and checklist; and the lab's
+ * other chat messages: a teammate's message under their login, a notice, and the review card.
+ */
 
 import React from 'react';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ChatMessage } from '../chat-message';
@@ -16,6 +18,10 @@ import {
   liveRunStarted,
 } from '@/main/features/spec-driven/state/specDrivenSlice';
 import type { SpecDrivenEvent, SpecDrivenLabView, SpecDrivenMessageState } from '@/main/features/spec-driven/types';
+import type { LabReviewResponse } from '@/main/shared/api/lab';
+import { requestLabView } from '@/main/shared/services/labSession';
+
+vi.mock('@/main/shared/services/labSession', () => ({ requestLabView: vi.fn() }));
 
 const RUN_ID = 'b'.repeat(32);
 
@@ -239,20 +245,17 @@ describe('lab run card: plan', () => {
 });
 
 describe('lab run card: header', () => {
-  const inRouter = (path: string, payload: unknown) =>
-    render(
-      <MemoryRouter initialEntries={[path]}>
-        <LabRunResult lab={extractLabRun(payload) as SpecDrivenLabView} />
-      </MemoryRouter>,
-    );
+  const inRouter = (_path: string, payload: unknown) =>
+    render(<LabRunResult lab={extractLabRun(payload) as SpecDrivenLabView} />);
 
   it.each([
     ['plan', PLAN_PAYLOAD],
     ['build', BUILD_PAYLOAD],
-  ])('names the change of a %s card and links to the lab page to manage changes', (_step, payload) => {
+  ])('names the change of a %s card, with no link to the phase 1 lab page', (_step, payload) => {
     inRouter('/', payload);
     expect(screen.getByText((payload as { title: string }).title)).toBeTruthy();
-    expect(screen.getByRole('link', { name: /Manage changes/ }).getAttribute('href')).toBe('/lab');
+    // Phase 1's "/lab" page is gone: the card is inside its change's own view.
+    expect(screen.queryByRole('link', { name: /Manage changes/ })).toBeNull();
   });
 
   it('names the lab branch of the change, on a plan card too (E2E A, where am I)', () => {
@@ -284,12 +287,6 @@ describe('lab run card: header', () => {
     cleanup();
     renderCard(cardAfterDone(undefined));
     expect(screen.queryByText(/BESSER Lab/)).toBeNull();
-  });
-
-  it('leaves the link out on the lab page itself', () => {
-    inRouter('/lab', BUILD_PAYLOAD);
-    expect(screen.getByText('Add a note element')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /Manage changes/ })).toBeNull();
   });
 
   it('names the change kind in words, as the lab page does', () => {
@@ -445,32 +442,122 @@ describe('lab run card: build', () => {
   });
 });
 
-describe('Open pull request', () => {
+describe('Push to the pull requests', () => {
   const build = (payload: unknown) => extractLabRun(payload) as SpecDrivenLabView;
+  const pushed = {
+    report: null,
+    cost: { usd: 0.5, turns: 4, elapsedSeconds: 30, runs: 1 },
+    pullRequests: [{ repo: 'frontend', number: 41, url: 'https://github.com/o/editor/pull/41', branch: 'lab/jordi/note-element', base: 'develop' }],
+    noteProposals: [],
+    planVersion: null,
+  };
 
   it('calls the handler once until it settles', async () => {
     let settle: () => void = () => undefined;
     const open = vi.fn(() => new Promise<void>((resolve) => { settle = resolve; }));
-    render(<LabRunResult lab={build(BUILD_PAYLOAD)} onOpenPullRequest={open} />);
-    const button = screen.getByRole('button', { name: /Open pull request/ }) as HTMLButtonElement;
+    render(<LabRunResult lab={build(BUILD_PAYLOAD)} details={pushed} onOpenPullRequest={open} />);
+    const button = screen.getByRole('button', { name: /Push to the pull requests/ }) as HTMLButtonElement;
     fireEvent.click(button);
     fireEvent.click(button);
     expect(open).toHaveBeenCalledTimes(1);
-    // The card's own change: the server refuses to act on another one.
+    // The card's own change.
     expect(open).toHaveBeenCalledWith('c1');
     expect(button.disabled).toBe(true);
     await act(async () => settle());
     expect(button.disabled).toBe(false);
   });
 
-  it('is hidden when the build changed no files', () => {
-    render(<LabRunResult lab={build({ ...BUILD_PAYLOAD, repoChanges: [] })} onOpenPullRequest={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
+  it('is hidden, with Open pull request, when the build changed no files', () => {
+    render(<LabRunResult lab={build({ ...BUILD_PAYLOAD, repoChanges: [] })} details={pushed} onOpenPullRequest={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /pull request/ })).toBeNull();
     expect(screen.getByText('No files changed.')).toBeTruthy();
   });
 
-  it('is hidden when the surface supplies no handler', () => {
-    render(<LabRunResult lab={build(BUILD_PAYLOAD)} />);
-    expect(screen.queryByRole('button', { name: /Open pull request/ })).toBeNull();
+  it('is hidden, with Open pull request, when the surface supplies no handler', () => {
+    render(<LabRunResult lab={build(BUILD_PAYLOAD)} details={pushed} />);
+    expect(screen.queryByRole('button', { name: /pull request/ })).toBeNull();
+  });
+});
+
+describe("a change's thread in the chat", () => {
+  it("puts a teammate's message on the left under their login, and the user's own on the right", () => {
+    render(<ChatMessage id="m1" role="user" content="Also give it a colour" sender={{ login: 'ana', self: false }} />);
+    const own = render(<ChatMessage id="m2" role="user" content="Add a note" sender={{ login: 'jordi', self: true }} />);
+    const [teammate] = screen.getAllByText('Also give it a colour');
+    expect(teammate.closest('.items-start')).not.toBeNull();
+    expect(screen.getByText('@ana')).toBeTruthy();
+    expect(within(own.container).getByText('Add a note').closest('.items-end')).not.toBeNull();
+  });
+
+  it('shows a notice as a centred line for every viewer', () => {
+    render(<ChatMessage id="n1" role="assistant" content="The change was merged; the lab closed it." isNotice />);
+    expect(screen.getByRole('note').textContent).toBe('The change was merged; the lab closed it.');
+  });
+
+  it("passes the run's details to its card: the report and the change's cost", () => {
+    render(
+      <ChatMessage
+        id="m1"
+        role="assistant"
+        content=""
+        specDriven={cardAfterDone(BUILD_PAYLOAD)}
+        labRun={{
+          report: { summary: 'Added the note element.', deviations: [], notDone: ['Docs page'] },
+          cost: { usd: 2.5, turns: 30, elapsedSeconds: 200, runs: 2 },
+          pullRequests: [],
+          noteProposals: [],
+          planVersion: null,
+        }}
+      />,
+    );
+    expect(screen.getByText('Added the note element.')).toBeTruthy();
+    expect(screen.getByText('Docs page')).toBeTruthy();
+    expect(screen.getByText('This change so far: $2.50 over 2 runs')).toBeTruthy();
+  });
+});
+
+describe('the review card in the chat', () => {
+  const REVIEW: LabReviewResponse = {
+    changeId: 'c1',
+    pullRequests: [
+      {
+        repo: 'frontend',
+        number: 41,
+        url: 'https://github.com/o/editor/pull/41',
+        draft: true,
+        headSha: 'a'.repeat(40),
+        state: 'open',
+        pushedSha: 'a'.repeat(40),
+        mergeable: 'mergeable',
+        mergeState: 'clean',
+        reviewDecision: null,
+        checksState: 'failure',
+        checks: [{ name: 'Lint', app: 'github-actions', state: 'failure', url: null, logTail: 'error x', logNote: '' }],
+        reviews: [],
+        comments: [],
+      },
+    ],
+    lifecycle: 'open',
+    closable: false,
+    closableNote: '',
+    nextPollSeconds: 30,
+    fetchedAt: 0,
+  };
+
+  it("renders the change's review status, and its actions go to the surface's handler with the change", async () => {
+    const onAction = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ChatMessage id="r1" role="assistant" content="" labReview={{ changeId: 'c1', review: REVIEW }} onLabReviewAction={onAction} />,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Fix CI/ }));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('c1', { kind: 'fixCi', repo: 'frontend' }));
+    fireEvent.click(screen.getByRole('button', { name: /View changes/ }));
+    await waitFor(() => expect(requestLabView).toHaveBeenCalledWith({ kind: 'changes', changeId: 'c1' }));
+  });
+
+  it('offers no action without a handler', async () => {
+    render(<ChatMessage id="r1" role="assistant" content="" labReview={{ changeId: 'c1', review: REVIEW }} />);
+    expect(await screen.findByRole('button', { name: /View changes/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Fix CI/ })).toBeNull();
   });
 });

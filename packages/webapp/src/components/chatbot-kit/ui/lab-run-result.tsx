@@ -1,7 +1,8 @@
-import React, { useState } from "react"
+import React, { Suspense, useState } from "react"
 import type { TFunction } from "i18next"
 import {
   CheckCircle2,
+  FileDiff,
   GitBranch,
   Github,
   GitPullRequest,
@@ -9,11 +10,11 @@ import {
   HelpCircle,
   Loader2,
   MinusCircle,
-  Settings2,
+  Play,
+  Upload,
   XCircle,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { Link, useInRouterContext, useLocation } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -22,11 +23,46 @@ import { useAppSelector } from "@/main/app/store/hooks"
 import { selectHasLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import type { SpecDrivenLabView } from "@/main/features/spec-driven/types"
 import { ApiError } from "@/main/shared/api/api-client"
+import type { LabBuildReport, LabChangeCost, LabDone, LabNoteProposal, LabPullRequest } from "@/main/shared/api/lab"
+import type { LabViewRequest } from "@/main/shared/services/labSession"
 import { signInWithGitHub } from "@/main/shared/services/github/githubAuth"
 import { describeNetworkError } from "@/main/shared/utils/describeNetworkError"
 
-/** The lab page (`app/application.tsx` route), where changes are parked, resumed and dropped. */
-const LAB_PATH = "/lab"
+// Lab modules load on demand: only the lab build shows lab cards, and the public main chunk stays without them.
+const LabNoteProposals = React.lazy(() =>
+  import("@/main/features/lab/LabNoteProposals").then((module) => ({ default: module.LabNoteProposals })),
+)
+
+let labSession: Promise<typeof import("@/main/shared/services/labSession")> | null = null
+
+/** Asks the change view to show `request` (the Changes tab, the pull-request dialog, Try it). */
+export function showLabView(request: LabViewRequest): void {
+  labSession ??= import("@/main/shared/services/labSession")
+  void labSession.then(({ requestLabView }) => requestLabView(request))
+}
+
+/**
+ * What a run's card shows beyond the run itself, from its `LabDone`: the build report, the change's cost and pull
+ * requests so far, the team notes the agent proposed, and which plan of the change this is (1 for the first).
+ */
+export interface LabRunDetails {
+  report: LabBuildReport | null
+  cost: LabChangeCost
+  pullRequests: LabPullRequest[]
+  noteProposals: LabNoteProposal[]
+  planVersion: number | null
+}
+
+/** A run's details from its `LabDone`; `planVersion` numbers the change's plans (null for a build). */
+export function labRunDetails(lab: LabDone, planVersion: number | null): LabRunDetails {
+  return {
+    report: lab.report,
+    cost: lab.cost,
+    pullRequests: lab.pullRequests,
+    noteProposals: lab.noteProposals,
+    planVersion,
+  }
+}
 
 /** Files listed per repository before "Show all", so a large change does not swamp the card. */
 const FILES_PREVIEW = 8
@@ -55,10 +91,7 @@ const STOP_REASONS: Record<string, string> = {
   cancelled: "It was stopped. What it did so far is in the working copy.",
 }
 
-/**
- * A card handler that acts on the card's change: the server only acts on the active one. An "Open pull
- * request" handler rejects with the failure for the card to show it.
- */
+/** A card handler that acts on the card's change. A "Push to the pull requests" handler rejects with the failure for the card to show it. */
 export type LabChangeAction = (changeId: string) => void | Promise<void>
 
 const isStopped = (lab: SpecDrivenLabView): boolean => lab.stopReason !== "" && lab.stopReason !== "completed"
@@ -114,7 +147,8 @@ export function labRunTitle(t: TFunction, lab: SpecDrivenLabView): string {
   return t("lab.runCard.titleBuilt", { defaultValue: "Change built" })
 }
 
-function repoName(t: TFunction, repo: string): string {
+/** A repository key (`besser`, `frontend`, `modeling_agent`) in words. */
+export function labRepoName(t: TFunction, repo: string): string {
   return repo in REPO_NAMES ? t(`lab.repos.${repo}`, { defaultValue: REPO_NAMES[repo] }) : repo
 }
 
@@ -148,20 +182,23 @@ function BuildPlanButton({ changeId, onBuildPlan }: { changeId: string; onBuildP
   )
 }
 
-/**
- * The change the card belongs to, and a link to the lab page to park, resume or drop it: a new request
- * may go into the open change. The link is left out on the lab page itself and outside a router.
- */
-function ChangeRow({ lab, showLink }: { lab: SpecDrivenLabView; showLink: boolean }) {
+/** The change the card belongs to: its title, kind and branch, and which plan of the change a revised plan is. */
+function ChangeRow({ lab, planVersion }: { lab: SpecDrivenLabView; planVersion: number | null }) {
   const { t } = useTranslation()
   const branch = labChangeBranch(lab.repoChanges)
-  if (!lab.title && !branch && !showLink) return null
+  const revised = lab.step === "plan" && planVersion !== null && planVersion > 1
+  if (!lab.title && !branch && !revised) return null
   return (
     <p className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-1.5 text-xs text-foreground">
       {lab.title ? <span className="font-medium">{lab.title}</span> : null}
       {lab.title && lab.kind ? (
         <span className="rounded border border-border/60 px-1.5 text-[11px] text-muted-foreground">
           {t(`lab.kinds.${lab.kind}`, { defaultValue: lab.kind.replace("_", " ") })}
+        </span>
+      ) : null}
+      {revised ? (
+        <span className="rounded border border-primary/40 px-1.5 text-[11px] font-medium text-primary">
+          {t("lab.runCard.planVersion", { defaultValue: "Plan v{{version}}", version: planVersion })}
         </span>
       ) : null}
       {branch ? (
@@ -173,22 +210,8 @@ function ChangeRow({ lab, showLink }: { lab: SpecDrivenLabView; showLink: boolea
           <span className="truncate">{branch}</span>
         </span>
       ) : null}
-      {showLink ? (
-        <Link
-          to={LAB_PATH}
-          className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          <Settings2 className="h-3 w-3" aria-hidden />
-          {t("lab.runCard.manageChanges", { defaultValue: "Manage changes" })}
-        </Link>
-      ) : null}
     </p>
   )
-}
-
-function RoutedChangeRow({ lab }: { lab: SpecDrivenLabView }) {
-  const { pathname } = useLocation()
-  return <ChangeRow lab={lab} showLink={pathname !== LAB_PATH} />
 }
 
 function PlanView({ lab, onBuildPlan }: { lab: SpecDrivenLabView; onBuildPlan?: LabChangeAction }) {
@@ -258,7 +281,7 @@ function RepoFiles({ change }: { change: SpecDrivenLabView["repoChanges"][number
   return (
     <div>
       <p className="flex flex-wrap items-center gap-x-1.5 font-medium text-foreground">
-        {repoName(t, change.repo)}
+        {labRepoName(t, change.repo)}
         {change.branch ? (
           <span className="inline-flex min-w-0 items-center gap-1 font-mono font-normal text-muted-foreground">
             <GitBranch className="h-3 w-3 shrink-0" />
@@ -317,7 +340,7 @@ function CheckRow({ check }: { check: SpecDrivenLabView["checks"][number] }) {
       <Icon className={cn("mt-px h-3.5 w-3.5 shrink-0", tone)} aria-label={verdict} role="img" />
       <div className="min-w-0">
         <span className="text-foreground">{check.title}</span>
-        {check.repo ? <span className="text-muted-foreground"> · {repoName(t, check.repo)}</span> : null}
+        {check.repo ? <span className="text-muted-foreground"> · {labRepoName(t, check.repo)}</span> : null}
         {seconds !== null ? (
           <span
             className="font-mono tabular-nums text-muted-foreground"
@@ -379,11 +402,19 @@ export function LabPullRequestFailure({ error, className }: { error: unknown; cl
   )
 }
 
-function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenPullRequest?: LabChangeAction }) {
+function BuildView({
+  lab,
+  details,
+  onOpenPullRequest,
+}: {
+  lab: SpecDrivenLabView
+  details?: LabRunDetails
+  onOpenPullRequest?: LabChangeAction
+}) {
   const { t } = useTranslation()
   // A failure stays on the card until the next attempt; a surface that rejects puts it here.
   const [failure, setFailure] = useState<{ error: unknown } | null>(null)
-  // Pending until the handler settles, so a second click cannot push and open the pull requests twice.
+  // Pending until the handler settles, so a second click cannot push twice.
   const [opening, openPullRequest] = usePending(
     onOpenPullRequest &&
       (async () => {
@@ -400,10 +431,14 @@ function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenP
   const checklistTitle = t("lab.runCard.checklistRegion", { defaultValue: "Checklist" })
   const accountTitle = t("lab.runCard.agentAccount", { defaultValue: "In the lab agent's words" })
   const changed = lab.repoChanges.filter((change) => change.files.length > 0)
+  // Once the change has pull requests, a later build is pushed to them; the first ones open from the dialog.
+  const pushed = (details?.pullRequests.length ?? 0) > 0
 
   return (
     <>
-      {lab.finalText?.trim() ? (
+      {details?.report ? (
+        <BuildReport report={details.report} />
+      ) : lab.finalText?.trim() ? (
         <section aria-label={accountTitle} className={SECTION}>
           <p className="font-medium text-foreground">{accountTitle}</p>
           <div className="break-words text-xs text-foreground">
@@ -441,14 +476,48 @@ function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenP
           </ul>
         </section>
       ) : null}
-      {onOpenPullRequest && changed.length > 0 ? (
+      {details && details.noteProposals.length > 0 ? (
+        <Suspense fallback={null}>
+          <LabNoteProposals changeId={lab.changeId} proposals={details.noteProposals} />
+        </Suspense>
+      ) : null}
+      {changed.length > 0 ? (
         <div className="space-y-2 border-t border-border/60 px-3 py-2 text-[11px]">
           {failure ? <LabPullRequestFailure error={failure.error} /> : null}
-          <div className="flex justify-end">
-            <Button type="button" size="xs" onClick={() => void openPullRequest()} disabled={opening}>
-              {opening ? <Loader2 className="animate-spin" /> : <GitPullRequest />}
-              {t("lab.runCard.openPullRequest", { defaultValue: "Open pull request" })}
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={() => showLabView({ kind: "changes", changeId: lab.changeId })}
+            >
+              <FileDiff />
+              {t("lab.runCard.viewChanges", { defaultValue: "View changes" })}
             </Button>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              onClick={() => showLabView({ kind: "tryIt", changeId: lab.changeId })}
+            >
+              <Play />
+              {t("lab.runCard.tryIt", { defaultValue: "Try it" })}
+            </Button>
+            {onOpenPullRequest && pushed ? (
+              <Button type="button" size="xs" onClick={() => void openPullRequest()} disabled={opening}>
+                {opening ? <Loader2 className="animate-spin" /> : <Upload />}
+                {t("lab.runCard.pushPullRequests", { defaultValue: "Push to the pull requests" })}
+              </Button>
+            ) : onOpenPullRequest ? (
+              <Button
+                type="button"
+                size="xs"
+                onClick={() => showLabView({ kind: "pullRequest", changeId: lab.changeId })}
+              >
+                <GitPullRequest />
+                {t("lab.runCard.openPullRequest", { defaultValue: "Open pull request" })}
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -456,28 +525,82 @@ function BuildView({ lab, onOpenPullRequest }: { lab: SpecDrivenLabView; onOpenP
   )
 }
 
+/** The agent's account of a build (`submit_build_report`): what changed, how it departed from the plan, what is left. */
+function BuildReport({ report }: { report: LabBuildReport }) {
+  const { t } = useTranslation()
+  const title = t("lab.runCard.agentAccount", { defaultValue: "In the lab agent's words" })
+  const list = (heading: string, items: string[]) =>
+    items.length > 0 ? (
+      <div>
+        <p className="font-medium text-foreground">{heading}</p>
+        <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-foreground">
+          {items.map((item, i) => (
+            <li key={i}>
+              <MarkdownRenderer>{item}</MarkdownRenderer>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+  return (
+    <section aria-label={title} className={SECTION}>
+      <p className="font-medium text-foreground">{title}</p>
+      {report.summary.trim() ? (
+        <div className="break-words text-xs text-foreground">
+          <MarkdownRenderer>{report.summary.trim()}</MarkdownRenderer>
+        </div>
+      ) : null}
+      {list(t("lab.runCard.deviations", { defaultValue: "Departures from the plan" }), report.deviations)}
+      {list(t("lab.runCard.notDone", { defaultValue: "Not done" }), report.notDone)}
+    </section>
+  )
+}
+
+/** "$1.82": an amount in US dollars, in the UI's number format. */
+function formatUsd(usd: number, language: string): string {
+  return new Intl.NumberFormat(language, { style: "currency", currency: "USD" }).format(usd)
+}
+
+/** What the change has cost so far, over how many runs. */
+function ChangeCost({ cost }: { cost: LabChangeCost }) {
+  const { t, i18n } = useTranslation()
+  if (cost.runs === 0) return null
+  return (
+    <p className="border-t border-border/60 px-3 py-1.5 text-[11px] tabular-nums text-muted-foreground">
+      {t("lab.runCard.changeCost", {
+        defaultValue: "This change so far: {{usd}} over {{count}} runs",
+        defaultValue_one: "This change so far: {{usd}} over 1 run",
+        usd: formatUsd(cost.usd, i18n.language),
+        count: cost.runs,
+      })}
+    </p>
+  )
+}
+
 /**
- * What a finished BESSER Lab run produced: the plan, or the change with the
- * agent's own account, its files per repository, the repositories' checks and the change kind's
- * checklist, and why the run stopped early, under the change it belongs to and
- * a link to the lab page. "Build this plan" shows on a plan
- * when the surface supplies `onBuildPlan`; "Open pull request" only when the
- * build changed files and the surface supplies `onOpenPullRequest`.
+ * What a finished BESSER Lab run produced: the plan (with its version once revised), or the change with the
+ * agent's account, its files per repository, the repositories' checks and the change kind's checklist, the team
+ * notes it proposes, and why the run stopped early; then the change's cost. "Build this plan" shows on a plan when
+ * the surface supplies `onBuildPlan`. A build with changed files offers "View changes" and "Try it", and, when the
+ * surface supplies `onOpenPullRequest`, "Open pull request" (the change view's dialog) or, once the change has pull
+ * requests, "Push to the pull requests" (the handler). Cards reach the change view only through `requestLabView`.
  */
 export function LabRunResult({
   lab,
+  details,
   onOpenPullRequest,
   onBuildPlan,
 }: {
   lab: SpecDrivenLabView
+  /** Absent on a card saved before the server sent them. */
+  details?: LabRunDetails
   onOpenPullRequest?: LabChangeAction
   onBuildPlan?: LabChangeAction
 }) {
   const { t } = useTranslation()
-  const inRouter = useInRouterContext()
   return (
     <>
-      {inRouter ? <RoutedChangeRow lab={lab} /> : <ChangeRow lab={lab} showLink={false} />}
+      <ChangeRow lab={lab} planVersion={details?.planVersion ?? null} />
       {isStopped(lab) ? (
         <p role="status" className="border-t border-border/60 px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400">
           {t(`lab.stopReasons.${lab.stopReason}`, { defaultValue: STOP_REASONS[lab.stopReason] ?? lab.stopReason })}
@@ -486,8 +609,9 @@ export function LabRunResult({
       {lab.step === "plan" ? (
         <PlanView lab={lab} onBuildPlan={onBuildPlan} />
       ) : (
-        <BuildView lab={lab} onOpenPullRequest={onOpenPullRequest} />
+        <BuildView lab={lab} details={details} onOpenPullRequest={onOpenPullRequest} />
       )}
+      {details ? <ChangeCost cost={details.cost} /> : null}
     </>
   )
 }

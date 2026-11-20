@@ -149,8 +149,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     handleSubmit,
     generateAgain,
     latestRunId,
-    openPullRequest,
-    buildLabPlan,
     sendVoiceMessage,
     stopGenerating,
     reportIssue,
@@ -232,21 +230,16 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     // the status badge is added only when the message has one.
     // Opening the push dialog is a pure dispatch — it's mounted
     // app-level (SpecDrivenPushDialogHost) and Redux-driven.
-    const latest = message.specDriven?.runId === latestRunId;
-    const onGenerateAgain = latest ? generateAgain : undefined;
-    // Only the latest card's plan is the one to build.
-    const onBuildPlan = latest ? buildLabPlan : undefined;
+    const onGenerateAgain = message.specDriven?.runId === latestRunId ? generateAgain : undefined;
     if (!meta?.badge) {
-      return { onPushToGithub: handlePushToGithub, onGenerateAgain, onOpenPullRequest: openPullRequest, onBuildPlan };
+      return { onPushToGithub: handlePushToGithub, onGenerateAgain };
     }
     return {
       onPushToGithub: handlePushToGithub,
       onGenerateAgain,
-      onOpenPullRequest: openPullRequest,
-      onBuildPlan,
       status: <MessageBadge badge={meta.badge} label={meta.badgeLabel} />,
     };
-  }, [messageMeta, handlePushToGithub, generateAgain, latestRunId, openPullRequest, buildLabPlan]);
+  }, [messageMeta, handlePushToGithub, generateAgain, latestRunId]);
 
   /* ---- Compute last assistant message for QuickActions ---- */
   const lastAssistantMsg = messages.length > 0

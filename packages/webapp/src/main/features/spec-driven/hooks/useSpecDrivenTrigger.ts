@@ -64,9 +64,11 @@ import { track, type SpecRunStopReason, type SpecRunTier } from '../../../shared
 import { catalogModelIds, runProperties, trackRunFinished, type RunAnalytics, type RunFinishDetails } from '../runAnalytics';
 
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
+import { labRunDetails } from '@/components/chatbot-kit/ui/lab-run-result';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenRun, wasSpecDrivenRunCancelAccepted } from '../../../shared/api/specDriven';
-import { getLabState, startLabRun, type LabAction, type LabDone } from '../../../shared/api/lab';
+import type { LabAction, LabDone, LabIssueRef, LabReviewTask } from '../../../shared/api/lab';
+import { LAB_BUILD } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { isTraceabilityEnabled, projectRequirements, traceActorName } from '../../../shared/traceability/traceStore';
@@ -163,15 +165,18 @@ type RunKind = 'spec' | 'lab';
 const labLine = (key: string, defaultValue: string, values: Record<string, unknown> = {}): string =>
   i18n.t(`lab.chat.${key}`, { defaultValue, ...values });
 
-/** Why the lab refused a run before it started: the status, and the server's `detail` where it says more. */
-function labRefusal(error: SseHttpError): string {
-  let detail = '';
-  try {
-    const parsed: unknown = JSON.parse(error.body);
-    if (parsed && typeof (parsed as { detail?: unknown }).detail === 'string') detail = (parsed as { detail: string }).detail;
-  } catch {
-    // Not a JSON body: the status alone explains it.
-  }
+/** The lab's API, loaded on demand: only the lab build sends lab runs, so public builds never fetch it. */
+let labApi: Promise<typeof import('../../../shared/api/lab')> | null = null;
+const loadLabApi = () => (labApi ??= import('../../../shared/api/lab'));
+
+/**
+ * Why the lab refused a run before it started: a lab refusal (`{detail: {code, message}}`, e.g. `change_busy`
+ * naming who runs the change) in the server's words; otherwise the status, with the server's text where it says more.
+ */
+async function labRefusalLine(error: SseHttpError): Promise<string> {
+  const refusal = (await loadLabApi()).labRefusal(error);
+  if (refusal.code !== 'unknown') return refusal.message;
+  const detail = refusal.message;
   switch (error.status) {
     case 401:
       return labLine('refused.sessionExpired', 'Your GitHub session has expired. Sign in again, then send your message again.');
@@ -183,11 +188,9 @@ function labRefusal(error: SseHttpError): string {
         'BESSER Lab is busy with another run or change action. Send your message again when it has finished.',
       );
     case 503:
-      return labLine('refused.unavailable', 'BESSER Lab is not available on this server: {{detail}}', {
-        detail: detail || error.message,
-      });
+      return labLine('refused.unavailable', 'BESSER Lab is not available on this server: {{detail}}', { detail });
     default:
-      return detail || error.message;
+      return detail;
   }
 }
 
@@ -369,8 +372,20 @@ export interface LabMessageParams {
   /** The session of the signed-in GitHub user (`X-GitHub-Session`). */
   githubSession: string;
   action?: LabAction;
-  /** The change the message continues (the conversation's latest lab card), if any. */
-  changeId?: string;
+  /** The change the message goes to: the one open in the tab. */
+  changeId: string;
+  /** A task on the change's pull requests (fix CI, address comments, resolve conflicts); it forces a build. */
+  review?: LabReviewTask;
+  /** The GitHub issue the change starts from. */
+  issue?: LabIssueRef;
+}
+
+/** A lab run in progress to follow in the chat (its change's thread names it). */
+export interface LabRunToFollow {
+  runId: string;
+  /** Milliseconds since the epoch. */
+  startedAt: number;
+  githubSession: string;
 }
 
 export interface UseSpecDrivenTriggerReturn {
@@ -381,7 +396,14 @@ export interface UseSpecDrivenTriggerReturn {
    * dialog, the run-mode decision or the report to the modeling agent.
    */
   handleLabMessage: (params: LabMessageParams) => Promise<void>;
+  /** Follow a lab run in progress through its durable event log: a live card that ends as the run does. */
+  followLabRun: (run: LabRunToFollow) => Promise<void>;
   abortActive: () => void;
+  /**
+   * Stop following the run in progress here without stopping it on the server, and drop its live card: the lab's
+   * open change changed, and the run goes on for its own change's chat.
+   */
+  detachActive: () => void;
 }
 
 export function useSpecDrivenTrigger(
@@ -403,6 +425,8 @@ export function useSpecDrivenTrigger(
   const abortRequestedRef = useRef(false);
   /** The current lab run's session for the run routes (`labRunHeaders`); null for any other run. */
   const labSessionRef = useRef<string | null>(null);
+  /** Set by `detachActive`: the stream was closed here, the run goes on; nothing is said about it in this chat. */
+  const detachedRef = useRef(false);
 
   // Timeout handle for the COST_CAP/TIMEOUT failsafe. Cleared when
   // the `done` event finally arrives, or when the stream finishes
@@ -775,7 +799,24 @@ export function useSpecDrivenTrigger(
             // The card shows the plan or the build; there is no download and no app to announce.
             clearActiveSpecDrivenRun(event.runId || currentRunIdRef.current);
             finalizeLiveRun(run.liveKey, run.streamingId, { finishedAt: Date.now() });
-            if (event.lab) await applyLabDone(event.lab, run.labSentModel);
+            if (event.lab) {
+              const lab = event.lab;
+              setMessages((prev) => {
+                // The change's plans so far, as its thread numbers them (first plan 1).
+                const planVersion =
+                  lab.step === 'plan'
+                    ? 1 +
+                      prev.filter(
+                        (m) =>
+                          m.id !== run.streamingId &&
+                          m.specDriven?.lab?.step === 'plan' &&
+                          m.specDriven.lab.changeId === lab.changeId,
+                      ).length
+                    : null;
+                return prev.map((m) => (m.id === run.streamingId ? { ...m, labRun: labRunDetails(lab, planVersion) } : m));
+              });
+              await applyLabDone(lab, run.labSentModel);
+            }
             return;
           }
           const doneRunId =
@@ -1047,6 +1088,7 @@ export function useSpecDrivenTrigger(
       ensureCardMessage,
       finalizeLiveRun,
       reportRunFinished,
+      setMessages,
     ],
   );
 
@@ -1093,6 +1135,7 @@ export function useSpecDrivenTrigger(
 
       isRunningRef.current = true;
       abortRequestedRef.current = false;
+      detachedRef.current = false;
       // A lab run reports to nobody, reattached or not.
       runFinishedReportedRef.current = isLab;
       currentRunIdRef.current = target.runId;
@@ -1218,6 +1261,8 @@ export function useSpecDrivenTrigger(
   // backend worker continues independently: follow the run the saved
   // pointer names. The pointer is shared by every tab (see `followRun`).
   useEffect(() => {
+    // The lab follows a run from its change's thread instead (`followLabRun`).
+    if (LAB_BUILD) return;
     const saved = readActiveSpecDrivenRun(recoveryProjectId);
     if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
     if (isRunningRef.current) return;
@@ -1255,6 +1300,7 @@ export function useSpecDrivenTrigger(
 
       isRunningRef.current = true;
       abortRequestedRef.current = false;
+      detachedRef.current = false;
       // A lab run reports to nobody: no run analytics, no finish notice and
       // no `generator_result` to the modeling agent.
       runFinishedReportedRef.current = opts.kind === 'lab';
@@ -1364,6 +1410,8 @@ export function useSpecDrivenTrigger(
           err instanceof DOMException && err.name === 'AbortError';
         if (isLab && !abortRequestedRef.current && cutByUnload(err)) {
           leftToReload = true;
+        } else if (detachedRef.current) {
+          // Detached: the run goes on for its own change's chat.
         } else if (isAbort) {
           finalizeLiveRun(liveKey, streamingId);
           appendAssistantMessage(
@@ -1387,7 +1435,7 @@ export function useSpecDrivenTrigger(
           // inside `handleSseEvent`, so `.slice` would type as `never`.
           const stallRunId = currentRunIdRef.current as string | undefined;
           // A lab request the server refused (busy, signed out, not allowed) says why, not a status code.
-          const refusal = isLab && err instanceof SseHttpError ? labRefusal(err) : null;
+          const refusal = isLab && err instanceof SseHttpError ? await labRefusalLine(err) : null;
           const msg = refusal
             ? refusal
             : isLab && isStall
@@ -1801,21 +1849,29 @@ export function useSpecDrivenTrigger(
     ],
   );
 
+  /** BESSER Lab: follow a run in progress of the open change, as its thread names it. */
+  const followLabRun = useCallback(
+    ({ runId, startedAt, githubSession }: LabRunToFollow): Promise<void> =>
+      followRun({ runId, startedAt, githubSession, kind: 'lab', projectId: currentProjectRef.current?.id ?? '' }),
+    [currentProjectRef, followRun],
+  );
+
   /**
-   * BESSER Lab: run one step (plan or build) for the user's message. The
-   * request carries the class diagram the lab proposed for `changeId` (pending
-   * or kept), which a build step reads as the model of the extension; never
-   * another diagram of the project.
+   * BESSER Lab: run one step (plan or build) of change `changeId` for the user's
+   * message. The request carries the class diagram the lab proposed for the
+   * change (pending or kept), which a build step reads as the model of the
+   * extension; never another diagram of the project.
    */
   const handleLabMessage = useCallback(
-    async ({ message, githubSession, action, changeId }: LabMessageParams) => {
+    async ({ message, githubSession, action, changeId, review, issue }: LabMessageParams) => {
       const project = currentProjectRef.current;
       let projectPayload: Record<string, unknown> | null = null;
-      if (project && changeId) {
+      if (project) {
         // Loaded on demand like `applyLabDone`: only a BESSER Lab instance needs the lab feature.
         const { labChangeModelPayload } = await import('../../lab');
         projectPayload = labChangeModelPayload(project, changeId);
       }
+      const labApi = await loadLabApi();
       if (isRunningRef.current || !dispatch(tryClaimRunSlot())) {
         appendErrorToChat(
           labLine('alreadyRunning', 'BESSER Lab is already running — please wait for it to finish or click Stop.'),
@@ -1839,13 +1895,14 @@ export function useSpecDrivenTrigger(
       await driveRun(
         run,
         () => {
-          // The server requires the change; W4-D sends the open change's id.
-          const handle = startLabRun<SpecDrivenEvent>({
+          const handle = labApi.startLabRun<SpecDrivenEvent>({
             message,
             action,
             project: projectPayload,
             githubSession,
-            changeId: changeId ?? '',
+            changeId,
+            review,
+            issue,
           });
           return {
             ...handle,
@@ -1859,9 +1916,14 @@ export function useSpecDrivenTrigger(
         },
       );
       if (!busy) return;
-      // Refused because a run is in progress (one this tab lost on a reload elsewhere, or another
-      // tab's): follow it here, so its result and its Stop are in this chat.
-      const inProgress = (await getLabState(githubSession).catch(() => null))?.run;
+      // Refused because the change has a run in progress (a teammate's, or one this tab lost on a reload
+      // elsewhere): follow it here, so its result and its Stop are in this chat.
+      let inProgress: Awaited<ReturnType<typeof labApi.getLabChange>>['run'] = null;
+      try {
+        inProgress = (await labApi.getLabChange(githubSession, changeId)).run;
+      } catch (error) {
+        console.warn(`[useSpecDrivenTrigger] the run in progress on change ${changeId} could not be read`, error);
+      }
       if (inProgress) {
         await followRun({
           runId: inProgress.runId,
@@ -1989,9 +2051,27 @@ export function useSpecDrivenTrigger(
     }
   }, [cancelRunOnServer, clearFailsafeTimer, dispatch, finalizeLiveRun, reportRunFinished, setIsGenerating]);
 
+  const detachActive = useCallback(() => {
+    if (!isRunningRef.current) return;
+    detachedRef.current = true;
+    abortRequestedRef.current = true;
+    clearFailsafeTimer();
+    // The card goes with the conversation it was in; the run's own chat shows it again from the thread.
+    if (activeCardRef.current) {
+      dispatch(liveRunEnded({ key: activeCardRef.current.liveKey }));
+      activeCardRef.current = null;
+    }
+    try {
+      abortRef.current?.();
+    } catch {
+      /* the stream is closing anyway */
+    }
+    abortRef.current = null;
+  }, [clearFailsafeTimer, dispatch]);
+
   // Wire up the internal ref so the failsafe timer callback can
   // invoke the same abort logic without circular deps.
   abortActiveInternalRef.current = abortActive;
 
-  return { handleTrigger, handleLabMessage, abortActive };
+  return { handleTrigger, handleLabMessage, followLabRun, abortActive, detachActive };
 }

@@ -26,7 +26,11 @@ import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { getSpecDrivenConfig } from '../../../shared/services/specDrivenConfig';
 import { toast } from 'react-toastify';
 import { reportError } from '../../../shared/services/errors/reportError';
-import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
+import type {
+  LabReviewAction,
+  LabReviewActionHandler,
+  Message as ChatKitMessage,
+} from '@/components/chatbot-kit/ui/chat-message';
 import { errorProperties, track } from '../../../shared/services/analytics/events';
 import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { markMessageSent, takeReplyLatency } from './replyLatency';
@@ -111,10 +115,17 @@ import {
   githubRepoContext,
 } from '../../../shared/services/github/continueFromGithub';
 import { appVersion } from '../../../shared/constants/application-constants';
-import { getGitHubSession } from '../../../shared/services/github/githubAuth';
-import { openLabPullRequests, type LabAction } from '../../../shared/api/lab';
-import { useLabMode } from '../../../shared/hooks/useLabMode';
-import { getLabEnabled, isLabConfigKnown, resolveLabEnabled } from '../../../shared/services/labConfig';
+import { getGitHubAuthState, getGitHubSession, subscribeGitHubAuth } from '../../../shared/services/github/githubAuth';
+import type {
+  LabAction,
+  LabChangeDetail,
+  LabRepoKey,
+  LabReviewResponse,
+  LabReviewTask,
+} from '../../../shared/api/lab';
+import { LAB_BUILD } from '../../../shared/constants/constant';
+// eslint-disable-next-line no-restricted-imports -- not in lab/index.ts: selected only when LAB_BUILD (below), so a public build drops it
+import { useLabReview } from '../../lab/useLabReview';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
@@ -239,12 +250,14 @@ export interface UseAssistantLogicReturn {
   /** Run id of the conversation's latest run card. */
   latestRunId: string | undefined;
   /**
-   * BESSER Lab: push change `changeId`, open its draft pull requests and post their links in the chat;
-   * says so instead when it is not the active change.
+   * BESSER Lab: push change `changeId` to its pull requests (a build card's "Push to the pull requests"); the chat
+   * then shows them from the change's thread. Rejects with the failure, for the card to show it.
    */
   openPullRequest: (changeId: string) => Promise<void>;
   /** BESSER Lab: build the plan of change `changeId` (a plan card's "Build this plan"). */
   buildLabPlan: (changeId: string) => void;
+  /** BESSER Lab: a review card's actions (fix CI, address comments, resolve conflicts, update, close). */
+  handleLabReviewAction: LabReviewActionHandler;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
@@ -365,12 +378,29 @@ const onSpecDrivenKeyCancelled = () => {
 };
 let keyCancelledSubscribers = 0;
 
-/** Repository keys of the lab (`REPO_ORDER` in the lab contracts) as the chat names them. */
-const LAB_REPO_NAMES: Record<string, string> = {
-  besser: 'BESSER',
-  frontend: 'Web editor',
-  modeling_agent: 'Modeling agent',
+// BESSER Lab modules, loaded on demand: only the lab build (LAB_BUILD) reaches them, so a public build never
+// fetches them and its main chunk holds none of them.
+/** `load` run once: every caller shares the one module promise. */
+const once = <T>(load: () => Promise<T>): (() => Promise<T>) => {
+  let loaded: Promise<T> | null = null;
+  return () => (loaded ??= load());
 };
+const loadLabApi = once(() => import('../../../shared/api/lab'));
+const loadLabSession = once(() => import('../../../shared/services/labSession'));
+// Not in lab/index.ts: only the lab build loads it.
+const loadLabThread = once(() => import('../../lab/labThread'));
+
+const NO_REVIEW = { review: null, error: null };
+/** The open change's review polling: `useLabReview` in the lab build, nothing at all in a public build. */
+const useOpenChangeReview: typeof useLabReview = LAB_BUILD ? useLabReview : () => NO_REVIEW;
+
+const LAB_REPO_KEYS: readonly string[] = ['besser', 'frontend', 'modeling_agent'] satisfies LabRepoKey[];
+
+/** `repo` as the lab routes take it; the review status names repositories by the same keys. */
+function labRepoKey(repo: string): LabRepoKey {
+  if (!LAB_REPO_KEYS.includes(repo)) throw new Error(`Not a lab repository: ${repo}`);
+  return repo as LabRepoKey;
+}
 
 /** What the conversation's latest lab run card produced: the step a typed reply continues. */
 const latestLabResult = (messages: ChatKitMessage[]) => {
@@ -448,8 +478,9 @@ export function useAssistantLogic({
   const hasActiveSpecRun = useAppSelector(
     (s) => s.specDriven.runStatus === 'running' || selectHasLiveSpecDrivenRun(s),
   );
-  // On a BESSER Lab instance the chat talks to the lab agent, not the modeling agent.
-  const labMode = useLabMode();
+  // BESSER Lab (the lab build): the chat is the open change's thread and talks to the lab agent.
+  const [openLabChange, setOpenLabChangeState] = useState<string | null>(null);
+  const githubSession = useSyncExternalStore(subscribeGitHubAuth, getGitHubSession);
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
@@ -1496,11 +1527,68 @@ export function useAssistantLogic({
     [setMessages, t],
   );
 
+  // BESSER Lab: the change the conversation shows, and the change of the run this tab follows.
+  const labConversationChangeRef = useRef<string | null>(null);
+  const labRunChangeRef = useRef<string | null>(null);
+
+  /** Shows change `changeId`'s conversation: when it showed another change, it is emptied first. */
+  const showLabChange = (changeId: string | null) => {
+    if (labConversationChangeRef.current === changeId) return;
+    labConversationChangeRef.current = changeId;
+    setMessages([]);
+    setMessageMeta({});
+  };
+
   /**
-   * BESSER Lab: the user's text goes to the lab agent as one run, or a sign-in prompt answers it.
-   * Typed after a plan card, it revises that plan (`plan`); building it is the card's button.
+   * Reads change `changeId`'s thread and shows it, with what this tab added that the thread does not hold yet.
+   * Returns the change, or null when it could not be read (the chat says why) or another change opened meanwhile.
    */
-  const sendToLab = (message: string, explicit?: { action: LabAction; changeId: string }) => {
+  const reloadLabThread = async (changeId: string): Promise<LabChangeDetail | null> => {
+    const session = getGitHubSession();
+    if (!session) {
+      labSignInPrompt();
+      return null;
+    }
+    const [{ getLabChange, labRefusal }, thread] = await Promise.all([loadLabApi(), loadLabThread()]);
+    try {
+      const detail = await getLabChange(session, changeId);
+      if (labConversationChangeRef.current !== changeId) return null;
+      const fromThread = thread.threadToMessages(detail.thread, getGitHubAuthState().username);
+      setMessages((prev) => thread.mergeThreadMessages(fromThread, prev));
+      return detail;
+    } catch (error) {
+      console.warn(`[useAssistantLogic] the thread of change ${changeId} could not be read`, error);
+      if (labConversationChangeRef.current === changeId) {
+        const line = t('lab.chat.threadFailed', {
+          defaultValue: "This change's conversation could not be read: {{reason}}",
+          reason: labRefusal(error).message,
+        });
+        setMessages((prev) => [...prev, toKitMessage('assistant', line, { isError: true })]);
+      }
+      return null;
+    }
+  };
+
+  /** Closes change `changeId` (its pull requests merged or closed); the server writes the notice into its thread. */
+  const closeLabChangeNow = async (changeId: string): Promise<void> => {
+    const session = getGitHubSession();
+    if (!session) throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.' }));
+    const { closeLabChange } = await loadLabApi();
+    await closeLabChange(session, changeId);
+    await reloadLabThread(changeId);
+  };
+  const labActionsRef = useRef({ reloadLabThread, closeLabChangeNow });
+  labActionsRef.current = { reloadLabThread, closeLabChangeNow };
+
+  /**
+   * BESSER Lab: the user's text goes to the open change (or the one `explicit` names) as one run, or the chat
+   * answers why it cannot: no change is open, or no one is signed in. Typed after a plan card, it revises that plan
+   * (`plan`); building it is the card's button.
+   */
+  const sendToLab = async (
+    message: string,
+    explicit?: { action?: LabAction; changeId?: string; review?: LabReviewTask },
+  ): Promise<void> => {
     const state = store.getState();
     if (state.specDriven.runStatus !== 'idle' || selectHasLiveSpecDrivenRun(state)) {
       // Refused before the message is shown or the composer cleared: the text stays to send later.
@@ -1511,24 +1599,99 @@ export function useAssistantLogic({
       );
       return;
     }
+    const changeId = explicit?.changeId ?? (await loadLabSession()).getOpenLabChange();
+    if (changeId) showLabChange(changeId);
     const latest = latestLabResult(conversationStore.getMessages());
     const action = explicit?.action ?? (latest?.step === 'plan' ? 'plan' : 'auto');
-    const changeId = explicit?.changeId ?? latest?.changeId;
     setMessages((prev) => [...prev, toKitMessage('user', message)]);
     setInputValue('');
     setLastSentMessage(message);
+    if (!changeId) {
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage('assistant', t('lab.chat.noOpenChange', { defaultValue: 'Open a change or start a new one first.' })),
+      ]);
+      return;
+    }
     const githubSession = getGitHubSession();
     if (!githubSession) {
       labSignInPrompt();
       return;
     }
+    labRunChangeRef.current = changeId;
     // Fire-and-forget like a Spec-Driven run: the hook owns the run's lifecycle and its errors.
-    specDriven.handleLabMessage({ message, githubSession, action, changeId: changeId || undefined }).catch((err) => {
-      console.error('[useAssistantLogic] specDriven.handleLabMessage rejected', err);
-    });
+    specDriven
+      .handleLabMessage({ message, githubSession, action, changeId, review: explicit?.review })
+      .catch((err) => {
+        console.error('[useAssistantLogic] specDriven.handleLabMessage rejected', err);
+      });
   };
   const sendToLabRef = useRef(sendToLab);
   sendToLabRef.current = sendToLab;
+
+  // BESSER Lab: the change open in this tab (the one in the URL), from the lab session.
+  useEffect(() => {
+    if (!LAB_BUILD) return undefined;
+    let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
+    void loadLabSession().then(({ getOpenLabChange, subscribeOpenLabChange }) => {
+      if (cancelled) return;
+      setOpenLabChangeState(getOpenLabChange());
+      unsubscribe = subscribeOpenLabChange(setOpenLabChangeState);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, []);
+
+  // Another change opened: the conversation becomes its thread, and a run of it in progress is followed here.
+  useEffect(() => {
+    if (!LAB_BUILD) return;
+    // A run of the change left behind goes on; that change's chat follows it again from its thread.
+    if (labRunChangeRef.current !== openLabChange) specDriven.detachActive();
+    showLabChange(openLabChange);
+    if (!openLabChange) return;
+    const changeId = openLabChange;
+    void (async () => {
+      const detail = await labActionsRef.current.reloadLabThread(changeId);
+      const session = getGitHubSession();
+      if (!detail || !session) return;
+      const running = (await loadLabThread()).labRunInProgress(detail.thread);
+      if (!running || labConversationChangeRef.current !== changeId) return;
+      labRunChangeRef.current = changeId;
+      await specDriven.followLabRun({ runId: running.runId, startedAt: running.startedAt, githubSession: session });
+    })();
+    // `specDriven` and `showLabChange` change every render; the open change alone decides.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openLabChange]);
+
+  // BESSER Lab: what is new on the open change's pull requests becomes a review card in the chat; a change whose
+  // pull requests all merged closes itself.
+  const labAutoClosedRef = useRef(new Set<string>());
+  const onLabReviewUpdate = useCallback(
+    (review: LabReviewResponse) => {
+      if (review.changeId !== labConversationChangeRef.current) return;
+      setMessages((prev) => [
+        ...prev,
+        { ...toKitMessage('assistant', ''), labReview: { changeId: review.changeId, review } },
+      ]);
+      if (review.lifecycle !== 'merged' || !review.closable || labAutoClosedRef.current.has(review.changeId)) return;
+      labAutoClosedRef.current.add(review.changeId);
+      labActionsRef.current.closeLabChangeNow(review.changeId).catch((error: unknown) => {
+        console.warn(`[useAssistantLogic] change ${review.changeId} merged but could not be closed`, error);
+        void loadLabApi().then(({ labRefusal }) => {
+          const line = t('lab.chat.closeFailed', {
+            defaultValue: 'The change was merged, but the lab could not close it: {{reason}}',
+            reason: labRefusal(error).message,
+          });
+          setMessages((prev) => [...prev, toKitMessage('assistant', line, { isError: true })]);
+        });
+      });
+    },
+    [setMessages, t],
+  );
+  useOpenChangeReview(openLabChange, githubSession, onLabReviewUpdate);
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
@@ -1544,25 +1707,7 @@ export function useAssistantLogic({
     isSendingRef.current = true;
 
     try {
-      // Until the server config has answered, `labMode` is false: wait for it rather than send a
-      // lab instance's message to the modeling agent.
-      let lab = labMode || (await getLabEnabled());
-      // A failed load reads as "not a lab". Only a connected modeling agent shows that this is not a
-      // lab's chat; otherwise retry, and when the config is still unknown, keep the text unsent.
-      if (!lab && !isLabConfigKnown() && !assistantClient.connected) {
-        const resolved = await resolveLabEnabled();
-        if (resolved === null) {
-          connection.setConnectionStatus('disconnected');
-          reportError(
-            t('lab.chat.serverUnreachable', {
-              defaultValue: 'The BESSER server cannot be reached, so your message was not sent. Try again in a moment.',
-            }),
-          );
-          return;
-        }
-        lab = resolved;
-      }
-      if (lab) {
+      if (LAB_BUILD) {
         if (hasFiles) {
           reportError(
             t('lab.chat.noAttachments', {
@@ -1571,7 +1716,7 @@ export function useAssistantLogic({
           );
           return;
         }
-        sendToLab(normalizedInput);
+        await sendToLab(normalizedInput);
         return;
       }
 
@@ -1713,7 +1858,7 @@ export function useAssistantLogic({
   const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
     if (isSendingRef.current || streaming.isGenerating) return;
     // Speech is transcribed by the modeling agent, which a lab message never reaches.
-    if (labMode || (await getLabEnabled())) {
+    if (LAB_BUILD) {
       setMessages((prev) => [
         ...prev,
         toKitMessage(
@@ -1996,7 +2141,8 @@ export function useAssistantLogic({
   // saw; the conversation store they share is opened once.
   const surfaceProjectIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (currentProjectId === undefined) return;
+    // A lab conversation is its change's thread, read from the server; nothing of it is stored in the browser.
+    if (LAB_BUILD || currentProjectId === undefined) return;
     const previousHere = surfaceProjectIdRef.current;
     surfaceProjectIdRef.current = currentProjectId;
     if (previousHere !== undefined && previousHere !== currentProjectId) resetTurnState();
@@ -2015,6 +2161,7 @@ export function useAssistantLogic({
   );
 
   useEffect(() => {
+    if (LAB_BUILD) return undefined;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const writeToProject = () => {
       timer = null;
@@ -2064,42 +2211,82 @@ export function useAssistantLogic({
     })();
   }, [currentProjectRef, t]);
 
-  // A lab run card's "Open pull request", for that card's change. Stable, so memoised chat messages skip re-rendering.
-  // A failure rejects: the card shows it in place until the next attempt, with "Sign in again" on a 401.
+  // A lab build card's "Push to the pull requests", for that card's change. Stable, so memoised chat messages skip
+  // re-rendering. A failure rejects: the card shows it in place until the next attempt, with "Sign in again" on a 401.
   const openPullRequest = useCallback(async (changeId: string): Promise<void> => {
-    const githubSession = getGitHubSession();
-    if (!githubSession) {
+    const session = getGitHubSession();
+    if (!session) {
       labSignInPrompt();
       return;
     }
-    const opened = await openLabPullRequests(githubSession, changeId);
-    const text =
-      opened === null
-        ? t('lab.chat.notActiveChange', {
-            defaultValue:
-              'No pull request was opened: this card’s change is not the active one. Resume it on the lab page first.',
-          })
-        : opened.pullRequests.length === 0
-        ? t('lab.chat.noPullRequests', { defaultValue: 'No pull request was opened: the change has no changed files.' })
-        : [
-            t('lab.chat.pullRequestsOpened', { defaultValue: 'Opened the draft pull requests:' }),
-            ...opened.pullRequests.map((pr) => {
-              const repo = t(`lab.repos.${pr.repo}`, { defaultValue: LAB_REPO_NAMES[pr.repo] ?? pr.repo });
-              return `- [${repo} #${pr.number}](${pr.url}): \`${pr.branch}\` into \`${pr.base}\``;
-            }),
-            // Which checks the change passed before the push (the server's words).
-            ...(opened.checksNote ? ['', opened.checksNote] : []),
-          ].join('\n');
-    setMessages((prev) => [...prev, toKitMessage('assistant', text)]);
+    const { openLabPullRequests } = await loadLabApi();
+    const opened = await openLabPullRequests(session, changeId);
+    if (opened.pullRequests.length === 0) {
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage(
+          'assistant',
+          t('lab.chat.noPullRequests', { defaultValue: 'No pull request was opened: the change has no changed files.' }),
+        ),
+      ]);
+      return;
+    }
+    // The server wrote the pull requests into the change's thread, for every viewer.
+    await labActionsRef.current.reloadLabThread(changeId);
   }, [labSignInPrompt, setMessages, t]);
 
   // A lab plan card's "Build this plan": an explicit build of that card's change.
   const buildLabPlan = useCallback(
     (changeId: string): void =>
-      sendToLabRef.current(t('lab.runCard.buildPlanMessage', { defaultValue: 'Build this plan.' }), {
+      void sendToLabRef.current(t('lab.runCard.buildPlanMessage', { defaultValue: 'Build this plan.' }), {
         action: 'build',
         changeId,
       }),
+    [t],
+  );
+
+  // A lab review card's actions. A build step goes as a lab message whose `review` the server turns into the agent's
+  // task; updating and closing change the change on the server, which writes a notice into its thread.
+  const handleLabReviewAction = useCallback(
+    async (changeId: string, action: LabReviewAction): Promise<void> => {
+      if (action.kind === 'close') return labActionsRef.current.closeLabChangeNow(changeId);
+      const repo = labRepoKey(action.repo);
+      const repoWords = t(`lab.repos.${repo}`, { defaultValue: repo });
+      const task = (review: LabReviewTask, text: string) =>
+        sendToLabRef.current(text, { changeId, action: 'auto', review });
+      switch (action.kind) {
+        case 'fixCi':
+          return task(
+            { task: 'fix_ci', repo },
+            t('lab.chat.fixCiMessage', { defaultValue: 'Fix the failing checks of the {{repo}} pull request.', repo: repoWords }),
+          );
+        case 'addressComments':
+          return task(
+            { task: 'address_comments', repo, commentIds: action.commentIds },
+            t('lab.chat.addressCommentsMessage', {
+              defaultValue: 'Address the {{count}} selected review comments on the {{repo}} pull request.',
+              defaultValue_one: 'Address the selected review comment on the {{repo}} pull request.',
+              count: action.commentIds.length,
+              repo: repoWords,
+            }),
+          );
+        case 'resolveConflicts':
+          return task(
+            { task: 'resolve_conflicts', repo },
+            t('lab.chat.resolveConflictsMessage', { defaultValue: 'Resolve the merge conflicts in {{repo}}.', repo: repoWords }),
+          );
+        case 'updateFromBase': {
+          const session = getGitHubSession();
+          if (!session) {
+            throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.' }));
+          }
+          const { updateLabChangeFromBase } = await loadLabApi();
+          await updateLabChangeFromBase(session, changeId, repo);
+          await labActionsRef.current.reloadLabThread(changeId);
+          return;
+        }
+      }
+    },
     [t],
   );
 
@@ -2137,6 +2324,7 @@ export function useAssistantLogic({
     latestRunId,
     openPullRequest,
     buildLabPlan,
+    handleLabReviewAction,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,

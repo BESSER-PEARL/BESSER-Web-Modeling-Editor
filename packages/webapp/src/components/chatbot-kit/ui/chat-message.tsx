@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { Suspense, useEffect, useMemo, useState } from "react"
 import type { TFunction } from "i18next"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
@@ -71,7 +71,14 @@ import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl
 import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
-import { LabRunResult, labRunTitle, type LabChangeAction } from "@/components/chatbot-kit/ui/lab-run-result"
+import {
+  LabRunResult,
+  labRunTitle,
+  showLabView,
+  type LabChangeAction,
+  type LabRunDetails,
+} from "@/components/chatbot-kit/ui/lab-run-result"
+import type { LabReviewResponse } from "@/main/shared/api/lab"
 import {
   fixAttemptCount,
   repairTimeline,
@@ -209,7 +216,31 @@ export interface Message {
   injectionType?: string
   /** Structured spec-driven run state, rendered as a card. */
   specDriven?: SpecDrivenMessageState
+  /** BESSER Lab: who sent a message of a change's thread; `self` when it is the signed-in user. */
+  sender?: { login: string; self: boolean }
+  /** BESSER Lab: something that happened to the change, shown to every viewer as a centred line. */
+  isNotice?: boolean
+  /** BESSER Lab: what a run card shows beyond the run (report, cost, pull requests, note proposals). */
+  labRun?: LabRunDetails
+  /** BESSER Lab: the change's pull requests as GitHub reports them, when something in them is new. */
+  labReview?: { changeId: string; review: LabReviewResponse }
 }
+
+/** What a BESSER Lab review card asks for its change. */
+export type LabReviewAction =
+  | { kind: "fixCi"; repo: string }
+  | { kind: "addressComments"; repo: string; commentIds: string[] }
+  | { kind: "resolveConflicts"; repo: string }
+  | { kind: "updateFromBase"; repo: string }
+  | { kind: "close" }
+
+/** Carries out a review card's action on change `changeId`; a rejection is shown on the card. */
+export type LabReviewActionHandler = (changeId: string, action: LabReviewAction) => Promise<void>
+
+// Lazy: only the lab build shows review cards, and the card's lab module stays out of the public main chunk.
+const LabReviewCard = React.lazy(() =>
+  import("@/components/chatbot-kit/ui/lab-review-card").then((module) => ({ default: module.LabReviewCard })),
+)
 
 export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
@@ -230,13 +261,16 @@ export interface ChatMessageProps extends Message {
    */
   onGenerateAgain?: () => void
   /**
-   * A BESSER Lab build card's "Open pull request", called with the card's
-   * change id. The button stays disabled while the returned promise is
-   * pending and is hidden when omitted.
+   * A BESSER Lab build card's "Push to the pull requests", called with the
+   * card's change id once the change has pull requests. The button stays
+   * disabled while the returned promise is pending; without the handler the
+   * card offers no pull-request action.
    */
   onOpenPullRequest?: LabChangeAction
   /** A BESSER Lab plan card's "Build this plan", called with the card's change id; hidden when omitted. */
   onBuildPlan?: LabChangeAction
+  /** A BESSER Lab review card's actions; without it the card only shows the status. */
+  onLabReviewAction?: LabReviewActionHandler
 }
 
 /* ------------------------------------------------------------------ */
@@ -352,10 +386,15 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
     isStreaming,
     injectionType,
     specDriven,
+    sender,
+    isNotice,
+    labRun,
+    labReview,
     onPushToGithub,
     onGenerateAgain,
     onOpenPullRequest,
     onBuildPlan,
+    onLabReviewAction,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -375,10 +414,25 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
   })
 
   if (isUser) {
+    // A teammate's message in a lab change's thread sits on the left, under their login.
+    const fromOther = Boolean(sender && !sender.self)
     return (
       <div
-        className={cn("flex flex-col", isUser ? "items-end" : "items-start")}
+        className={cn("flex flex-col", fromOther ? "items-start" : "items-end")}
       >
+        {sender ? (
+          <span className="mb-1 flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+            <img
+              src={`https://github.com/${encodeURIComponent(sender.login)}.png?size=40`}
+              alt=""
+              width={16}
+              height={16}
+              loading="lazy"
+              className="size-4 rounded-full bg-muted"
+            />
+            @{sender.login}
+          </span>
+        ) : null}
         {files ? (
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => {
@@ -485,6 +539,35 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
     )
   }
 
+  /* ---- BESSER Lab: a notice of the change, for every viewer ---- */
+  if (isNotice) {
+    return (
+      <p role="note" className="w-full px-4 text-center text-xs text-muted-foreground">
+        {content}
+      </p>
+    )
+  }
+
+  /* ---- BESSER Lab: the change's pull requests, with what is new in them ---- */
+  if (labReview) {
+    const act = onLabReviewAction && ((action: LabReviewAction) => onLabReviewAction(labReview.changeId, action))
+    return (
+      <div className="flex w-full flex-col items-start sm:max-w-[85%]">
+        <Suspense fallback={null}>
+          <LabReviewCard
+            review={labReview.review}
+            onFixCi={act && ((repo) => act({ kind: "fixCi", repo }))}
+            onAddressComments={act && ((repo, commentIds) => act({ kind: "addressComments", repo, commentIds }))}
+            onResolveConflicts={act && ((repo) => act({ kind: "resolveConflicts", repo }))}
+            onUpdateBranch={act && ((repo) => act({ kind: "updateFromBase", repo }))}
+            onClose={act && (() => act({ kind: "close" }))}
+            onViewChanges={() => showLabView({ kind: "changes", changeId: labReview.changeId })}
+          />
+        </Suspense>
+      </div>
+    )
+  }
+
   /* ---- Error message: red/amber alert style ---- */
   if (isError) {
     return (
@@ -511,6 +594,7 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
             liveKey={specDriven.liveKey}
             fallback={specDriven}
             isStreaming={isStreaming === true}
+            labRun={labRun}
             onPushToGithub={onPushToGithub}
             onGenerateAgain={onGenerateAgain}
             onOpenPullRequest={onOpenPullRequest}
@@ -520,6 +604,7 @@ const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
           <SpecDrivenCard
             specDriven={specDriven}
             isStreaming={isStreaming === true}
+            labRun={labRun}
             onPushToGithub={onPushToGithub}
             onGenerateAgain={onGenerateAgain}
             onOpenPullRequest={onOpenPullRequest}
@@ -1545,6 +1630,7 @@ function LiveSpecDrivenCard({
   liveKey,
   fallback,
   isStreaming,
+  labRun,
   onPushToGithub,
   onGenerateAgain,
   onOpenPullRequest,
@@ -1553,6 +1639,7 @@ function LiveSpecDrivenCard({
   liveKey: string
   fallback: SpecDrivenMessageState
   isStreaming: boolean
+  labRun?: LabRunDetails
   onPushToGithub?: (runId: string) => void
   onGenerateAgain?: () => void
   onOpenPullRequest?: LabChangeAction
@@ -1564,6 +1651,7 @@ function LiveSpecDrivenCard({
     <SpecDrivenCard
       specDriven={specDriven}
       isStreaming={isStreaming || specDriven.status === "running"}
+      labRun={labRun}
       onPushToGithub={onPushToGithub}
       onGenerateAgain={onGenerateAgain}
       onOpenPullRequest={onOpenPullRequest}
@@ -1575,6 +1663,7 @@ function LiveSpecDrivenCard({
 function SpecDrivenCard({
   specDriven,
   isStreaming,
+  labRun,
   onStop,
   onPushToGithub,
   onGenerateAgain,
@@ -1583,6 +1672,8 @@ function SpecDrivenCard({
 }: {
   specDriven: SpecDrivenMessageState
   isStreaming: boolean
+  /** A lab card's report, cost, pull requests and note proposals (`Message.labRun`). */
+  labRun?: LabRunDetails
   /**
    * Optional override for the Stop action — defaults to a self-contained
    * fire-and-forget POST to the backend cancel endpoint. The backend
@@ -1601,7 +1692,7 @@ function SpecDrivenCard({
   onPushToGithub?: (runId: string) => void
   /** Offered on a card whose result has expired. */
   onGenerateAgain?: () => void
-  /** A lab build card's "Open pull request"; hidden when omitted. */
+  /** A lab build card's "Push to the pull requests"; without it neither that nor "Open pull request" shows. */
   onOpenPullRequest?: LabChangeAction
   /** A lab plan card's "Build this plan"; hidden when omitted. */
   onBuildPlan?: LabChangeAction
@@ -1986,7 +2077,9 @@ function SpecDrivenCard({
             ) : null}
           </span>
         </div>
-        {lab ? <LabRunResult lab={lab} onOpenPullRequest={onOpenPullRequest} onBuildPlan={onBuildPlan} /> : null}
+        {lab ? (
+          <LabRunResult lab={lab} details={labRun} onOpenPullRequest={onOpenPullRequest} onBuildPlan={onBuildPlan} />
+        ) : null}
         {runMode === "modify" && !lab ? (
           <RunChangesSummary
             modelChanges={modelChanges ?? []}
