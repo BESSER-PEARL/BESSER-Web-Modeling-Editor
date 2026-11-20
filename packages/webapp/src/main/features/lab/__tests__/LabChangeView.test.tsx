@@ -28,6 +28,7 @@ import { LabAuthGate } from '../LabAuthGate';
 import { LabChangeView } from '../LabChangeView';
 import { labProposalChangeId } from '../labDone';
 import { labProjectId } from '../labProject';
+import { LAB_CHANGE_POLL_MS } from '../useLabChange';
 
 const lab = vi.hoisted(() => ({ connectCalls: 0 }));
 
@@ -244,13 +245,44 @@ describe('LabChangeView chat', () => {
     expect(screen.queryByRole('textbox')).toBeNull();
   });
 
+  // W5-B hand-off 2b: a run a teammate started while the change was open showed only when it ended.
+  it('follows a run a teammate starts while the change is open, from the re-read thread', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      followSpecDrivenRun.mockReturnValue({ controller: new AbortController(), abort: () => {}, events: (async function* () {})() });
+      const first = message('m1', 'jordi', 'Add a Note element', NOW - 300);
+      await renderView(change({ thread: [first] }));
+      expect(await screen.findByText('Add a Note element')).toBeTruthy();
+      vi.mocked(getLabChange).mockResolvedValue(change({
+        phase: 'running',
+        updatedAt: NOW,
+        run: { runId: RUN, changeId: CHANGE_ID, login: 'jordi', step: 'build', startedAt: NOW - 5 },
+        thread: [
+          first,
+          message('m2', 'jordi', 'Build it now', NOW - 10),
+          { type: 'run', runId: RUN, at: NOW - 5, login: 'jordi', status: 'running', lab: null, error: null, costUsd: null, planVersion: null },
+        ],
+      }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LAB_CHANGE_POLL_MS);
+      });
+
+      await waitFor(() => expect(followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, SESSION));
+      expect(screen.getByText('Build it now')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("sends the home's first message once, then clears it from the history entry", async () => {
     await renderView(change({ status: 'draft', phase: 'draft', title: '' }), {
       entry: { pathname: `/c/${CHANGE_ID}`, state: { labStart: { message: 'Add a TOML generator', issue: { repo: 'besser', number: 744 } } } },
     });
     await waitFor(() => expect(startLabRun).toHaveBeenCalledTimes(1));
     expect(vi.mocked(startLabRun).mock.calls[0][0]).toMatchObject({
-      message: 'Add a TOML generator\n\nbesser#744',
+      message: 'Add a TOML generator',
+      issue: { repo: 'besser', number: 744 },
       changeId: CHANGE_ID,
       githubSession: SESSION,
     });

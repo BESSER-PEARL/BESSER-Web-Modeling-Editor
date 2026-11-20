@@ -1539,6 +1539,9 @@ export interface paths {
          *     stream emits a final ``error(code="CANCELLED")`` event before
          *     closing so the frontend can show a definite "stopped by user"
          *     state instead of waiting for ``done``.
+         *
+         *     On a BESSER Lab instance a lab run stops only for the login that started it, the change's owner or a lab
+         *     admin; anyone else gets 403 and the run goes on.
          */
         post: operations["cancel_smart_gen_besser_api_spec_driven_cancel__run_id__post"];
         delete?: never;
@@ -4101,8 +4104,11 @@ export interface components {
          * @description A pull request of the change as GitHub reports it now.
          */
         LabPullRequestStatus: {
-            /** Repo */
-            repo: string;
+            /**
+             * Repo
+             * @enum {string}
+             */
+            repo: "besser" | "frontend" | "modeling_agent";
             /** Number */
             number: number;
             /** Url */
@@ -4202,8 +4208,11 @@ export interface components {
         };
         /** LabRepoDiff */
         LabRepoDiff: {
-            /** Repo */
-            repo: string;
+            /**
+             * Repo
+             * @enum {string}
+             */
+            repo: "besser" | "frontend" | "modeling_agent";
             /** Branch */
             branch: string;
             /** Base */
@@ -5639,7 +5648,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     github_login_besser_api_github_auth_login_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description ``select_account``: GitHub shows its account picker (another account can sign in). */
+                prompt?: "select_account" | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5653,6 +5665,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -8429,6 +8450,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LabPullRequestsResponse"];
                 };
+            };
+            /** @description A ``closesIssues`` entry is not one of the change's issues. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Refused: not_found */
             404: {

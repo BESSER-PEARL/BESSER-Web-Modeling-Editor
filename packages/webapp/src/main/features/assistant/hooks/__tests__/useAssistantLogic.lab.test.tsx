@@ -268,6 +268,23 @@ describe('sending a message in the lab build', () => {
     expect(lab.sendMessageCalls).toBe(0);
   });
 
+  // W5-B hand-off 2a: the home's issue field reached the server only as `<repo>#<n>` in the text.
+  it('sends the issue the change starts from as the run request\'s issue', async () => {
+    const api = renderHarness();
+    await openChange(CHANGE_A);
+    await waitFor(() => expect(contents()).toContain('user: Add a note element'), { timeout: 5000 });
+    await act(async () => {
+      await api.current!.handleSubmit(undefined, { overrideText: 'Fix the bug', labIssue: { repo: 'besser', number: 744 } });
+    });
+    await waitFor(() => expect(startLabRun).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(startLabRun).mock.calls[0][0]).toMatchObject({
+      message: 'Fix the bug',
+      changeId: CHANGE_A,
+      issue: { repo: 'besser', number: 744 },
+    });
+    expect(contents()).toContain('user: Fix the bug');
+  });
+
   it("shows the server's sentence when it refuses the run", async () => {
     vi.mocked(startLabRun).mockImplementation(() => ({
       controller: new AbortController(),
@@ -347,6 +364,44 @@ describe('the open change', () => {
     renderHarness();
     await openChange(CHANGE_A);
     await waitFor(() => expect(followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, 'gh-session-0123456789'));
+  });
+
+  // W5-B hand-off 2b: a run a teammate started while the change was open showed only when it ended.
+  it("shows a re-read thread and follows a teammate's run that started while the change was open", async () => {
+    followSpecDrivenRun.mockReturnValue({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {})(),
+    });
+    const api = renderHarness();
+    await openChange(CHANGE_A);
+    await waitFor(() => expect(contents().length).toBe(2), { timeout: 5000 });
+    expect(followSpecDrivenRun).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await api.current!.syncLabThread(
+        detail(CHANGE_A, [
+          ...THREADS[CHANGE_A],
+          { type: 'message', id: 'a2', at: 102, login: 'jordi', text: 'Build it', action: 'build', model: null },
+          { type: 'run', runId: RUN, at: 103, login: 'jordi', status: 'running', lab: null, error: null, costUsd: null, planVersion: null },
+        ]),
+      );
+    });
+
+    expect(contents()).toContain('user: Build it');
+    await waitFor(() => expect(followSpecDrivenRun).toHaveBeenCalledWith(RUN, 0, 'gh-session-0123456789'));
+  });
+
+  it('ignores a re-read thread of a change that is no longer open', async () => {
+    const api = renderHarness();
+    await openChange(CHANGE_B);
+    await waitFor(() => expect(contents()).toEqual(['user: Add a TOML generator']), { timeout: 5000 });
+
+    await act(async () => {
+      await api.current!.syncLabThread(detail(CHANGE_A, THREADS[CHANGE_A]));
+    });
+
+    expect(contents()).toEqual(['user: Add a TOML generator']);
   });
 
   it('says why its thread could not be read', async () => {

@@ -33,8 +33,8 @@ export const LabAvatar: React.FC<{ login: string; className?: string }> = ({ log
   />
 );
 
-/** One label per phase; `running` names its minutes. */
-function usePhaseLabel() {
+/** One label per phase; `running` names its minutes when `runStartedAt` is given. */
+export function usePhaseLabel() {
   const { t } = useTranslation();
   return (phase: LabPhase, runStartedAt?: number | null): string => {
     switch (phase) {
@@ -63,7 +63,8 @@ function usePhaseLabel() {
   };
 }
 
-const PHASE_TONE: Record<LabPhase, string> = {
+/** The pill colours of each phase. */
+export const PHASE_TONE: Record<LabPhase, string> = {
   draft: 'border-border bg-muted text-muted-foreground',
   planned: 'border-brand/30 bg-brand/10 text-primary',
   running: 'border-brand/40 bg-brand/15 text-primary',
@@ -75,7 +76,8 @@ const PHASE_TONE: Record<LabPhase, string> = {
   closed: 'border-border bg-muted text-muted-foreground',
 };
 
-const Pill: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
+/** A small rounded label (a phase, a kind). */
+export const Pill: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
   <span className={cn('inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium', className)}>
     {children}
   </span>
@@ -148,8 +150,16 @@ const ChangeRow: React.FC<{ change: LabChangeSummary }> = ({ change }) => {
         {behind > 0 && (
           <span
             className="size-2 shrink-0 rounded-full bg-warning"
-            title={t('lab.app.changes.behind', { defaultValue: 'Its base branch moved {{count}} commits', count: behind })}
-            aria-label={t('lab.app.changes.behind', { defaultValue: 'Its base branch moved {{count}} commits', count: behind })}
+            title={t('lab.app.changes.behind', {
+              defaultValue: 'Its base branch moved {{count}} commits',
+              defaultValue_one: 'Its base branch moved 1 commit',
+              count: behind,
+            })}
+            aria-label={t('lab.app.changes.behind', {
+              defaultValue: 'Its base branch moved {{count}} commits',
+              defaultValue_one: 'Its base branch moved 1 commit',
+              count: behind,
+            })}
             role="img"
           />
         )}

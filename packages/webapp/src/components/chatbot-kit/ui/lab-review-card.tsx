@@ -21,6 +21,7 @@ import {
   labRefusal,
   type LabCheckRun,
   type LabPullRequestStatus,
+  type LabRepoKey,
   type LabReview,
   type LabReviewComment,
   type LabReviewResponse,
@@ -34,13 +35,13 @@ type Action = () => void | Promise<void>
 export interface LabReviewCardProps {
   review: LabReviewResponse
   /** A build step that fixes the failing checks of the pull request of `repo`. */
-  onFixCi?: (repo: string) => void | Promise<void>
+  onFixCi?: (repo: LabRepoKey) => void | Promise<void>
   /** A build step that addresses the ticked comments of the pull request of `repo`. */
-  onAddressComments?: (repo: string, commentIds: string[]) => void | Promise<void>
+  onAddressComments?: (repo: LabRepoKey, commentIds: string[]) => void | Promise<void>
   /** Bring `repo` up to its base branch (offered when the pull request is behind or conflicts). */
-  onUpdateBranch?: (repo: string) => void | Promise<void>
+  onUpdateBranch?: (repo: LabRepoKey) => void | Promise<void>
   /** A build step that resolves the merge conflicts in `repo` (offered when the pull request conflicts). */
-  onResolveConflicts?: (repo: string) => void | Promise<void>
+  onResolveConflicts?: (repo: LabRepoKey) => void | Promise<void>
   /** Close the change; offered only when its pull requests were closed without merging. */
   onClose?: () => void | Promise<void>
   onViewChanges?: () => void

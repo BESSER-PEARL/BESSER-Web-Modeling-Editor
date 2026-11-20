@@ -40,5 +40,13 @@ Build agents
    agent-runtime
    agent-simulation
 
+Develop BESSER
+--------------
+
+.. toctree::
+   :maxdepth: 1
+
+   besser-lab
+
 For a tour of each control, use :doc:`use_the_wme`. For problems, use
 :doc:`troubleshooting`.

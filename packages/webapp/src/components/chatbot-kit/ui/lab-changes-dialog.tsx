@@ -387,7 +387,7 @@ export default function LabChangesDialog({ open, onOpenChange, load, onSend, ini
           <DialogDescription className="min-w-0 truncate text-xs">
             {diff.kind === "ready"
               ? [
-                  t("lab.diff.fileCount", { defaultValue: "{{count}} files changed", count: fileCount }),
+                  t("lab.diff.fileCount", { defaultValue: "{{count}} files changed", defaultValue_one: "{{count}} file changed", count: fileCount }),
                   repoDiff ? `${repoDiff.branch} → ${repoDiff.base}` : null,
                 ]
                   .filter(Boolean)

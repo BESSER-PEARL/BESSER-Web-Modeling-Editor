@@ -11,7 +11,6 @@ import {
   createLabNote,
   deleteLabNote,
   dismissLabNoteProposal,
-  dropActiveLabChange,
   dropLabChange,
   getLabAudit,
   getLabChange,
@@ -22,15 +21,11 @@ import {
   getLabPreviewLog,
   getLabReview,
   getLabSettings,
-  getLabState,
   labRefusal,
   listLabChanges,
   openLabPullRequests,
-  parkLabChange,
   refreshLabBases,
-  resetLabPreview,
   restartLabPreview,
-  resumeLabChange,
   startLabRun,
   takeLabPreviewSlot,
   touchLabPreviewSlot,
@@ -363,22 +358,6 @@ describe('lab JSON routes', () => {
     await expect(listLabChanges(SESSION)).rejects.toBeInstanceOf(ApiError);
 
     expect(rejected).toHaveBeenCalledTimes(1);
-  });
-
-  it.each([
-    ['getLabState', () => getLabState(SESSION), 'GET', '/lab/state', undefined],
-    ['parkLabChange', () => parkLabChange(SESSION), 'POST', '/lab/change/park', {}],
-    ['resumeLabChange', () => resumeLabChange(SESSION, 'c0'), 'POST', '/lab/change/resume', { changeId: 'c0' }],
-    ['dropActiveLabChange', () => dropActiveLabChange(SESSION), 'POST', '/lab/change/drop', {}],
-    ['resetLabPreview', () => resetLabPreview(SESSION), 'POST', '/lab/preview/reset', {}],
-  ])('phase 1 shim %s still calls its route', async (_name, call, method, route, body) => {
-    fetchMock.mockResolvedValue(json(ANSWER));
-
-    await expect(call()).resolves.toEqual(ANSWER);
-
-    expect(lastRoute()).toBe(route);
-    expect(lastCall().init.method).toBe(method);
-    expect(lastCall().init.body === undefined ? undefined : JSON.parse(lastCall().init.body as string)).toEqual(body);
   });
 });
 

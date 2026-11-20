@@ -43,7 +43,8 @@ or in ``packages/webapp/.env`` (git-ignored, not committed):
 Web application (build time)
 ----------------------------
 
-These are exactly the seven names in the ``define`` block.
+These are the names in the ``define`` block, besides ``EDITOR_VERSION`` (the
+webapp ``package.json`` version, not a variable).
 
 ``BACKEND_URL``
    Base URL of the BESSER Python backend, including the ``/besser_api`` path.
@@ -89,6 +90,23 @@ These are exactly the seven names in the ``define`` block.
 ``APPLICATION_SERVER_VERSION``
    Defined and exported, but **not currently read by any component**. Setting it
    has no observable effect in the UI today.
+
+``LAB_BUILD``
+   ``true`` builds the :doc:`BESSER Lab <../user-guide/besser-lab>` editor
+   instead of the public one: its own sign-in, home (``/``), change view
+   (``/c/<changeId>``) and settings (``/settings``), for a lab instance of the
+   BESSER backend. Any other value, or unset, builds the public editor, whose
+   behaviour does not change and whose entry bundle loads no lab code (the
+   lab's screens are separate chunks that a public build never fetches).
+   ``shared/constants/constant.ts`` exports it as the boolean ``LAB_BUILD``.
+
+   .. code-block:: bash
+
+      LAB_BUILD=true DEPLOYMENT_URL=https://lab.example.org \
+      BACKEND_URL=https://lab.example.org/besser_api npm run build
+
+   A lab host builds it this way from the lab's own checkout
+   (``scripts/lab/provision.sh`` in BESSER).
 
 Server (runtime)
 ----------------

@@ -80,7 +80,7 @@ function Proposal({ changeId, proposal }: { changeId: string; proposal: LabNoteP
     <li className="space-y-1.5 rounded border border-border/60 p-2">
       <p className="flex flex-wrap items-center gap-1.5">
         <span className="rounded border border-border/60 px-1.5 text-muted-foreground">
-          {t(`lab.notes.kinds.${proposal.kind}`, { defaultValue: proposal.kind })}
+          {t(`lab.memory.kind.${proposal.kind}`, { defaultValue: proposal.kind })}
         </span>
         {proposal.repos.map((repo) => (
           <span key={repo} className="text-muted-foreground">

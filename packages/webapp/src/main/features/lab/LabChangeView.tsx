@@ -32,7 +32,6 @@ import {
   dropLabChange,
   labRefusal,
   updateLabChangeFromBase,
-  type LabPhase,
   type LabRepoKey,
 } from '../../shared/api/lab';
 import { cancelSpecDrivenRun } from '../../shared/api/specDriven';
@@ -45,12 +44,10 @@ import {
   type LabViewRequest,
 } from '../../shared/services/labSession';
 import { describeNetworkError } from '../../shared/utils/describeNetworkError';
-import { conversationStore, useAssistantLogic } from '../assistant';
-import { ApollonEditorProvider } from '../editors';
-// eslint-disable-next-line no-restricted-imports -- the editors index does not export the canvas; this is the lazy lab chunk
-import { EditorView } from '../editors/EditorView';
+import { useAssistantLogic } from '../assistant';
+import { ApollonEditorProvider, EditorView } from '../editors';
 import { useLabShell } from './LabAuthGate';
-import { LabAvatar } from './LabChangeList';
+import { LabAvatar, PHASE_TONE, Pill, usePhaseLabel } from './LabChangeList';
 import { LabChangesTab } from './LabChangesTab';
 import { LabChatPane } from './LabChatPane';
 import { hasLabChangeModel, openLabChangeProject } from './labDone';
@@ -58,7 +55,6 @@ import { LabModelProposalBanner } from './LabModelProposalBanner';
 import { deleteLabProject, labProjectId, latestThreadModel } from './labProject';
 import { LabPreviewTab } from './LabPreviewTab';
 import { LabPullRequestDialog } from './LabPullRequestDialog';
-import { mergeThreadMessages, threadToMessages } from './labThread';
 import { useLabChange } from './useLabChange';
 
 export type LabChangeTab = 'model' | 'changes' | 'try';
@@ -93,52 +89,6 @@ function useWide(): boolean {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return wide;
-}
-
-const PHASE_TONE: Record<LabPhase, string> = {
-  draft: 'border-border bg-muted text-muted-foreground',
-  planned: 'border-brand/30 bg-brand/10 text-primary',
-  running: 'border-brand/40 bg-brand/15 text-primary',
-  built: 'border-success/30 bg-success/10 text-success',
-  checks_failing: 'border-destructive/30 bg-destructive/10 text-destructive',
-  stopped: 'border-warning/40 bg-warning/10 text-warning',
-  in_review: 'border-info/30 bg-info/10 text-info',
-  merged: 'border-success/30 bg-success/10 text-success',
-  closed: 'border-border bg-muted text-muted-foreground',
-};
-
-const PHASE_DEFAULTS: Record<LabPhase, string> = {
-  draft: 'Draft',
-  planned: 'Plan ready',
-  running: 'Running',
-  built: 'Built',
-  checks_failing: 'Checks failing',
-  stopped: 'Stopped early',
-  in_review: 'In review',
-  merged: 'Merged',
-  closed: 'Closed',
-};
-const PHASE_KEYS: Record<LabPhase, string> = {
-  draft: 'draft',
-  planned: 'planned',
-  running: 'running',
-  built: 'built',
-  checks_failing: 'checksFailing',
-  stopped: 'stopped',
-  in_review: 'inReview',
-  merged: 'merged',
-  closed: 'closed',
-};
-
-const Pill: React.FC<{ className?: string; children: React.ReactNode }> = ({ className, children }) => (
-  <span className={cn('inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium', className)}>
-    {children}
-  </span>
-);
-
-/** The first message the home sent with the new change, with the issue it starts from as a reference the lab reads. */
-function startMessage(start: LabStartState): string {
-  return start.issue ? `${start.message}\n\n${start.issue.repo}#${start.issue.number}` : start.message;
 }
 
 /** The Model tab: the class-diagram canvas of the change's project, with the proposal banner above it. */
@@ -185,6 +135,7 @@ const LabModelTab: React.FC<{ changeId: string }> = ({ changeId }) => {
  */
 export const LabChangeView: React.FC = () => {
   const { t } = useTranslation();
+  const phaseLabel = usePhaseLabel();
   const { changeId = '' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -248,10 +199,11 @@ export const LabChangeView: React.FC = () => {
     if (!change || !start || startSentRef.current === change.changeId) return;
     startSentRef.current = change.changeId;
     navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
-    void logic.handleSubmit(undefined, { overrideText: startMessage(start) });
+    void logic.handleSubmit(undefined, { overrideText: start.message, labIssue: start.issue });
   }, [change, location, navigate, logic]);
 
-  // What the re-read thread holds that this tab has not shown yet (a teammate's message, a run that ended).
+  // What the re-read thread holds that this tab has not shown yet (a teammate's message, a run that ended), and a
+  // run a teammate started, which the chat then follows.
   const syncedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!change || getOpenLabChange() !== change.changeId) return;
@@ -261,9 +213,8 @@ export const LabChangeView: React.FC = () => {
     if (syncedRef.current === key) return;
     syncedRef.current = key;
     if (first) return;
-    const fromThread = threadToMessages(change.thread, user.login);
-    conversationStore.setMessages((previous) => mergeThreadMessages(fromThread, previous));
-  }, [change, user.login]);
+    void logic.syncLabThread(change);
+  }, [change, logic]);
 
   // Cards in the chat ask for this change's views.
   useEffect(
@@ -431,9 +382,7 @@ export const LabChangeView: React.FC = () => {
             <Pill className="border-border bg-background font-mono text-muted-foreground">
               {t(`lab.kinds.${ready.kind}`, { defaultValue: ready.kind.replace('_', ' ') })}
             </Pill>
-            <Pill className={PHASE_TONE[ready.phase]}>
-              {t(`lab.app.phase.${PHASE_KEYS[ready.phase]}`, { defaultValue: PHASE_DEFAULTS[ready.phase] })}
-            </Pill>
+            <Pill className={PHASE_TONE[ready.phase]}>{phaseLabel(ready.phase)}</Pill>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <LabAvatar login={ready.owner} />
               {t('lab.change.startedBy', { defaultValue: 'Started by @{{login}}', login: ready.owner })}

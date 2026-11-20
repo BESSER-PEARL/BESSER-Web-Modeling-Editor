@@ -74,7 +74,7 @@ import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
 import type { LabChangeAction, LabRunDetails } from "@/components/chatbot-kit/ui/lab-run-result"
 import type { LabViewRequest } from "@/main/shared/services/labSession"
-import type { LabReviewResponse } from "@/main/shared/api/lab"
+import type { LabRepoKey, LabReviewResponse } from "@/main/shared/api/lab"
 import {
   fixAttemptCount,
   repairTimeline,
@@ -224,10 +224,10 @@ export interface Message {
 
 /** What a BESSER Lab review card asks for its change. */
 export type LabReviewAction =
-  | { kind: "fixCi"; repo: string }
-  | { kind: "addressComments"; repo: string; commentIds: string[] }
-  | { kind: "resolveConflicts"; repo: string }
-  | { kind: "updateFromBase"; repo: string }
+  | { kind: "fixCi"; repo: LabRepoKey }
+  | { kind: "addressComments"; repo: LabRepoKey; commentIds: string[] }
+  | { kind: "resolveConflicts"; repo: LabRepoKey }
+  | { kind: "updateFromBase"; repo: LabRepoKey }
   | { kind: "close" }
 
 /** Carries out a review card's action on change `changeId`; a rejection is shown on the card. */

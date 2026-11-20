@@ -119,7 +119,7 @@ import { getGitHubAuthState, getGitHubSession, subscribeGitHubAuth } from '../..
 import type {
   LabAction,
   LabChangeDetail,
-  LabRepoKey,
+  LabIssueRef,
   LabReviewResponse,
   LabReviewTask,
 } from '../../../shared/api/lab';
@@ -206,6 +206,15 @@ export interface UseAssistantLogicOptions {
   surface: AssistantClientMode;
 }
 
+/** What `handleSubmit` sends besides the composer's text. */
+export interface SubmitOptions {
+  experimental_attachments?: FileList;
+  /** Sent instead of the composer's text. */
+  overrideText?: string;
+  /** BESSER Lab: the GitHub issue the change starts from (the home's issue field), sent with the run request. */
+  labIssue?: LabIssueRef;
+}
+
 export interface UseAssistantLogicReturn {
   /* state */
   messages: ChatKitMessage[];
@@ -243,7 +252,7 @@ export interface UseAssistantLogicReturn {
   /* actions */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList; overrideText?: string },
+    options?: SubmitOptions,
   ) => Promise<void>;
   /** New run for the project after its result expired (the run card's "Generate again"), after a confirmation. */
   generateAgain: () => void;
@@ -256,6 +265,11 @@ export interface UseAssistantLogicReturn {
   openPullRequest: (changeId: string) => Promise<void>;
   /** BESSER Lab: build the plan of change `changeId` (a plan card's "Build this plan"). */
   buildLabPlan: (changeId: string) => void;
+  /**
+   * BESSER Lab: shows what the re-read `detail` of the open change holds that the chat does not (a teammate's message,
+   * a run that ended), and follows a run of it in progress (one a teammate started). Ignored for another change.
+   */
+  syncLabThread: (detail: LabChangeDetail) => Promise<void>;
   /** BESSER Lab: a review card's actions (fix CI, address comments, resolve conflicts, update, close). */
   handleLabReviewAction: LabReviewActionHandler;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
@@ -389,18 +403,11 @@ const loadLabApi = once(() => import('../../../shared/api/lab'));
 const loadLabSession = once(() => import('../../../shared/services/labSession'));
 // Not in lab/index.ts: only the lab build loads it.
 const loadLabThread = once(() => import('../../lab/labThread'));
+type LabThreadModule = Awaited<ReturnType<typeof loadLabThread>>;
 
 const NO_REVIEW = { review: null, error: null };
 /** The open change's review polling: `useLabReview` in the lab build, nothing at all in a public build. */
 const useOpenChangeReview: typeof useLabReview = LAB_BUILD ? useLabReview : () => NO_REVIEW;
-
-const LAB_REPO_KEYS: readonly string[] = ['besser', 'frontend', 'modeling_agent'] satisfies LabRepoKey[];
-
-/** `repo` as the lab routes take it; the review status names repositories by the same keys. */
-function labRepoKey(repo: string): LabRepoKey {
-  if (!LAB_REPO_KEYS.includes(repo)) throw new Error(`Not a lab repository: ${repo}`);
-  return repo as LabRepoKey;
-}
 
 /** What the conversation's latest lab run card produced: the step a typed reply continues. */
 const latestLabResult = (messages: ChatKitMessage[]) => {
@@ -1539,6 +1546,21 @@ export function useAssistantLogic({
     setMessageMeta({});
   };
 
+  /** Adds what `detail`'s thread holds that the conversation does not show yet. */
+  const showLabThread = (thread: LabThreadModule, detail: LabChangeDetail) => {
+    const fromThread = thread.threadToMessages(detail.thread, getGitHubAuthState().username);
+    setMessages((prev) => thread.mergeThreadMessages(fromThread, prev));
+  };
+
+  /** Follows `detail`'s run in progress in this chat, if it has one and it is still the conversation's change. */
+  const followLabRunOf = async (thread: LabThreadModule, detail: LabChangeDetail): Promise<void> => {
+    const running = thread.labRunInProgress(detail.thread);
+    const session = getGitHubSession();
+    if (!running || !session || labConversationChangeRef.current !== detail.changeId) return;
+    labRunChangeRef.current = detail.changeId;
+    await specDriven.followLabRun({ runId: running.runId, startedAt: running.startedAt, githubSession: session });
+  };
+
   /**
    * Reads change `changeId`'s thread and shows it, with what this tab added that the thread does not hold yet.
    * Returns the change, or null when it could not be read (the chat says why) or another change opened meanwhile.
@@ -1553,8 +1575,7 @@ export function useAssistantLogic({
     try {
       const detail = await getLabChange(session, changeId);
       if (labConversationChangeRef.current !== changeId) return null;
-      const fromThread = thread.threadToMessages(detail.thread, getGitHubAuthState().username);
-      setMessages((prev) => thread.mergeThreadMessages(fromThread, prev));
+      showLabThread(thread, detail);
       return detail;
     } catch (error) {
       console.warn(`[useAssistantLogic] the thread of change ${changeId} could not be read`, error);
@@ -1577,8 +1598,8 @@ export function useAssistantLogic({
     await closeLabChange(session, changeId);
     await reloadLabThread(changeId);
   };
-  const labActionsRef = useRef({ reloadLabThread, closeLabChangeNow });
-  labActionsRef.current = { reloadLabThread, closeLabChangeNow };
+  const labActionsRef = useRef({ reloadLabThread, closeLabChangeNow, showLabThread, followLabRunOf });
+  labActionsRef.current = { reloadLabThread, closeLabChangeNow, showLabThread, followLabRunOf };
 
   /**
    * BESSER Lab: the user's text goes to the open change (or the one `explicit` names) as one run, or the chat
@@ -1587,7 +1608,7 @@ export function useAssistantLogic({
    */
   const sendToLab = async (
     message: string,
-    explicit?: { action?: LabAction; changeId?: string; review?: LabReviewTask },
+    explicit?: { action?: LabAction; changeId?: string; review?: LabReviewTask; issue?: LabIssueRef },
   ): Promise<void> => {
     const state = store.getState();
     if (state.specDriven.runStatus !== 'idle' || selectHasLiveSpecDrivenRun(state)) {
@@ -1621,7 +1642,7 @@ export function useAssistantLogic({
     labRunChangeRef.current = changeId;
     // Fire-and-forget like a Spec-Driven run: the hook owns the run's lifecycle and its errors.
     specDriven
-      .handleLabMessage({ message, githubSession, action, changeId, review: explicit?.review })
+      .handleLabMessage({ message, githubSession, action, changeId, review: explicit?.review, issue: explicit?.issue })
       .catch((err) => {
         console.error('[useAssistantLogic] specDriven.handleLabMessage rejected', err);
       });
@@ -1655,12 +1676,7 @@ export function useAssistantLogic({
     const changeId = openLabChange;
     void (async () => {
       const detail = await labActionsRef.current.reloadLabThread(changeId);
-      const session = getGitHubSession();
-      if (!detail || !session) return;
-      const running = (await loadLabThread()).labRunInProgress(detail.thread);
-      if (!running || labConversationChangeRef.current !== changeId) return;
-      labRunChangeRef.current = changeId;
-      await specDriven.followLabRun({ runId: running.runId, startedAt: running.startedAt, githubSession: session });
+      if (detail) await labActionsRef.current.followLabRunOf(await loadLabThread(), detail);
     })();
     // `specDriven` and `showLabChange` change every render; the open change alone decides.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1693,10 +1709,21 @@ export function useAssistantLogic({
   );
   useOpenChangeReview(openLabChange, githubSession, onLabReviewUpdate);
 
-  const handleSubmit = async (
-    event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList; overrideText?: string },
-  ) => {
+  const syncLabThread = useCallback(
+    async (detail: LabChangeDetail): Promise<void> => {
+      if (labConversationChangeRef.current !== detail.changeId) return;
+      const thread = await loadLabThread();
+      if (labConversationChangeRef.current !== detail.changeId) return;
+      labActionsRef.current.showLabThread(thread, detail);
+      // A run this tab drives or already follows goes on as it is.
+      const state = store.getState();
+      if (state.specDriven.runStatus !== 'idle' || selectHasLiveSpecDrivenRun(state)) return;
+      await labActionsRef.current.followLabRunOf(thread, detail);
+    },
+    [store],
+  );
+
+  const handleSubmit = async (event?: { preventDefault?: () => void }, options?: SubmitOptions) => {
     event?.preventDefault?.();
     const normalizedInput = (options?.overrideText ?? inputValue).trim();
     const attachedFiles = options?.experimental_attachments;
@@ -1716,7 +1743,7 @@ export function useAssistantLogic({
           );
           return;
         }
-        await sendToLab(normalizedInput);
+        await sendToLab(normalizedInput, options?.labIssue && { issue: options.labIssue });
         return;
       }
 
@@ -2250,7 +2277,7 @@ export function useAssistantLogic({
   const handleLabReviewAction = useCallback(
     async (changeId: string, action: LabReviewAction): Promise<void> => {
       if (action.kind === 'close') return labActionsRef.current.closeLabChangeNow(changeId);
-      const repo = labRepoKey(action.repo);
+      const { repo } = action;
       const repoWords = t(`lab.repos.${repo}`, { defaultValue: repo });
       const task = (review: LabReviewTask, text: string) =>
         sendToLabRef.current(text, { changeId, action: 'auto', review });
@@ -2324,6 +2351,7 @@ export function useAssistantLogic({
     latestRunId,
     openPullRequest,
     buildLabPlan,
+    syncLabThread,
     handleLabReviewAction,
     sendVoiceMessage,
     stopGenerating,

@@ -14,12 +14,43 @@
         "summary": "Github Login",
         "description": "Initiate GitHub OAuth flow.\n\nReturns redirect URL to GitHub authorization page.",
         "operationId": "github_login_besser_api_github_auth_login_get",
+        "parameters": [
+          {
+            "name": "prompt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "select_account",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "``select_account``: GitHub shows its account picker (another account can sign in).",
+              "title": "Prompt"
+            },
+            "description": "``select_account``: GitHub shows its account picker (another account can sign in)."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -3432,7 +3463,7 @@
           "spec-driven"
         ],
         "summary": "Cancel Smart Gen",
-        "description": "Signal a live spec-driven generation run to stop at its next turn.\n\nReturns ``{\"status\": \"cancelled\"}`` if the run was found and\nsignalled, ``{\"status\": \"not_found\"}`` if no live run exists for\nthat ID (already finished, never existed, or download already\nhappened).\n\nThe user's BYOK budget stops accruing once the orchestrator hits\nthe next turn boundary (typically within a few seconds). The SSE\nstream emits a final ``error(code=\"CANCELLED\")`` event before\nclosing so the frontend can show a definite \"stopped by user\"\nstate instead of waiting for ``done``.",
+        "description": "Signal a live spec-driven generation run to stop at its next turn.\n\nReturns ``{\"status\": \"cancelled\"}`` if the run was found and\nsignalled, ``{\"status\": \"not_found\"}`` if no live run exists for\nthat ID (already finished, never existed, or download already\nhappened).\n\nThe user's BYOK budget stops accruing once the orchestrator hits\nthe next turn boundary (typically within a few seconds). The SSE\nstream emits a final ``error(code=\"CANCELLED\")`` event before\nclosing so the frontend can show a definite \"stopped by user\"\nstate instead of waiting for ``done``.\n\nOn a BESSER Lab instance a lab run stops only for the login that started it, the change's owner or a lab\nadmin; anyone else gets 403 and the run goes on.",
         "operationId": "cancel_smart_gen_besser_api_spec_driven_cancel__run_id__post",
         "parameters": [
           {
@@ -4574,6 +4605,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "A ``closesIssues`` entry is not one of the change's issues."
           },
           "422": {
             "description": "Validation Error",
@@ -10350,6 +10384,11 @@
         "properties": {
           "repo": {
             "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
             "title": "Repo"
           },
           "number": {
@@ -10607,6 +10646,11 @@
         "properties": {
           "repo": {
             "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
             "title": "Repo"
           },
           "branch": {
