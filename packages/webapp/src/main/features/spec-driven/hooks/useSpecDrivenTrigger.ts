@@ -97,6 +97,7 @@ import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
 import { loadProjectThunk } from '../../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
+  claimSpecDrivenProjectRun,
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
   readActiveSpecDrivenRun,
@@ -987,12 +988,15 @@ export function useSpecDrivenTrigger(
         ifAvailable: true,
       });
       if (!releaseOwnership) return;
+      // The adopted run is this project's run: no other tab starts one meanwhile.
+      const releaseProject = (await claimSpecDrivenProjectRun(saved.projectId)) ?? (() => {});
       if (
         isRunningRef.current ||
         currentProjectRef.current?.id !== saved.projectId ||
         !dispatch(tryClaimRunSlot())
       ) {
         releaseOwnership();
+        releaseProject();
         return;
       }
 
@@ -1091,6 +1095,7 @@ export function useSpecDrivenTrigger(
         activeCardRef.current = null;
         dispatch(releaseRunSlot());
         releaseOwnership();
+        releaseProject();
         if (mountedRef.current) setIsGenerating(false);
       }
     })();
@@ -1211,6 +1216,17 @@ export function useSpecDrivenTrigger(
         );
         return;
       }
+      // Held until this run ends or the tab closes: another tab's run on this
+      // project would start from the same base.
+      const releaseProject = await claimSpecDrivenProjectRun(project.id);
+      if (!releaseProject) {
+        dispatch(releaseRunSlot());
+        track('spec_run_blocked', { reason: 'already_running' });
+        appendErrorToChat(
+          'Spec-Driven Agent is already running on this project in another tab — please wait for it to finish there.',
+        );
+        return;
+      }
 
       // Settle the run mode before any run card, so the model-change question
       // never sits under "Starting…". The typing indicator and its Stop
@@ -1304,6 +1320,7 @@ export function useSpecDrivenTrigger(
         // Stopped (or failed) before the run: free the slot in every exit path.
         if (!runDecision || check.signal.aborted) {
           dispatch(releaseRunSlot());
+          releaseProject();
           if (mountedRef.current) setIsGenerating(false);
         }
       }
@@ -1459,6 +1476,7 @@ export function useSpecDrivenTrigger(
         activeCardRef.current = null;
         setIsGenerating(false);
         dispatch(releaseRunSlot());
+        releaseProject();
         reportRunFinished({ ok: false, errorCode: 'INTERNAL' }, { stage: 'start', error: err });
         return;
       }
@@ -1587,6 +1605,7 @@ export function useSpecDrivenTrigger(
         // closed early), which dispatches nothing else.
         dispatch(releaseRunSlot());
         void ownership.claim?.then((release) => release?.());
+        releaseProject();
         if (mountedRef.current) setIsGenerating(false);
       }
     },
