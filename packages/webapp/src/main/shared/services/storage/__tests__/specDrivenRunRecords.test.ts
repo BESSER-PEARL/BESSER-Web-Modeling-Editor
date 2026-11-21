@@ -54,6 +54,14 @@ describe('runRequestFromInstructions', () => {
     expect(runRequestFromInstructions(framed(`${ORIGINAL}\n\n${fixNote}\n\n${FOLLOW_UP_SECTION}`))).toBe(WITH_FOLLOW_UP);
   });
 
+  it('drops the newest section when the assistant says it states nothing new', () => {
+    const retry = '## Subsequent user request, verbatim\n\nThis later request takes precedence.\n\ntry again';
+    const instructions = framed(`${WITH_FOLLOW_UP}\n\n${retry}`);
+    expect(runRequestFromInstructions(instructions, false)).toBe(WITH_FOLLOW_UP);
+    // An agent that does not send the field: kept, as before.
+    expect(runRequestFromInstructions(instructions)).toBe(`${WITH_FOLLOW_UP}\n\n${retry}`);
+  });
+
   it("keeps the user's own headings", () => {
     const described = `${ORIGINAL}\n\n## Screens\n\nA list of orders.`;
     expect(runRequestFromInstructions(framed(described))).toBe(described);
@@ -80,6 +88,13 @@ describe('the recorded run request', () => {
     recordProjectRunRequest('p1', framed(ORIGINAL));
     recordProjectRunRequest('p1', 'regenerate with fixes.');
     recordProjectRunRequest('p1', 'Generate a backend with an orders table and token login.');
+    expect(readProjectRunRequest('p1')).toBe(ORIGINAL);
+  });
+
+  it('does not keep a retry the assistant did not remember', () => {
+    // The record is sent back as the request once the assistant has lost its memory of the project.
+    const retry = '## Subsequent user request, verbatim\n\nThis later request takes precedence.\n\nfix it';
+    recordProjectRunRequest('p1', framed(`${ORIGINAL}\n\n${retry}`), false);
     expect(readProjectRunRequest('p1')).toBe(ORIGINAL);
   });
 
