@@ -458,7 +458,28 @@ describe('useSpecDrivenTrigger — run ownership across tabs', () => {
       name: `besser_spec_driven_run_${runId}`,
       ifAvailable: false,
     });
+    // The project's run lock too: held for the run, released when it ends.
+    expect(requests).toContainEqual({ name: 'besser_spec_driven_project_test-project', ifAvailable: true });
     await waitFor(() => expect(held.size).toBe(0));
+  });
+
+  it('does not start a run while another tab runs one on this project', async () => {
+    // Before: both tabs' runs started from the same base, and whichever ended last became the base.
+    installFakeLocks(['besser_spec_driven_project_test-project']);
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    expect(vi.mocked(sseClientModule.startSpecDrivenRun)).not.toHaveBeenCalled();
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(msgs.some((m) => m.isError && m.content?.includes('in another tab'))).toBe(true);
+    // The tab's own run slot is free again.
+    expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 });
 
