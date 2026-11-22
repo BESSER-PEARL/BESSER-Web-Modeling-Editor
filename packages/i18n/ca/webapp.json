@@ -109,7 +109,7 @@
     },
     "route": {
       "settings": "Configuració",
-      "agentCustomization": "Personalització de l'agent",
+      "agentCustomization": "Configuració de l’agent",
       "agentPersonalization": "Personalització avançada de l'agent",
       "agentMappings": "Assignacions de l'agent",
       "agentComponents": "Components",
@@ -207,8 +207,8 @@
       "llm": "Això pot trigar una estona a elaborar la millor configuració basada en LLM per al perfil d'usuari seleccionat.",
       "transform": "Això pot trigar una estona a elaborar la millor configuració d'agent transformada i aplicar-la al teu diagrama."
     },
-    "title": "Personalització de l'agent",
-    "subtitle": "Adapta el teu agent a un perfil d'usuari específic del diagrama d'usuari. Ajusta com parla, com es veu i com es comporta perquè s'adigui amb aquest públic, i després desa el resultat com a configuració amb un nom entre les quals podràs alternar més endavant.",
+    "title": "Configuració de l’agent",
+    "subtitle": "Configura l’execució, les plataformes i les connexions de l’agent.",
     "tabsAriaLabel": "Seccions de configuració de l'agent",
     "tab": {
       "runtime": "Execució de l'agent",

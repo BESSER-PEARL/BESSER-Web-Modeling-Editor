@@ -208,7 +208,7 @@
       "transform": "This might take a while to cook up the best transformed agent setup and apply it to your diagram."
     },
     "title": "Agent Configuration",
-    "subtitle": "Tailor your agent to a specific user profile from the User Diagram. Adjust how it talks, looks, and behaves to match that audience, then save the result as a named configuration you can switch between later.",
+    "subtitle": "Configure the agent runtime, platforms, and connection settings.",
     "tabsAriaLabel": "Agent configuration sections",
     "tab": {
       "runtime": "Agent Runtime",

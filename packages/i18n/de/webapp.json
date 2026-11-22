@@ -109,7 +109,7 @@
     },
     "route": {
       "settings": "Einstellungen",
-      "agentCustomization": "Agentenanpassung",
+      "agentCustomization": "Agentenkonfiguration",
       "agentPersonalization": "Agentenpersonalisierung",
       "agentMappings": "Agentenzuordnungen",
       "agentComponents": "Komponenten",
@@ -207,8 +207,8 @@
       "llm": "Es kann einen Moment dauern, bis die beste LLM-basierte Konfiguration für Ihr ausgewähltes Benutzerprofil erstellt ist.",
       "transform": "Es kann einen Moment dauern, bis das transformierte Agenten-Setup erstellt und auf Ihr Diagramm angewendet ist."
     },
-    "title": "Agentenanpassung",
-    "subtitle": "Passen Sie Ihren Agenten an ein bestimmtes Benutzerprofil aus dem Benutzerdiagramm an. Legen Sie fest, wie er spricht, aussieht und sich verhält, damit er zur Zielgruppe passt. Speichern Sie das Ergebnis anschließend als benannte Konfiguration. Später können Sie zwischen verschiedenen Konfigurationen wechseln.",
+    "title": "Agentenkonfiguration",
+    "subtitle": "Konfigurieren Sie die Laufzeit, Plattformen und Verbindungen des Agenten.",
     "tabsAriaLabel": "Abschnitte der Agentenkonfiguration",
     "tab": {
       "runtime": "Agentenlaufzeit",

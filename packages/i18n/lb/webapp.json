@@ -109,7 +109,7 @@
     },
     "route": {
       "settings": "Astellungen",
-      "agentCustomization": "Agent-Personnalisatioun",
+      "agentCustomization": "Agentekonfiguratioun",
       "agentPersonalization": "Erweidert Agent-Personnalisatioun",
       "agentMappings": "Agent-Zuelongen",
       "agentComponents": "Komponenten",
@@ -207,8 +207,8 @@
       "llm": "Dat kann e Moment daueren, fir déi bescht LLM-baséiert Konfiguratioun fir Äert ausgewielt Benotzerprofil ze erstellen.",
       "transform": "Dat kann e Moment daueren, fir den transforméierten Agent-Setup ze erstellen an op Ären Diagramm unzewenden."
     },
-    "title": "Agent-Personaliséierung",
-    "subtitle": "Passt Ären Agent un e spezifescht Benotzerprofil aus dem User-Diagramm un. Adaptéiert, wéi hie schwätzt, ausgesäit a sech verhält, fir dem Zilpublikum ze entspriechen. Späichert d'Resultat duerno als benannt Konfiguratioun. Dir kënnt spéider tëscht verschiddene Konfiguratioune wiesselen.",
+    "title": "Agentekonfiguratioun",
+    "subtitle": "Konfiguréiert d’Lafzäit, d’Plattformen an d’Verbindunge vum Agent.",
     "tabsAriaLabel": "Sektioune vun der Agent-Konfiguratioun",
     "tab": {
       "runtime": "Agent-Runtime",

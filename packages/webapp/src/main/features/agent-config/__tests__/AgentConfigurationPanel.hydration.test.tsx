@@ -1,68 +1,47 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+﻿import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { createDefaultProject, type BesserProject } from '../../../shared/types/project';
-import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 
 let mockProject: BesserProject | null = null;
-
-vi.mock('../../../app/hooks/useProject', () => ({
-  useProject: () => ({ currentProject: mockProject }),
+vi.mock('../../../app/hooks/useProject', () => ({ useProject: () => ({ currentProject: mockProject }) }));
+vi.mock('../AgentRuntimePanel', () => ({
+  AgentRuntimePanel: ({ updateAgentRuntimeConfig }: { updateAgentRuntimeConfig: (patch: object) => void }) => (
+    <button onClick={() => updateAgentRuntimeConfig({ agentPlatform: 'telegram' })}>Change platform</button>
+  ),
 }));
-vi.mock('../../../app/store/hooks', () => ({
-  useAppDispatch: () => vi.fn(),
-  useAppSelector: () => undefined,
-}));
-vi.mock('../../../shared/hooks/useGitHubAuth', () => ({
-  useGitHubAuth: () => ({ githubSession: null }),
-}));
-vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 
 import { AgentConfigurationPanel } from '../AgentConfigurationPanel';
 
-beforeAll(() => {
-  if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
-});
-
-const withAgentConfig = (project: BesserProject, config: Record<string, unknown>): BesserProject => ({
-  ...project,
-  diagrams: {
-    ...project.diagrams,
-    AgentDiagram: project.diagrams.AgentDiagram.map((d, i) => (i === 0 ? { ...d, config } : d)),
-  },
-});
-
-const pick = (combobox: HTMLElement, option: string) => {
-  fireEvent.pointerDown(combobox, { button: 0, ctrlKey: false, pointerType: 'mouse' });
-  fireEvent.click(screen.getByRole('option', { name: option }));
-};
-
-describe('AgentConfigurationPanel hydration', () => {
+describe('AgentConfigurationPanel', () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
+    mockProject = createDefaultProject('P', '', 'me');
   });
 
-  // Renders the whole panel: ~2.5 s alone, past the 5 s default under full-suite load.
-  it('keeps unsaved personalization edits when an unrelated project write lands', () => {
-    const storedConfig = { agentStyle: 'formal' } as never;
-    const saved = LocalStorageRepository.saveAgentConfiguration('Saved', storedConfig);
-    LocalStorageRepository.setActiveAgentConfigurationId(saved.id);
+  it('shows runtime configuration without a personalization tab or profile controls', () => {
+    render(<AgentConfigurationPanel />);
+    expect(screen.getByRole('button', { name: 'Change platform' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /personalization/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /save & apply configuration/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/map.*user profile/i)).not.toBeInTheDocument();
+  });
 
-    const base = withAgentConfig(createDefaultProject('P', '', 'me'), { agentStyle: 'formal' });
-    mockProject = base;
-    const { rerender } = render(<AgentConfigurationPanel />);
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Personalization' }));
-    fireEvent.click(screen.getByRole('button', { name: /Presentation/i }));
-    const style = () => screen.getByRole('combobox', { name: 'Style' });
-    expect(style()).toHaveTextContent('Formal');
-
-    pick(style(), 'Informal');
-    expect(style()).toHaveTextContent('Informal');
-
-    // Same project, new object: e.g. the default LLM name was persisted.
-    mockProject = withAgentConfig(base, { agentStyle: 'formal', default_llm_name: 'gpt' });
-    rerender(<AgentConfigurationPanel />);
-
-    expect(style()).toHaveTextContent('Informal');
-  }, 15_000);
+  it('preserves existing variant data when runtime settings change', () => {
+    const diagram = mockProject!.diagrams.AgentDiagram[0];
+    diagram.config = { personalizedVariants: [{ id: 'saved-variant' }], activePersonalizedVariantId: 'saved-variant' };
+    vi.spyOn(ProjectStorageRepository, 'loadProject').mockReturnValue(mockProject!);
+    const update = vi.spyOn(ProjectStorageRepository, 'updateDiagram').mockImplementation(() => undefined as never);
+    render(<AgentConfigurationPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Change platform' }));
+    expect(update).toHaveBeenCalledWith(mockProject!.id, 'AgentDiagram', expect.objectContaining({
+      config: expect.objectContaining({
+        agentPlatform: 'telegram',
+        personalizedVariants: [{ id: 'saved-variant' }],
+        activePersonalizedVariantId: 'saved-variant',
+      }),
+    }), 0);
+  });
 });

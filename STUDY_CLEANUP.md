@@ -13,8 +13,8 @@ This branch incorporates `develop` at `1f383506`. This record describes the bran
 ## Adapted for develop
 
 - Reconnected agent, GUI and user-profile personalization controls to the updated toolbar and dialogs without study event captures.
-- Retained the newer generation, validation, export, security, consent, and traceability paths while applying user-profile reshaping where the backend needs it. Agent generation prioritizes the branch?s profile-authored personalization whenever user profile models are available; the legacy mapping path remains for cases without profile models.
-- Kept develop's agent configuration screen and agent state editor, which changed substantially since this branch diverged. The branch's separate YAML-panel rewrite and agent-state editor rewrite were not carried over; the newer develop implementations remain authoritative.
+- Retained the newer generation, validation, export, security, consent, and traceability paths while applying user-profile reshaping where the backend needs it. Agent generation prioritizes the branch's profile-authored personalization whenever user profile models are available; the legacy mapping path remains for cases without profile models.
+- Kept develop's runtime configuration and agent state editor, adapting the former to remove the duplicate Personalization tab. Profile-specific rules are authored through user-profile modeling; existing saved variants are retained. The branch's separate YAML-panel rewrite and agent-state editor rewrite were not carried over.
 - Combined GUI presentation, content and read-aloud controls with develop's editor and API wrapper; sanitized dynamic SVG icons using develop's sanitizer.
 - Merged translation keys and filled missing translations with English fallback text. Those fallback strings still need translation review.
 - Removed references to the obsolete onboarding module and checklist, which were not present in develop's tracked files.

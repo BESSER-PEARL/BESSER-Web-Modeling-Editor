@@ -109,7 +109,7 @@
     },
     "route": {
       "settings": "Paramètres",
-      "agentCustomization": "Personnalisation de l'agent",
+      "agentCustomization": "Configuration de l’agent",
       "agentPersonalization": "Personnalisation avancée de l'agent",
       "agentMappings": "Correspondances d'agent",
       "agentComponents": "Composants",
@@ -207,8 +207,8 @@
       "llm": "Cela peut prendre un moment pour concocter la meilleure configuration basée sur un LLM pour le profil utilisateur sélectionné.",
       "transform": "Cela peut prendre un moment pour concocter la meilleure configuration d'agent transformée et l'appliquer à votre diagramme."
     },
-    "title": "Personnalisation de l'agent",
-    "subtitle": "Adaptez votre agent à un profil utilisateur spécifique du diagramme d'utilisateur. Ajustez sa façon de parler, son apparence et son comportement pour correspondre à ce public, puis enregistrez le résultat sous forme de configuration nommée entre lesquelles vous pourrez basculer plus tard.",
+    "title": "Configuration de l’agent",
+    "subtitle": "Configurez l’exécution de l’agent, ses plateformes et ses connexions.",
     "tabsAriaLabel": "Sections de la configuration de l'agent",
     "tab": {
       "runtime": "Exécution de l'agent",
