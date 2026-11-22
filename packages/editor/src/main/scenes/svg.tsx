@@ -23,6 +23,8 @@ import { ThemeProvider } from 'styled-components';
 import { UMLClassifierComponent } from '../packages/common/uml-classifier/uml-classifier-component';
 import { UMLClassifierMemberComponent } from '../packages/common/uml-classifier/uml-classifier-member-component';
 import { UMLObjectNameComponent } from '../packages/uml-object-diagram/uml-object-name/uml-object-name-component';
+import { AgentStateComponent } from '../packages/agent-state-diagram/agent-state/agent-state-component';
+import { AgentStateMemberComponent } from '../packages/agent-state-diagram/agent-state/agent-state-member-component';
 
 type Props = {
   model: Apollon.UMLModel;
@@ -216,7 +218,8 @@ export class Svg extends Component<Props, State> {
         y,
         width: element.bounds.width,
         height: element.bounds.height,
-        className: element.name ? element.name.replace(/[<>]/g, '') : '',
+        // A multi-line name is a code body (agent state bodies), not a usable class name.
+        className: element.name && !element.name.includes('\n') ? element.name.replace(/[<>]/g, '') : '',
         fill: element.fillColor || theme.color.background,
       };
     };
@@ -242,10 +245,13 @@ export class Svg extends Component<Props, State> {
                 switch (ElementComponent) {
                   case UMLClassifierComponent:
                   case UMLObjectNameComponent:
+                  case AgentStateComponent:
                     // UMLClassifierComponent (classes/enumerations) and UMLObjectNameComponent (object diagrams)
                     // both need their members (attributes/methods) nested as children within the component, so the
                     // border rectangle and dividers render after them. Without this, an object box exports as an
                     // empty header with its attributes dropped entirely (they fall into the skipped member case below).
+                    // AgentStateComponent nests its bodies for the same reason: drawn as later siblings, a body's
+                    // background covers the state's bottom border.
                     const members = elements.filter((member) => member.owner === element.id);
                     return (
                       <svg
@@ -259,7 +265,14 @@ export class Svg extends Component<Props, State> {
                             return (
                               <svg
                                 key={memberElement.id}
-                                {...svgElementDetails(memberElement, 0, memberElement.bounds.y - element.bounds.y)}
+                                {...svgElementDetails(
+                                  memberElement,
+                                  // Agent state bodies are inset from the state's left edge; classifier members are not.
+                                  ElementComponent === AgentStateComponent
+                                    ? memberElement.bounds.x - element.bounds.x
+                                    : 0,
+                                  memberElement.bounds.y - element.bounds.y,
+                                )}
                               >
                                 <MemberElementComponent key={memberIndex} element={memberElement} />
                               </svg>
@@ -269,7 +282,8 @@ export class Svg extends Component<Props, State> {
                       </svg>
                     );
                   case UMLClassifierMemberComponent:
-                    // If the ElementComponent is of type UMLClassifierMemberComponent, we break out of the switch, as they have been rendered within the UMLClassifierComponent.
+                  case AgentStateMemberComponent:
+                    // If the ElementComponent is of type UMLClassifierMemberComponent, we break out of the switch, as they have been rendered within their owner (classifier or agent state).
                     break;
                   default:
                     // Render all other UMLElements and UMLRelationships normally, as they don't have issues when rendering to SVG.

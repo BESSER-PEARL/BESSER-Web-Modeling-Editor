@@ -29,6 +29,18 @@ import { ElementPickerProvider, elementPickerContext } from './components/elemen
 import { AgentDiagramLinker, agentDiagramLinkerContext } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
 import { HostProviderSlot } from './components/host-provider/host-provider';
 
+/**
+ * Serializes the rendered export as XML: an SVG file must be well-formed XML, while `outerHTML` emits HTML
+ * serialization (e.g. `&nbsp;`, an undefined entity in XML). React writes `xmlns` as a plain attribute, which
+ * some serializers then emit next to their own namespace declaration (a duplicate attribute), so it is removed
+ * and the serializer declares the namespaces itself.
+ */
+const serializeSvg = (svg: SVGSVGElement): string => {
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  [clone, ...Array.from(clone.querySelectorAll('[xmlns]'))].forEach((element) => element.removeAttribute('xmlns'));
+  return new XMLSerializer().serializeToString(clone);
+};
+
 export class ApollonEditor {
   private ensureInitialized() {
     if (!this.store) {
@@ -124,7 +136,7 @@ export class ApollonEditor {
     await delay(50);
 
     return {
-      svg: replaceColorVariables(container.querySelector('svg')!.outerHTML),
+      svg: replaceColorVariables(serializeSvg(container.querySelector('svg')!)),
       clip: svg.state.bounds,
     };
   }
