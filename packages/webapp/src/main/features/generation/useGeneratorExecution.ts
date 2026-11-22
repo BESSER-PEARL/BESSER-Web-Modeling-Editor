@@ -1,4 +1,4 @@
-import { aggregateProfilePersonalization } from '../../shared/utils/personalization-aggregation';
+import { aggregateProfilePersonalization, mergeProfileModels, usesProfileAuthoredPersonalization } from '../../shared/utils/personalization-aggregation';
 import { splitUserDiagramIntoProfiles, uniquifyNames, mergeSingletonBoxes, reinjectHiddenContainers } from '../../shared/utils/user-profile-graph';
 /**
  * useGeneratorExecution
@@ -1346,7 +1346,17 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     let finalConfig: AgentConfig = baseConfig;
     let agentModelOverride: UMLModel | undefined;
 
-    if (agentGenerationMode === 'personalization' && LocalStorageRepository.getAgentProfileConfigurationMappings().length > 0) {
+    const profileModels = mergeProfileModels(
+      LocalStorageRepository.getUserProfiles()
+        .filter((profile) => isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram)
+        .map((profile) => ({ id: profile.id, model: profile.model as UMLModel })),
+      (currentProject?.diagrams?.UserDiagram ?? [])
+        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+        .map((diagram) => ({ id: diagram.id, model: diagram.model as UMLModel })),
+    );
+    const useProfileRules = usesProfileAuthoredPersonalization(profileModels);
+
+    if (agentGenerationMode === 'personalization' && !useProfileRules && LocalStorageRepository.getAgentProfileConfigurationMappings().length > 0) {
       const localProfiles = LocalStorageRepository.getUserProfiles();
       const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
         .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
@@ -1441,18 +1451,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       // A UserDiagram tab may hold several `User` elements; each is its own
       // profile (a User plus its reachable subgraph — "Users are walls"). Gather
       // every UserDiagram model and split it into per-profile sub-models.
-      const localProfiles = LocalStorageRepository.getUserProfiles();
-      const userModels: UMLModel[] = [];
-      for (const profile of localProfiles) {
-        if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
-          userModels.push(profile.model as UMLModel);
-        }
-      }
-      for (const diagram of currentProject?.diagrams?.UserDiagram ?? []) {
-        if (isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram) {
-          userModels.push(diagram.model as UMLModel);
-        }
-      }
+      const userModels = profileModels;
 
       // The un-personalized agent base is the same for every profile — the
       // backend layers each profile's configuration on top of it. Prefer the

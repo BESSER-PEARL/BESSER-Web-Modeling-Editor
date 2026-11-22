@@ -1,4 +1,4 @@
-﻿# Study cleanup and develop integration
+# Study cleanup and develop integration
 
 This branch incorporates `develop` at `1f383506`. This record describes the branch's study-specific removals and the integration adjustments.
 
@@ -13,7 +13,7 @@ This branch incorporates `develop` at `1f383506`. This record describes the bran
 ## Adapted for develop
 
 - Reconnected agent, GUI and user-profile personalization controls to the updated toolbar and dialogs without study event captures.
-- Retained the newer generation, validation, export, security, consent, and traceability paths while applying user-profile reshaping where the backend needs it. Agent generation supports existing saved profile/configuration mappings as well as profile-authored personalization.
+- Retained the newer generation, validation, export, security, consent, and traceability paths while applying user-profile reshaping where the backend needs it. Agent generation prioritizes the branch?s profile-authored personalization whenever user profile models are available; the legacy mapping path remains for cases without profile models.
 - Kept develop's agent configuration screen and agent state editor, which changed substantially since this branch diverged. The branch's separate YAML-panel rewrite and agent-state editor rewrite were not carried over; the newer develop implementations remain authoritative.
 - Combined GUI presentation, content and read-aloud controls with develop's editor and API wrapper; sanitized dynamic SVG icons using develop's sanitizer.
 - Merged translation keys and filled missing translations with English fallback text. Those fallback strings still need translation review.
@@ -22,3 +22,5 @@ This branch incorporates `develop` at `1f383506`. This record describes the bran
 Develop already contains a separate opt-in research telemetry feature and an older study instruction PDF. Those pre-existing develop assets remain; they are unrelated to the study deployment and participant-tracking additions removed from this branch.
 
 - Updated the recommendation dialog to use development's authenticated API client and request a GitHub sign-in when no session is available.
+
+- The follow-up review gives the feature branch's profile-authored generation priority over legacy mappings, deduplicates saved/project copies by ID, restores development's unrelated agent runtime defaults, and aligns API calls and error reporting with development lint rules.

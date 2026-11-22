@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { UMLModel } from '@besser/wme';
-import { aggregateProfilePersonalization } from '../personalization-aggregation';
+import { aggregateProfilePersonalization, mergeProfileModels, usesProfileAuthoredPersonalization } from '../personalization-aggregation';
 // (co-located in shared/utils — consumed by both the generation and deploy features)
 
 /**
@@ -47,6 +47,17 @@ const modelWith = (opts: {
   }) as unknown as UMLModel;
 
 describe('aggregateProfilePersonalization', () => {
+  it('uses profile-based generation even when the profile has no explicit rules', () => {
+    expect(usesProfileAuthoredPersonalization([])).toBe(false);
+    expect(usesProfileAuthoredPersonalization([modelWith({})])).toBe(true);
+    expect(usesProfileAuthoredPersonalization([modelWith({ userSpec: { presentation: { language: 'french' } } })])).toBe(true);
+  });
+
+  it('uses the project copy when a stored profile has the same id', () => {
+    const oldModel = modelWith({});
+    const currentModel = modelWith({ userSpec: { presentation: { language: 'french' } } });
+    expect(mergeProfileModels([{ id: 'same', model: oldModel }], [{ id: 'same', model: currentModel }])).toEqual([currentModel]);
+  });
   it('returns empty configuration and no specs when nothing is set', () => {
     const { configuration, specs } = aggregateProfilePersonalization(modelWith({}));
     expect(configuration).toEqual({});

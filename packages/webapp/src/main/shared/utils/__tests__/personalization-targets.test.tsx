@@ -7,6 +7,8 @@ import {
   isPersonalizationSpecEmpty,
   type UserPersonalizationSpec,
 } from '../../../../../../editor/src/main/packages/user-modeling/personalization-spec';
+// This integration test verifies both the shared and feature editors against the same specs.
+// eslint-disable-next-line no-restricted-imports
 import { PersonalizationFields } from '../../../features/editors/user-profile-form/PersonalizationFields';
 import { aggregateProfilePersonalization } from '../personalization-aggregation';
 import { UMLUserModelName } from '../../../../../../editor/src/main/packages/user-modeling/uml-user-model-name/uml-user-model-name';

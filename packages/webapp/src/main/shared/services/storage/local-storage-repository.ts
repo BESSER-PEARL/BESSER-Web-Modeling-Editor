@@ -39,7 +39,7 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentPlatformUseStreamlit: true,
   intentRecognitionTechnology: 'classical',
   agentLlmProvider: 'openai',
-  agentLlmModel: 'gpt-6-luna',
+  agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
   agentLlmName: '',
 };
@@ -66,7 +66,7 @@ export const normalizeAgentRuntimeConfig = (
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';
   // Migrate legacy 'streamlit' value → 'websocket' + use_streamlit=true
   let agentPlatform = typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'websocket';
-  let agentPlatformUseStreamlit = raw.agentPlatformUseStreamlit ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatformUseStreamlit;
+  let agentPlatformUseStreamlit = raw.agentPlatformUseStreamlit ?? false;
   if (agentPlatform === 'streamlit') {
     agentPlatform = 'websocket';
     agentPlatformUseStreamlit = true;

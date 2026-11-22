@@ -1,11 +1,12 @@
 import type { PageSnapshot } from '../../../../shared/utils/buildWebAppVersions';
-import { apiClient, ApiError } from '../../../../shared/api/api-client';
+import { ApiError } from '../../../../shared/api/api-client';
+import { generateGuiAudio } from '../../../../shared/api/generation';
 
 /** Return a single temporary preview clip, without changing the model. */
 export async function requestGuiAudio(snapshot: PageSnapshot, language?: string, signal?: AbortSignal): Promise<Blob> {
   try {
-    const result = await apiClient.post<{ clips: { mimeType: string; audio: string }[] }>('/generate-gui-audio',
-      { guiPage: snapshot, ...(language && language !== 'original' ? { language } : {}) }, { timeout: 600000, signal });
+    const result = await generateGuiAudio(
+      { guiPage: snapshot, ...(language && language !== 'original' ? { language } : {}) }, signal);
     if (signal?.aborted) throw new DOMException('Preview canceled', 'AbortError');
     if (!Array.isArray(result?.clips)) throw new Error('The audio service returned an unexpected response. Restart the backend and try again.');
     if (!result.clips.length) throw new Error('This element has no readable text to preview.');

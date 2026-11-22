@@ -61,3 +61,7 @@ export const recommendAgentConfigLlm = (body: OpenJsonBody, githubSession: strin
  */
 export const personalizeGuiPage = <Snapshot>(body: OpenJsonBody) =>
   apiClient.post<{ guiPage?: Snapshot }>('/personalize-gui-page', body, { timeout: PERSONALIZE_TIMEOUT_MS });
+
+/** Generate a temporary audio preview for one GUI text block. */
+export const generateGuiAudio = (body: Record<string, unknown>, signal?: AbortSignal) =>
+  apiClient.post<{ clips: { mimeType: string; audio: string }[] }>('/generate-gui-audio', body, { timeout: 600_000, signal });

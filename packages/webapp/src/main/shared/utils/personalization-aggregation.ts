@@ -47,6 +47,18 @@ export interface AggregatedPersonalization {
   specs: PersonalizationSpecEntry[];
 }
 
+/** Prefer profile-authored rules over older saved configuration mappings. */
+export const usesProfileAuthoredPersonalization = (
+  models: Array<UMLModel | null | undefined>,
+): boolean =>
+  models.some((model) => model?.type === 'UserDiagram');
+
+/** When a stored profile and a project diagram share an id, use the project's current model. */
+export const mergeProfileModels = (
+  stored: Array<{ id: string; model: UMLModel }>,
+  project: Array<{ id: string; model: UMLModel }>,
+): UMLModel[] => Array.from(new Map([...stored, ...project].map(({ id, model }) => [id, model])).values());
+
 /** Fold one spec's set fields onto the accumulating sparse configuration (last wins). */
 const applySpec = (config: AggregatedConfiguration, spec: UserPersonalizationSpec): void => {
   const { presentation, modality, content } = spec;

@@ -76,7 +76,7 @@ export async function validateDiagram(
       if (unnamedUsers.length > 0) {
         const msg = i18n.t('validation.toasts.unnamedUserProfile');
         if (!suppressToasts) {
-          toast.error(`❌ ${msg}`, {
+          reportError(`❌ ${msg}`, {
             position: 'top-right',
             autoClose: false,
             hideProgressBar: false,
@@ -97,7 +97,7 @@ export async function validateDiagram(
     if (personalizationErrors.length > 0) {
       if (!suppressToasts) {
         const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + personalizationErrors.join('\n\n');
-        toast.error(errorMessage, {
+        reportError(errorMessage, {
           position: 'top-right',
           autoClose: false,
           hideProgressBar: false,

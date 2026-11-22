@@ -7,6 +7,7 @@ import {
   updateDiagramModelThunk,
 } from '../../../app/store/workspaceSlice';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -167,11 +168,11 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
   const handleFetchRecommendations = useCallback(async () => {
     if (!activeDiagram?.model) return;
     if (!githubSession) {
-      toast.error(t('agentConfig.toasts.signInGitHub'));
+      reportError(t('agentConfig.toasts.signInGitHub'));
       return;
     }
     if (selectedBoxIds.size === 0) {
-      toast.error(t('recommendPersonalization.noProfilesSelected'));
+      reportError(t('recommendPersonalization.noProfilesSelected'));
       return;
     }
 
@@ -213,7 +214,7 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
       setStep('review');
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      toast.error(t('recommendPersonalization.failed', { message: msg }));
+      reportError(t('recommendPersonalization.failed', { message: msg }));
     } finally {
       setIsFetching(false);
     }
@@ -267,7 +268,7 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
       onOpenChange(false);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      toast.error(t('recommendPersonalization.failed', { message: msg }));
+      reportError(t('recommendPersonalization.failed', { message: msg }));
     } finally {
       setIsApplying(false);
     }

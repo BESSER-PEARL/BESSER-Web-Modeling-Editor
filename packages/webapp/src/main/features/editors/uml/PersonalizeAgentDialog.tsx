@@ -17,7 +17,9 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Users } from 'lucide-react';
 import { UMLDiagramType } from '@besser/wme';
 import { isUMLModel } from '../../../shared/types/project';
-import { ApiError, apiClient } from '../../../shared/api/api-client';
+import { ApiError } from '../../../shared/api/api-client';
+import { transformAgentModelJson } from '../../../shared/api/conversion';
+import { reportError } from '../../../shared/services/errors/reportError';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
 import { useProject } from '../../../app/hooks/useProject';
 import type { StoredUserProfile, StoredAgentConfiguration } from '../../../shared/services/storage/local-storage-types';
@@ -83,6 +85,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
     };
 
     for (const profile of LocalStorageRepository.getUserProfiles()) {
+      if (currentProject?.diagrams?.UserDiagram?.some((diagram) => diagram.id === profile.id)) continue;
       if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
         addFromDiagram(profile.id, profile.name, profile.model as UMLModel);
       }
@@ -104,23 +107,23 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
 
   const handleApply = useCallback(async () => {
     if (!selectedKey) {
-      toast.error(t('personalize.selectProfile'));
+      reportError(t('personalize.selectProfile'));
       return;
     }
 
     if (!activeAgentDiagram || !isUMLModel(activeAgentDiagram.model)) {
-      toast.error(t('personalize.noAgentDiagram'));
+      reportError(t('personalize.noAgentDiagram'));
       return;
     }
 
     if (activeAgentDiagram.model.type !== UMLDiagramType.AgentDiagram) {
-      toast.error(t('personalize.notAgentDiagram'));
+      reportError(t('personalize.notAgentDiagram'));
       return;
     }
 
     const selected = availableProfiles.find((opt) => opt.key === selectedKey);
     if (!selected) {
-      toast.error(t('personalize.profileNotFound'));
+      reportError(t('personalize.profileNotFound'));
       return;
     }
 
@@ -167,18 +170,14 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
 
       let transformedModel: unknown;
       try {
-        transformedModel = await apiClient.post<unknown>(
-          '/transform-agent-model-json',
-          payload,
-          { timeout: 600_000 },
-        );
+        transformedModel = await transformAgentModelJson(payload);
       } catch (err) {
         if (err instanceof ApiError) {
-          toast.error(t('personalize.transformFailed', { message: err.message }));
+          reportError(t('personalize.transformFailed', { message: err.message }));
           return;
         }
         if (err instanceof DOMException && err.name === 'TimeoutError') {
-          toast.error(t('personalize.transformTimeout'));
+          reportError(t('personalize.transformTimeout'));
           return;
         }
         throw err;
@@ -256,11 +255,11 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
       setSelectedKey('');
     } catch (error) {
       console.error('Error personalizing agent:', error);
-      toast.error(t('personalize.error'));
+      reportError(t('personalize.error'));
     } finally {
       setIsApplying(false);
     }
-  }, [selectedKey, activeAgentDiagram, availableProfiles, dispatch, onOpenChange, t]);
+  }, [selectedKey, activeAgentDiagram, availableProfiles, currentProject, dispatch, onOpenChange, t]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!isApplying) {
