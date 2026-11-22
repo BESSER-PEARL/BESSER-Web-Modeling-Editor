@@ -49,6 +49,23 @@ const asModel = (elements: Record<string, any>, relationships: Record<string, an
 /* ------------------------------------------------------------------ */
 
 describe('splitUserDiagramIntoProfiles', () => {
+  it('keeps every original personalization rule when backend conversion merges boxes', () => {
+    const root = { ...box('u1', 'User'), personalization: { gui: { modality: { readAloud: true } } } };
+    const first = { ...box('p1', 'Personal_Information', ['a1']), personalization: { presentation: { font: 'serif' } } };
+    const second = { ...box('p2', 'Personal_Information', ['a2']), personalization: { presentation: { size: 20 } } };
+    const age = { ...attr('a1', 'p1', 'age >= 18'), personalization: { content: { adaptContentToUserProfile: true } } };
+    const model = asModel({ u1: root, p1: first, p2: second, a1: age, a2: attr('a2', 'p2', 'nationality = French') },
+      { r1: link('r1', 'u1', 'p1'), r2: link('r2', 'u1', 'p2') });
+    const flattened = flattenUserDiagramForBackend(model);
+    const rules = flattened.elements.p0_u1.profilePersonalizationRules;
+    expect(rules).toEqual(expect.arrayContaining([
+      expect.objectContaining({ source: 'profile', elementId: 'u1', rules: root.personalization }),
+      expect.objectContaining({ source: 'box', elementId: 'p1', rules: first.personalization }),
+      expect.objectContaining({ source: 'box', elementId: 'p2', rules: second.personalization }),
+      expect.objectContaining({ source: 'attribute', elementId: 'a1', attribute: 'age >= 18', rules: age.personalization }),
+    ]));
+    expect((model.elements.u1 as any).profilePersonalizationRules).toBeUndefined();
+  });
   it('splits two Users sharing a box into two profiles that both contain the shared box', () => {
     // u1 --- culture (shared) --- u2 ;  u1 also owns pi1
     const elements: Record<string, any> = {

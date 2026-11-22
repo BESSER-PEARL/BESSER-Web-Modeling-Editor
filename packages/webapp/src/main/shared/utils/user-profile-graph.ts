@@ -613,6 +613,31 @@ export const flattenUserDiagramForBackend = (model: any): any => {
   const mergedRelationships: Record<string, any> = {};
 
   profiles.forEach((profile, i) => {
+    // Capture every authored rule before singleton boxes are merged. Several
+    // boxes may collapse into one backend object, but their rules must remain
+    // individually attributable in the generated profile JSON.
+    const originalElements = profile.model.elements as Record<string, any>;
+    const profilePersonalizationRules: Array<Record<string, unknown>> = [];
+    for (const box of Object.values(originalElements)) {
+      if (box?.type !== 'UserModelName') continue;
+      const className = box.className || '';
+      if (box.personalization && typeof box.personalization === 'object' && !Array.isArray(box.personalization)) {
+        profilePersonalizationRules.push({
+          source: box.id === profile.rootBoxId ? 'profile' : 'box',
+          elementId: box.id, className, rules: box.personalization,
+        });
+      }
+      for (const attrId of Array.isArray(box.attributes) ? box.attributes : []) {
+        const attribute = originalElements[attrId];
+        if (attribute?.type === 'UserModelAttribute' && attribute.personalization &&
+            typeof attribute.personalization === 'object' && !Array.isArray(attribute.personalization)) {
+          profilePersonalizationRules.push({
+            source: 'attribute', elementId: attribute.id, className,
+            attribute: attribute.name || '', rules: attribute.personalization,
+          });
+        }
+      }
+    }
     // Fuse single-capped siblings, then re-nest the flat canvas (`User→Disability`,
     // `User→Skill`, …) back through the hidden grouping containers so the backend
     // receives the original metamodel shape (`User→Accessibility→Disability`, …).
@@ -624,6 +649,9 @@ export const flattenUserDiagramForBackend = (model: any): any => {
 
     Object.entries(subElements).forEach(([id, el]) => {
       const clone: any = { ...el, id: remap(id) };
+      if (id === profile.rootBoxId && profilePersonalizationRules.length) {
+        clone.profilePersonalizationRules = profilePersonalizationRules;
+      }
       if (el.owner) clone.owner = remap(el.owner);
       if (Array.isArray(el.attributes)) clone.attributes = el.attributes.map(remap);
       // `icon` is an id reference only when it points at a real element (chips
