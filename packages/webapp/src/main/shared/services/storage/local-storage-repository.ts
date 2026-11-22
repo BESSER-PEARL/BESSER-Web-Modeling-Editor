@@ -9,20 +9,20 @@ import {
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
   localStorageDeployLinkedRepoPrefix,
+  localStorageLegacyAgentConfig,
   localStorageSystemConfig,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
-import { UMLModel, normalizeAgentModel } from '@besser/wme';
+import {
+  UMLModel,
+  normalizeAgentModel,
+  ACCEPTED_AGENT_LLM_PROVIDERS,
+  isAcceptedAgentLLMProvider,
+} from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
-
-/**
- * Pre-prefix key retained for one-shot migration. All new keys MUST be defined
- * in ``shared/constants/constant.ts`` with the ``besser_`` prefix.
- */
-const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
 export interface AgentRuntimeConfig {
   agentPlatform: string;
@@ -44,6 +44,14 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentLlmName: '',
 };
 
+/**
+ * Provider spellings accepted when reading a stored config. Re-exported from the
+ * canonical editor list (canonical keys + legacy aliases) so this whitelist can
+ * never fall behind the dropdown — the drift that previously reset a saved
+ * 'huggingfaceapi' selection back to the default.
+ */
+export const VALID_AGENT_LLM_PROVIDERS: readonly string[] = ACCEPTED_AGENT_LLM_PROVIDERS;
+
 export const normalizeAgentRuntimeConfig = (
   raw: Partial<AgentRuntimeConfig> | null | undefined,
 ): AgentRuntimeConfig => {
@@ -51,12 +59,8 @@ export const normalizeAgentRuntimeConfig = (
     return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
   const provider: AgentLLMProvider =
-    raw.agentLlmProvider === 'openai' ||
-    raw.agentLlmProvider === 'huggingface' ||
-    raw.agentLlmProvider === 'huggingfaceapi' ||
-    raw.agentLlmProvider === 'replicate' ||
-    raw.agentLlmProvider === 'ollama'
-      ? raw.agentLlmProvider
+    isAcceptedAgentLLMProvider(raw.agentLlmProvider)
+      ? (raw.agentLlmProvider as AgentLLMProvider)
       : '';
   const intent: IntentRecognitionTechnology =
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';
@@ -190,11 +194,25 @@ const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
 export interface DeployLinkedRepo {
   owner: string;
   repo: string;
+  /**
+   * Target branch for the linked repo. Optional so older links (written
+   * before this field existed) round-trip; ``parseDeployLinkedRepo`` backfills
+   * ``'main'`` when it is missing. Used by the Spec-Driven Agent ``'github'`` push
+   * target so re-pushes go to the same branch.
+   */
+  branch?: string;
 }
+
+/** Default branch assumed when a stored link predates the ``branch`` field. */
+const DEFAULT_LINKED_BRANCH = 'main';
 
 /**
  * Deploy-linked-repo storage uses a per-(project, target) key:
- *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo }`` JSON.
+ *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo, branch? }`` JSON.
+ *
+ * Targets in use: ``'webapp'`` / ``'agent'`` (Render deploys) and ``'github'``
+ * (the Spec-Driven Agent "Push to GitHub" flow — a distinct token so push
+ * links never collide with Render deploy links).
  *
  * The two legacy fallback keys (``..._chatbot`` and the bare
  * ``besser_deploy_linked_<projectId>``) predate the explicit ``target``
@@ -214,7 +232,15 @@ const parseDeployLinkedRepo = (raw: string | null): DeployLinkedRepo | null => {
   try {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.owner === 'string' && typeof parsed.repo === 'string') {
-      return { owner: parsed.owner, repo: parsed.repo };
+      return {
+        owner: parsed.owner,
+        repo: parsed.repo,
+        // Back-compat: links written before the ``branch`` field default to 'main'.
+        branch:
+          typeof parsed.branch === 'string' && parsed.branch
+            ? parsed.branch
+            : DEFAULT_LINKED_BRANCH,
+      };
     }
     return null;
   } catch {
@@ -386,11 +412,11 @@ export const LocalStorageRepository = {
    * value has been migrated into the new per-project storage.
    */
   getLegacyAgentConfig: (): string | null => {
-    return localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+    return localStorage.getItem(localStorageLegacyAgentConfig);
   },
 
   clearLegacyAgentConfig: () => {
-    localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
+    localStorage.removeItem(localStorageLegacyAgentConfig);
   },
 
   loadAgentConfiguration: (id: string): StoredAgentConfiguration | null => {
@@ -556,7 +582,7 @@ export const LocalStorageRepository = {
 
   /**
    * One-shot v2 -> v3 migration hook. Call once at startup from the global
-   * storage-migration runner (see ``shared/utils/storage-migration.ts``).
+   * storage-migration runner (see ``shared/services/storage/storage-migration.ts``).
    * Idempotent — safe to invoke on every boot.
    */
   migrateToV3,

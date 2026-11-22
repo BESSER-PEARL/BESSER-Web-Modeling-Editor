@@ -15,9 +15,16 @@ export const ResizeHandle = styled.div`
   flex-shrink: 0;
   transition: background-color 0.15s;
   pointer-events: auto;
+  outline: none;
 
-  &:hover {
-    background-color: ${(props) => props.theme.color.gray};
+  @media (hover: hover) {
+    &:hover {
+      background-color: ${(props) => props.theme.color.gray};
+    }
+  }
+
+  &:focus-visible {
+    background-color: ${(props) => props.theme.color.primary};
   }
 `;
 
@@ -67,8 +74,10 @@ export const CloseButton = styled.button`
   line-height: 1;
   flex-shrink: 0;
 
-  &:hover {
-    background-color: ${(props) => props.theme.color.gray};
+  @media (hover: hover) {
+    &:hover {
+      background-color: ${(props) => props.theme.color.gray};
+    }
   }
 `;
 

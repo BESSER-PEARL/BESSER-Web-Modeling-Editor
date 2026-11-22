@@ -1,10 +1,13 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DiagramLineage,
+  InterfaceMode,
   PerspectiveSettings,
   ProjectDiagram,
   createDefaultProject,
   createEmptyDiagram,
+  DIAGRAM_KIND_BY_TYPE,
   ensureProjectMigrated,
   getActiveDiagram,
   isProject,
@@ -12,8 +15,20 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
-import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
+import {
+  localStorageDeployLinkedRepoPrefix,
+  localStorageGitHubLinkPrefix,
+  localStorageLegacyGitHubAutoCommit,
+  localStorageLegacyGitHubLinkedRepos,
+  localStorageProjectPrefix,
+  localStorageLatestProject,
+  localStorageProjectsList,
+} from '../../constants/constant';
+import { clearStoredConversation, clearStoredConversations } from './assistantStorage';
+import { clearProjectRunRecords } from './specDrivenRunRecords';
+import { checkLocalStorageQuota } from './localStorageQuota';
+import { nextDiagramTitle } from '../../utils/diagramTitles';
+import { deleteProjectTrace } from '../../traceability/traceStore';
 
 export class ProjectStorageRepository {
 
@@ -99,7 +114,7 @@ export class ProjectStorageRepository {
     }
 
     ProjectStorageRepository.isWriting = true;
-    try {
+    const write = () => {
       const projectKey = `${localStorageProjectPrefix}${project.id}`;
       localStorage.setItem(projectKey, JSON.stringify(project));
 
@@ -108,8 +123,28 @@ export class ProjectStorageRepository {
 
       // Update projects list
       this.updateProjectsList(project.id);
+    };
+    const isQuotaError = (error: unknown) => error instanceof DOMException && error.name === 'QuotaExceededError';
+    try {
+      try {
+        write();
+      } catch (error) {
+        if (!isQuotaError(error)) throw error;
+        // The assistant conversations kept in this browser are the one thing
+        // safe to drop: each project's text copy still restores its chat.
+        clearStoredConversations();
+        write();
+      }
     } catch (error) {
       console.error('Error saving project:', error);
+      // Say what actually went wrong: a full browser store is the one failure
+      // the user can fix themselves, and a bare "Failed to save project" hides it.
+      if (isQuotaError(error)) {
+        throw new Error(
+          'Browser storage is full, so the project could not be saved. ' +
+          'Export it and delete unused projects to free space.',
+        );
+      }
       throw new Error('Failed to save project');
     } finally {
       ProjectStorageRepository.isWriting = false;
@@ -154,9 +189,18 @@ export class ProjectStorageRepository {
     }
   }
   
+  /** Id of the project the user last had open, or null. */
+  static getLatestProjectId(): string | null {
+    return localStorage.getItem(localStorageLatestProject);
+  }
+
+  static setLatestProjectId(projectId: string): void {
+    localStorage.setItem(localStorageLatestProject, projectId);
+  }
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
-    const latestProjectId = localStorage.getItem(localStorageLatestProject);
+    const latestProjectId = this.getLatestProjectId();
     if (!latestProjectId) {
       return null;
     }
@@ -192,8 +236,10 @@ export class ProjectStorageRepository {
     description: string,
     owner: string,
     perspectives?: PerspectiveSettings,
+    preferredInterface?: InterfaceMode,
+    initialDiagramType?: SupportedDiagramType,
   ): BesserProject {
-    const project = createDefaultProject(name, description, owner, perspectives);
+    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface, initialDiagramType);
     this.saveProject(project);
     return project;
   }
@@ -238,7 +284,13 @@ export class ProjectStorageRepository {
   }
   
   // Add a new diagram to a type (returns index, or null if at limit)
-  static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
+  static addDiagram(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    title?: string,
+    /** Set on hook-driven derivations; absent on user-created diagrams. */
+    derivedFrom?: DiagramLineage,
+  ): { index: number; diagram: ProjectDiagram } | null {
     const project = this.loadProject(projectId);
     if (!project) {
       return null;
@@ -250,15 +302,15 @@ export class ProjectStorageRepository {
     }
 
     const umlType = toUMLDiagramType(diagramType);
-    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+    const kind = DIAGRAM_KIND_BY_TYPE[diagramType];
 
     // Pick a title that doesn't collide with an existing one (case-insensitive).
     // If the caller passed a title, start from it and append " 2", " 3", ... on
     // collision so templates / duplicate actions keep working. If no title,
-    // use the default ``<Type> <n>`` scheme. Bounded by MAX_DIAGRAMS_PER_TYPE
+    // use nextDiagramTitle (already unique). Bounded by MAX_DIAGRAMS_PER_TYPE
     // so pathological states can't infinite-loop.
     const existingTitles = new Set(diagrams.map((d) => d.title.trim().toLowerCase()));
-    const baseTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
+    const baseTitle = title || nextDiagramTitle(diagramType, diagrams.map((d) => d.title));
     let uniqueTitle = baseTitle;
     if (existingTitles.has(uniqueTitle.trim().toLowerCase())) {
       const maxAttempts = MAX_DIAGRAMS_PER_TYPE + 1;
@@ -291,6 +343,10 @@ export class ProjectStorageRepository {
       if (Object.keys(refs).length > 0) {
         diagram.references = refs;
       }
+    }
+
+    if (derivedFrom) {
+      diagram.derivedFrom = derivedFrom;
     }
 
     diagrams.push(diagram);
@@ -334,6 +390,13 @@ export class ProjectStorageRepository {
           d.references[diagramType] = fallbackId;
         }
       }
+    }
+
+    // `derivedFrom` on other diagrams is deliberately left pointing at the
+    // deleted id: DiagramTabs renders the "source diagram deleted" badge from
+    // it. The deleted diagram's own element-lineage sidecar is garbage now.
+    if (project.elementLineage) {
+      delete project.elementLineage[deletedId];
     }
 
     this.saveProject(project);
@@ -399,6 +462,11 @@ export class ProjectStorageRepository {
 
       // Clean up GitHub-related metadata for this project
       this.cleanupGitHubMetadata(projectId);
+      clearStoredConversation(projectId);
+      clearProjectRunRecords(projectId);
+
+      // The project's trace is stored under its own key
+      deleteProjectTrace(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();
@@ -418,35 +486,39 @@ export class ProjectStorageRepository {
   private static cleanupGitHubMetadata(projectId: string): void {
     // Clean up linked repos entry
     try {
-      const linkedReposRaw = localStorage.getItem('besser_github_linked_repos');
+      const linkedReposRaw = localStorage.getItem(localStorageLegacyGitHubLinkedRepos);
       if (linkedReposRaw) {
         const links = JSON.parse(linkedReposRaw);
         if (links && typeof links === 'object' && projectId in links) {
           delete links[projectId];
-          localStorage.setItem('besser_github_linked_repos', JSON.stringify(links));
+          localStorage.setItem(localStorageLegacyGitHubLinkedRepos, JSON.stringify(links));
         }
       }
     } catch {
       // If data is corrupt, remove the entire key to prevent further issues
-      localStorage.removeItem('besser_github_linked_repos');
+      localStorage.removeItem(localStorageLegacyGitHubLinkedRepos);
     }
 
     // Clean up auto-commit settings entry
     try {
-      const autoCommitRaw = localStorage.getItem('besser_github_auto_commit');
+      const autoCommitRaw = localStorage.getItem(localStorageLegacyGitHubAutoCommit);
       if (autoCommitRaw) {
         const settings = JSON.parse(autoCommitRaw);
         if (settings && typeof settings === 'object' && projectId in settings) {
           delete settings[projectId];
-          localStorage.setItem('besser_github_auto_commit', JSON.stringify(settings));
+          localStorage.setItem(localStorageLegacyGitHubAutoCommit, JSON.stringify(settings));
         }
       }
     } catch {
-      localStorage.removeItem('besser_github_auto_commit');
+      localStorage.removeItem(localStorageLegacyGitHubAutoCommit);
     }
 
-    // Clean up deploy linked repo entry (per-project key)
-    localStorage.removeItem(`besser_deploy_linked_${projectId}`);
+    // Clean up deploy linked repo entries (per-project keys). The bare key is
+    // the legacy Render webapp link; ``_github`` is the Spec-Driven Agent "Push to
+    // GitHub" link, kept separate so it never collides with Render targets.
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}`);
+    localStorage.removeItem(`${localStorageDeployLinkedRepoPrefix}${projectId}_github`);
+    localStorage.removeItem(`${localStorageGitHubLinkPrefix}${projectId}`);
   }
   
   // Helper: Update projects list

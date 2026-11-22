@@ -5,6 +5,19 @@
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
+import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
+
+/**
+ * Use the spec's id when it is a free string within this build (whole-system
+ * builds only); otherwise generate one.
+ */
+function takeId(specId: unknown, prefix: string, usedIds?: Set<string>): string {
+  const id = usedIds && typeof specId === 'string' && specId.trim() && !usedIds.has(specId)
+    ? specId
+    : generateUniqueId(prefix);
+  usedIds?.add(id);
+  return id;
+}
 
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -13,9 +26,14 @@ export class ClassDiagramConverter implements DiagramConverter {
     return 'ClassDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }, classNames?: Set<string>) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+    classNames?: Set<string>,
+    usedIds?: Set<string>,
+  ) {
     const pos = position || this.positionGenerator.getNextPosition();
-    const classId = generateUniqueId('class');
+    const classId = takeId(spec.id, 'class', usedIds);
     
     const baseHeight = 60;
     const attrHeight = (spec.attributes?.length || 0) * 25 + (spec.attributes?.length > 0 ? 10 : 0);
@@ -49,8 +67,8 @@ export class ClassDiagramConverter implements DiagramConverter {
       classElement.stereotype = 'interface';
     }
     
-    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames);
-    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x);
+    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames, usedIds);
+    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x, usedIds);
     
     classElement.attributes = Object.keys(attributes);
     classElement.methods = Object.keys(methods);
@@ -67,6 +85,8 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allElements: Record<string, any> = {};
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
+    const attachedClasses = new Set<string>();
+    const usedIds = new Set<string>();
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -74,7 +94,7 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(classSpec, position, allClassNames);
+      const completeElement = this.convertSingleElement(classSpec, position, allClassNames, usedIds);
       classIdMap[classSpec.className] = completeElement.class.id;
 
       allElements[completeElement.class.id] = completeElement.class;
@@ -85,19 +105,32 @@ export class ClassDiagramConverter implements DiagramConverter {
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
+      const associationClassId = classIdMap[rel.associationClass];
+      if (rel.associationClass != null) {
+        // Do not silently downgrade an invalid attributed link to a plain
+        // association: that would discard per-link fields in generated apps.
+        if ((rel.type || 'Association').toLowerCase() !== 'association'
+            || !sourceId || !targetId || !associationClassId
+            || allElements[sourceId].type === 'Enumeration'
+            || allElements[targetId].type === 'Enumeration'
+            || allElements[associationClassId].type !== 'Class'
+            || associationClassId === sourceId || associationClassId === targetId
+            || attachedClasses.has(associationClassId)) {
+          throw new Error(`Invalid association-class attachment: ${rel.associationClass}`);
+        }
+        attachedClasses.add(associationClassId);
+      }
       
       if (sourceId && targetId) {
-        const relId = generateUniqueId('rel');
-        const relationshipType = this.getRelationshipType(rel.type);
-        
-        allRelationships[relId] = {
+        const relId = takeId(rel.id, 'rel', usedIds);
+        const relationship: any = {
           id: relId,
-          type: relationshipType,
+          type: 'ClassBidirectional',
           source: { 
             element: sourceId,
             direction: rel.sourceDirection || 'Left',
             multiplicity: rel.sourceMultiplicity || '1',
-            role: '',
+            role: rel.sourceRole || '',
             bounds: { x: 0, y: 0, width: 0, height: 0 }
           },
           target: { 
@@ -112,9 +145,29 @@ export class ClassDiagramConverter implements DiagramConverter {
           path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
           isManuallyLayouted: false
         };
+        applyAssistantRelationshipType(relationship, rel.type);
+        allRelationships[relId] = relationship;
+        if (associationClassId) {
+          // The editor and BUML converter already support a class-to-
+          // association link. Its target is the relationship, NOT an endpoint.
+          const linkId = generateUniqueId('classlink');
+          allRelationships[linkId] = {
+            id: linkId,
+            type: 'ClassLinkRel',
+            name: '',
+            owner: null,
+            source: { element: associationClassId, direction: 'Right', multiplicity: '', role: '' },
+            target: { element: relId, direction: 'Left', multiplicity: '', role: '' },
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+            isManuallyLayouted: false
+          };
+        }
       }
     });
     
+    this.createConstraints(systemSpec, classIdMap, allElements, allRelationships);
+
     return {
       version: "3.0.0",
       type: "ClassDiagram",
@@ -126,12 +179,76 @@ export class ClassDiagramConverter implements DiagramConverter {
     };
   }
 
-  private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
+  /**
+   * Persist the agent's OCL invariants as ClassOCLConstraint elements linked to
+   * their context class. Without this the agent's `constraints` reach the browser
+   * and are dropped, so business rules the user stated in prose ("guests must not
+   * exceed room capacity") never reach the generator.
+   *
+   * Invariants sharing a context are merged into one box, matching how the backend
+   * parses them (`_process_constraints` reads several `context ... inv ...` blocks
+   * out of a single element) and how the editor's own OCL boxes are authored.
+   */
+  private createConstraints(
+    systemSpec: any,
+    classIdMap: Record<string, string>,
+    allElements: Record<string, any>,
+    allRelationships: Record<string, any>
+  ) {
+    const constraints = systemSpec?.constraints;
+    if (!Array.isArray(constraints) || constraints.length === 0) return;
+
+    const byContext = new Map<string, string[]>();
+    for (const c of constraints) {
+      const context = c?.context;
+      const expression = typeof c?.expression === 'string' ? c.expression.trim() : '';
+      if (!expression || !classIdMap[context]) continue;
+      if (!byContext.has(context)) byContext.set(context, []);
+      byContext.get(context)!.push(expression);
+    }
+
+    let index = 0;
+    for (const [context, expressions] of byContext) {
+      const elementId = generateUniqueId('ocl');
+      allElements[elementId] = {
+        id: elementId,
+        name: '',
+        type: 'ClassOCLConstraint',
+        owner: null,
+        bounds: { x: -700, y: index * 170, width: 640, height: 130 },
+        description: '',
+        constraint: expressions.join('\n\n')
+      };
+
+      const linkId = generateUniqueId('ocllink');
+      allRelationships[linkId] = {
+        id: linkId,
+        name: '',
+        type: 'ClassOCLLink',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+        source: { element: elementId, direction: 'Right', multiplicity: '', role: '' },
+        target: { element: classIdMap[context], direction: 'Left', multiplicity: '', role: '' },
+        isManuallyLayouted: false
+      };
+      index++;
+    }
+  }
+
+  private createAttributes(
+    spec: any,
+    classId: string,
+    startY: number,
+    startX: number,
+    classNames?: Set<string>,
+    usedIds?: Set<string>,
+  ) {
     const attributes: Record<string, any> = {};
     let currentY = startY;
 
     spec.attributes?.forEach((attr: any) => {
-      const attrId = generateUniqueId('attr');
+      const attrId = takeId(attr.id, 'attr', usedIds);
       const visibility = attr.visibility || 'public';
       const normalizedType = normalizeType(attr.type, classNames);
       
@@ -154,6 +271,11 @@ export class ClassDiagramConverter implements DiagramConverter {
       if (attr.isOptional) {
         attrElement.isOptional = true;
       }
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if (attr.isExternalId) {
+        attrElement.isExternalId = true;
+      }
 
       attributes[attrId] = attrElement;
       
@@ -163,12 +285,12 @@ export class ClassDiagramConverter implements DiagramConverter {
     return { attributes, endY: currentY };
   }
 
-  private createMethods(spec: any, classId: string, startY: number, startX: number) {
+  private createMethods(spec: any, classId: string, startY: number, startX: number, usedIds?: Set<string>) {
     const methods: Record<string, any> = {};
     let currentY = startY + ((spec.attributes?.length || 0) > 0 ? 10 : 0);
     
     spec.methods?.forEach((method: any) => {
-      const methodId = generateUniqueId('method');
+      const methodId = takeId(method.id, 'method', usedIds);
       const visibilitySymbol = method.visibility === 'public' ? '+' : 
                              method.visibility === 'private' ? '-' : '#';
       
@@ -207,19 +329,5 @@ export class ClassDiagramConverter implements DiagramConverter {
     });
     
     return { methods, endY: currentY };
-  }
-
-  private getRelationshipType(type: string): string {
-    switch (type?.toLowerCase()) {
-      case 'inheritance':
-      case 'generalization':
-        return 'ClassInheritance';
-      case 'composition':
-        return 'ClassComposition';
-      case 'aggregation':
-        return 'ClassAggregation';
-      default:
-        return 'ClassBidirectional';
-    }
   }
 }

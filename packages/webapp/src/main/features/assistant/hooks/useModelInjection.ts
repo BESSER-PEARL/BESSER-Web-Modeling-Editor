@@ -11,6 +11,8 @@
 
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
 import type { InjectionCommand, UMLModelingService, ClassSpec, ModelModification } from '../services';
@@ -21,9 +23,24 @@ import {
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+
+/** User-facing notice for a modification batch that only partly applied. */
+export function describeSkippedChanges(appliedCount: number, skipped: string[]): string {
+  return `Applied ${appliedCount} of ${appliedCount + skipped.length} requested changes; ` +
+    `skipped: ${skipped.join(', ')}.`;
+}
+
+/** User-facing notice for classes a modification removed without being asked to. */
+export function describeCollateralRemoval(classNames: string[]): string {
+  return `This change also removed ${classNames.join(', ')}, which you did not ask to delete. ` +
+    'Check the diagram before continuing.';
+}
+import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
+import { canAssistantWriteTo } from '../services/assistantSupport';
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -90,6 +107,8 @@ const UML_DIAGRAM_TYPES = new Set([
   'AgentDiagram',
   'UserDiagram',
   'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
 ]);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
@@ -166,6 +185,13 @@ export interface UseModelInjectionOptions {
   setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
   setMessageMeta: React.Dispatch<React.SetStateAction<Record<string, MessageMeta>>>;
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
+  /** Called after an assistant model update was successfully applied, with
+   *  the model as it now stands. Used by the orchestrator's post-injection
+   *  validate-and-repair loop. Must never throw into the injection path. */
+  onModelApplied?: (info: { action: string; diagramType: string; model: any }) => void;
+  /** Called when an assistant model update could not be applied. Returns true
+   *  when it reported the failure itself, which skips the generic error reply. */
+  onModelApplyFailed?: (info: { action: string; diagramType?: string; turnId?: string }) => boolean;
 }
 
 export interface UseModelInjectionReturn {
@@ -191,6 +217,8 @@ export function useModelInjection({
   setMessages,
   setMessageMeta,
   setProgressMessage,
+  onModelApplied,
+  onModelApplyFailed,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
 
@@ -216,6 +244,8 @@ export function useModelInjection({
       const switched = await switchDiagramRef.current(targetType);
       if (!switched) return false;
       await waitForSwitchRender();
+      // Never write the model into whatever diagram happens to be open instead.
+      if (currentDiagramTypeRef.current !== targetType) return false;
     }
 
     // Step 2: switch to the specific tab if diagramId is provided
@@ -273,9 +303,13 @@ export function useModelInjection({
     try {
       startTimer('injection', 'Model injection');
       const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
+      if (!canAssistantWriteTo(targetDiagramType)) {
+        throw new Error('the assistant cannot edit a Knowledge Graph; use Import or Refine KG instead');
+      }
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
+      let appliedModel: any = null;
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
       if ((command as any).createNewTab) {
@@ -283,6 +317,7 @@ export function useModelInjection({
           const tabResult = await dispatch(
             addDiagramThunk({
               diagramType: targetDiagramType as SupportedDiagramType,
+              traceSource: 'assistant',
             }),
           ).unwrap();
           if (tabResult?.index !== undefined) {
@@ -297,9 +332,20 @@ export function useModelInjection({
             const { ConverterFactory } = await import('../services/converters');
             const converter = ConverterFactory.getConverter(targetDiagramType as any);
             const convertedModel = converter.convertCompleteSystem(command.systemSpec);
-            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+            // This tab bypasses the GUI editor's load path, so mark agent text
+            // editable here too (no-op for UML models). See markTextEditable.
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
+            await dispatch(updateDiagramModelThunk({ model: convertedModel, traceSource: 'assistant' }));
+            appliedModel = convertedModel;
           } else if (command.model) {
-            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
+            await dispatch(updateDiagramModelThunk({ model: command.model as any, traceSource: 'assistant' }));
+            appliedModel = command.model;
+          }
+          // Freshly generated class diagram in a new tab -> let ELK arrange it
+          // once the new editor instance has the model.
+          if (targetDiagramType === 'ClassDiagram' && (command.systemSpec || command.model)) {
+            requestAutoLayoutOnNextSetup();
           }
           dispatch(bumpEditorRevision());
           applied = true;
@@ -325,6 +371,24 @@ export function useModelInjection({
 
         let newModel: any = null;
 
+        // A rebuild of the open diagram keeps its element ids;
+        // replaceExisting=false keeps its content as well.
+        const rebuildsOpenDiagram =
+          currentModel?.type === targetDiagramType && Object.keys(currentModel?.elements || {}).length > 0;
+        const mergeIntoCurrent = command.replaceExisting === false && rebuildsOpenDiagram;
+        const buildCompleteSystem = async () => {
+          const { ConverterFactory } = await import('../services/converters');
+          const { reuseExistingClassIds } = await import('../services/converters/reuseClassIds');
+          const { mergeSystemIntoModel, placeBelow } = await import('../services/systemMerge');
+          const converter = ConverterFactory.getConverter(targetDiagramType as any);
+          const spec =
+            targetDiagramType === 'ClassDiagram' && rebuildsOpenDiagram
+              ? reuseExistingClassIds(command.systemSpec, currentModel, { guessRenames: !mergeIntoCurrent })
+              : command.systemSpec;
+          const built = converter.convertCompleteSystem(spec);
+          return mergeIntoCurrent ? mergeSystemIntoModel(currentModel, placeBelow(built, currentModel)) : built;
+        };
+
         switch (command.action) {
           case 'inject_complete_system':
             if (
@@ -339,17 +403,13 @@ export function useModelInjection({
                   command.systemSpec.nodes,
               )
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (
               command.systemSpec &&
               typeof command.systemSpec === 'object' &&
               Object.keys(command.systemSpec).length > 0
             ) {
-              const { ConverterFactory } = await import('../services/converters');
-              const converter = ConverterFactory.getConverter(targetDiagramType as any);
-              newModel = converter.convertCompleteSystem(command.systemSpec);
+              newModel = await buildCompleteSystem();
             } else if (command.systemSpec) {
               throw new Error(
                 'inject_complete_system payload is missing a valid classes/states/objects/intents/nodes array',
@@ -401,19 +461,67 @@ export function useModelInjection({
               const modifier = ModifierFactory.getModifier(targetDiagramType as any);
               let modifiedModel = currentModel ? JSON.parse(JSON.stringify(currentModel)) : {};
               const appliedActions: string[] = [];
+              const failedActions: string[] = [];
+              // Apply each modification independently: a single bad sub-op
+              // (e.g. an unsupported action or a failed transition) must NOT
+              // discard the valid ones in the same batch. Commit what applies,
+              // skip + log what doesn't, and only fail if nothing applied.
               for (const mod of command.modifications) {
                 if (!mod || !mod.action) {
-                  throw new Error('modify_model contains a modification with no action');
+                  failedActions.push('(missing action)');
+                  continue;
                 }
                 if (!modifier.canHandle(mod.action)) {
-                  throw new Error(`Unsupported modification action '${mod.action}' for ${targetDiagramType}`);
+                  failedActions.push(mod.action);
+                  console.warn(`[modify_model] unsupported action '${mod.action}' for ${targetDiagramType} — skipping`);
+                  continue;
                 }
-                modifiedModel = modifier.applyModification(modifiedModel, mod as ModelModification);
-                appliedActions.push(mod.action);
+                try {
+                  modifiedModel = modifier.applyModification(modifiedModel, mod as ModelModification);
+                  appliedActions.push(mod.action);
+                } catch (modErr) {
+                  failedActions.push(mod.action);
+                  console.warn(`[modify_model] action '${mod.action}' failed — skipping:`, modErr);
+                }
               }
               if (appliedActions.length === 0) {
-                throw new Error('modify_model did not apply any modifications');
+                throw new Error(
+                  failedActions.length
+                    ? `Could not apply any of the requested changes (${failedActions.join(', ')}).`
+                    : 'modify_model did not apply any modifications',
+                );
               }
+              if (failedActions.length > 0) {
+                console.warn(
+                  `[modify_model] applied ${appliedActions.length}, skipped ${failedActions.length}: ${failedActions.join(', ')}`,
+                );
+                // The agent's summary describes intent, so a partial apply must be visible.
+                toast.warning(describeSkippedChanges(appliedActions.length, failedActions));
+              }
+
+              // What the batch ACTUALLY did, independent of what it claimed.
+              // The user-facing summary is written by the agent from intent, so
+              // a modification that does something else still reads as success.
+              const { summarizeModelDiff, classesNamedForRemoval } = await import(
+                '../services/modifiers/base'
+              );
+              const diff = summarizeModelDiff(currentModel, modifiedModel);
+              const intended = classesNamedForRemoval(command.modifications);
+              const collateral = diff.removedClasses.filter((name) => !intended.has(name));
+              console.info(
+                `[modify_model] diff: -${diff.removedClasses.length} class(es), ` +
+                `+${diff.addedClasses.length} class(es), ` +
+                `-${diff.removedRelationships} / +${diff.addedRelationships} relationship(s)`,
+              );
+              if (collateral.length > 0) {
+                console.error(
+                  `[modify_model] ${collateral.length} class(es) were deleted that no ` +
+                  `modification asked to remove: ${collateral.join(', ')}. ` +
+                  `Requested: ${[...intended].join(', ') || '(none)'}.`,
+                );
+                toast.warning(describeCollateralRemoval(collateral));
+              }
+
               newModel = modifiedModel;
             } else if (
               command.modification &&
@@ -456,10 +564,16 @@ export function useModelInjection({
                   : 'Applied model modification',
             });
           } else {
-            await dispatch(updateDiagramModelThunk({ model: newModel }));
+            await dispatch(updateDiagramModelThunk({ model: newModel, traceSource: 'assistant' }));
+            // A freshly generated complete class diagram should be ELK-arranged
+            // on the recreated editor. Incremental edits and merges keep their positions.
+            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram' && !mergeIntoCurrent) {
+              requestAutoLayoutOnNextSetup();
+            }
             dispatch(bumpEditorRevision());
           }
           applied = true;
+          appliedModel = newModel;
           if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
             centerEditorViewport(newModel);
           }
@@ -492,11 +606,16 @@ export function useModelInjection({
           }
           applied = true;
         } else {
-          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+          // Editor-not-ready fallback: persist straight to storage. This also
+          // bypasses the GUI editor's load path, so mark agent text editable
+          // before persisting so the reloaded GUI is double-click editable.
+          if (targetDiagramIsGui) markTextEditable(command.model as any);
+          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any, traceSource: 'assistant' }));
           if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
           applied = true;
+          appliedModel = command.model;
         }
       }
 
@@ -504,9 +623,22 @@ export function useModelInjection({
         throw new Error('Assistant did not provide a valid update payload');
       }
 
+      track('assistant_model_applied', { action: command.action, diagram_type: targetDiagramType });
+
       // Refresh undo state after successful injection
       refreshUndoState();
       setProgressMessage('');
+
+      // Post-injection quality check: hand the applied model to the
+      // orchestrator so it can run the backend validator and, when needed,
+      // ask the agent to repair its own output (validate-and-repair loop).
+      if (onModelApplied && appliedModel) {
+        try {
+          onModelApplied({ action: command.action, diagramType: targetDiagramType, model: appliedModel });
+        } catch (hookError) {
+          console.warn('[useModelInjection] onModelApplied hook failed:', hookError);
+        }
+      }
 
       const injectionTiming = stopTimer('injection');
       const totalTiming = stopTimer('total');
@@ -534,8 +666,22 @@ export function useModelInjection({
       }
     } catch (error) {
       setProgressMessage('');
+      track('assistant_model_apply_failed', {
+        action: command.action,
+        diagram_type: command.diagramType,
+        ...errorProperties(error),
+      });
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
-      toast.error(`Could not apply assistant update: ${errorMessage}`);
+      reportError(`Could not apply assistant update: ${errorMessage}`, { error });
+      let reported = false;
+      try {
+        reported =
+          onModelApplyFailed?.({ action: command.action, diagramType: command.diagramType, turnId: command.turnId }) ===
+          true;
+      } catch (hookError) {
+        console.warn('[useModelInjection] onModelApplyFailed hook failed:', hookError);
+      }
+      if (reported) return;
       const errMsg = toKitMessage(
         'assistant',
         `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`,
@@ -556,7 +702,9 @@ export function useModelInjection({
       if (editor) {
         editor.model = snapshot.model;
       }
-      dispatch(updateDiagramModelThunk({ model: snapshot.model }));
+      // The user undoes the assistant's edit: the reverting changes are the user's, not the assistant's, and they
+      // answer no request.
+      dispatch(updateDiagramModelThunk({ model: snapshot.model, traceSource: 'user' }));
 
       setMessages((prev) => [...prev, toKitMessage('assistant', `Undone: ${snapshot.description}`)]);
     } catch (error) {

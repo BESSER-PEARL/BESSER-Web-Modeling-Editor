@@ -1,0 +1,152 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 800, "height": 600 },
+  "elements": {
+    "pool-1": {
+      "id": "pool-1",
+      "name": "Repository",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 600, "height": 440 }
+    },
+    "lane-mgr": {
+      "id": "lane-mgr",
+      "name": "Reviewer",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 60, "width": 580, "height": 120 },
+      "isAgentic": true,
+      "role": "supervision",
+      "trustScore": 80
+    },
+    "lane-wkr": {
+      "id": "lane-wkr",
+      "name": "Coder",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 200, "width": 580, "height": 120 },
+      "isAgentic": true,
+      "role": "solution",
+      "trustScore": 60
+    },
+    "lane-main": {
+      "id": "lane-main",
+      "name": "Maintainer",
+      "type": "BPMNSwimlane",
+      "owner": "pool-1",
+      "bounds": { "x": 60, "y": 340, "width": 580, "height": 120 },
+      "isAgentic": false,
+      "role": "solution",
+      "trustScore": 0
+    },
+    "task-assign": {
+      "id": "task-assign",
+      "name": "Assign bug",
+      "type": "BPMNTask",
+      "owner": "lane-mgr",
+      "bounds": { "x": 120, "y": 90, "width": 140, "height": 60 },
+      "isAgentic": true,
+      "collaborationMode": "role"
+    },
+    "gw-diver": {
+      "id": "gw-diver",
+      "name": "",
+      "type": "BPMNGateway",
+      "owner": "lane-mgr",
+      "bounds": { "x": 300, "y": 100, "width": 40, "height": 40 },
+      "isAgentic": true,
+      "gatewayRole": "diverging",
+      "mergingStrategy": "leader-driven",
+      "collaborationMode": "role"
+    },
+    "gw-merge": {
+      "id": "gw-merge",
+      "name": "",
+      "type": "BPMNGateway",
+      "owner": "lane-mgr",
+      "bounds": { "x": 420, "y": 100, "width": 40, "height": 40 },
+      "isAgentic": true,
+      "gatewayRole": "merging",
+      "mergingStrategy": "leader-driven",
+      "collaborationMode": "role"
+    },
+    "task-repro": {
+      "id": "task-repro",
+      "name": "Reproduce and fix",
+      "type": "BPMNTask",
+      "owner": "lane-wkr",
+      "bounds": { "x": 300, "y": 230, "width": 140, "height": 60 },
+      "isAgentic": true,
+      "collaborationMode": "role"
+    },
+    "task-validate": {
+      "id": "task-validate",
+      "name": "Validate",
+      "type": "BPMNTask",
+      "owner": "lane-main",
+      "bounds": { "x": 420, "y": 370, "width": 140, "height": 60 },
+      "isAgentic": false
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "f1": {
+      "id": "f1",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 260, "y": 120, "width": 40, "height": 1 },
+      "path": [
+        { "x": 260, "y": 120 },
+        { "x": 300, "y": 120 }
+      ],
+      "source": { "element": "task-assign", "direction": "Right" },
+      "target": { "element": "gw-diver", "direction": "Left" }
+    },
+    "f2": {
+      "id": "f2",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 320, "y": 140, "width": 40, "height": 120 },
+      "path": [
+        { "x": 320, "y": 140 },
+        { "x": 360, "y": 260 }
+      ],
+      "source": { "element": "gw-diver", "direction": "Down" },
+      "target": { "element": "task-repro", "direction": "Left" }
+    },
+    "f3": {
+      "id": "f3",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 360, "y": 140, "width": 80, "height": 120 },
+      "path": [
+        { "x": 360, "y": 260 },
+        { "x": 440, "y": 140 }
+      ],
+      "source": { "element": "task-repro", "direction": "Right" },
+      "target": { "element": "gw-merge", "direction": "Down" }
+    },
+    "f4": {
+      "id": "f4",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "sequence",
+      "owner": null,
+      "bounds": { "x": 440, "y": 140, "width": 60, "height": 240 },
+      "path": [
+        { "x": 440, "y": 140 },
+        { "x": 480, "y": 400 }
+      ],
+      "source": { "element": "gw-merge", "direction": "Down" },
+      "target": { "element": "task-validate", "direction": "Left" }
+    }
+  },
+  "assessments": {}
+}

@@ -36,6 +36,7 @@ export type EditorState = {
   readonly view: ApollonView;
   readonly features: UMLElementFeatures;
   readonly colorEnabled: boolean;
+  readonly agenticEnabled: boolean;
   readonly zoomFactor: number;
   readonly selectionBoxActive: boolean;
 };

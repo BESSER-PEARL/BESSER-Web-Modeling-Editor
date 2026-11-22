@@ -1,6 +1,14 @@
+import { readStoredConversation, writeStoredConversation } from '../assistantStorage';
 import { ProjectStorageRepository } from '../ProjectStorageRepository';
+import {
+  readProjectLastRun,
+  readProjectRunRequest,
+  recordProjectRunRequest,
+  writeProjectLastRun,
+} from '../specDrivenRunRecords';
 import { createDefaultProject, ALL_DIAGRAM_TYPES, BesserProject } from '../../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constants/constant';
+import projectBeforeQuantumAndBpmn from './fixtures/project-before-quantum-bpmn.json';
 
 // Mock react-toastify (imported transitively by localStorageQuota)
 vi.mock('react-toastify', () => ({
@@ -53,6 +61,38 @@ describe('ProjectStorageRepository', () => {
     it('returns null for corrupted JSON data', () => {
       localStorage.setItem(`${localStorageProjectPrefix}broken`, '{bad json');
       expect(ProjectStorageRepository.loadProject('broken')).toBeNull();
+    });
+
+    it('opens a project saved before the quantum and BPMN diagram types existed', () => {
+      localStorage.setItem(
+        `${localStorageProjectPrefix}old-project-1`,
+        JSON.stringify(projectBeforeQuantumAndBpmn),
+      );
+
+      const loaded = ProjectStorageRepository.loadProject('old-project-1');
+
+      expect(loaded).not.toBeNull();
+      expect(loaded!.name).toBe('Library');
+      for (const type of ALL_DIAGRAM_TYPES) {
+        expect(Array.isArray(loaded!.diagrams[type])).toBe(true);
+        expect(loaded!.diagrams[type].length).toBeGreaterThan(0);
+      }
+      const classModel = loaded!.diagrams.ClassDiagram[0].model as { elements: Record<string, { name: string }> };
+      expect(classModel.elements['c-book'].name).toBe('Book');
+    });
+
+    it.each([
+      ['not a project', { type: 'Diagram', diagrams: {}, currentDiagramType: 'ClassDiagram' }],
+      ['no diagrams', { ...projectBeforeQuantumAndBpmn, diagrams: undefined }],
+      ['no current diagram type', { ...projectBeforeQuantumAndBpmn, currentDiagramType: undefined }],
+      [
+        'no class diagram',
+        { ...projectBeforeQuantumAndBpmn, diagrams: { ...projectBeforeQuantumAndBpmn.diagrams, ClassDiagram: undefined } },
+      ],
+      ['an array', [projectBeforeQuantumAndBpmn]],
+    ])('still refuses stored data with %s', (_label, data) => {
+      localStorage.setItem(`${localStorageProjectPrefix}garbage`, JSON.stringify(data));
+      expect(ProjectStorageRepository.loadProject('garbage')).toBeNull();
     });
   });
 
@@ -135,6 +175,47 @@ describe('ProjectStorageRepository', () => {
       ProjectStorageRepository.deleteProject(project.id);
       expect(localStorage.getItem(localStorageLatestProject)).toBeNull();
     });
+
+    it('frees space by dropping the stored assistant conversations when storage is full', () => {
+      const other = createDefaultProject('Other', '', '');
+      writeStoredConversation(other.id, '{"savedAt":1}');
+      const project = createDefaultProject('Big', '', '');
+      const setItem = localStorage.setItem.bind(localStorage);
+      const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key: string, value: string) => {
+        if (key.startsWith('besser_project_') && readStoredConversation(other.id) !== null) {
+          throw new DOMException('full', 'QuotaExceededError');
+        }
+        setItem(key, value);
+      });
+
+      expect(() => ProjectStorageRepository.saveProject(project)).not.toThrow();
+      expect(ProjectStorageRepository.loadProject(project.id)).not.toBeNull();
+      expect(readStoredConversation(other.id)).toBeNull();
+      spy.mockRestore();
+    });
+
+    it("removes the project's assistant conversation", () => {
+      const project = createDefaultProject('Chatty', '', '');
+      ProjectStorageRepository.saveProject(project);
+      writeStoredConversation(project.id, '{"savedAt":1}');
+
+      ProjectStorageRepository.deleteProject(project.id);
+      expect(readStoredConversation(project.id)).toBeNull();
+    });
+
+    it("removes the project's last run and its request, so a re-import starts clean", () => {
+      const project = createDefaultProject('Generated', '', '');
+      ProjectStorageRepository.saveProject(project);
+      writeProjectLastRun(project.id, 'a'.repeat(32), 1000);
+      recordProjectRunRequest(
+        project.id,
+        "## Assistant's notes (may be inaccurate)\n\nNotes.\n\n## The user's original request, verbatim\n\nBuild a task board.",
+      );
+
+      ProjectStorageRepository.deleteProject(project.id);
+      expect(readProjectLastRun(project.id)).toBeNull();
+      expect(readProjectRunRequest(project.id)).toBeNull();
+    });
   });
 
   // ── updateDiagram ─────────────────────────────────────────────────────
@@ -195,6 +276,15 @@ describe('ProjectStorageRepository', () => {
 
     it('returns null when the project does not exist', () => {
       expect(ProjectStorageRepository.addDiagram('ghost', 'ClassDiagram')).toBeNull();
+    });
+
+    it('names an untitled new diagram from the default title, unique among existing ones', () => {
+      const project = createDefaultProject('P', '', '');
+      project.diagrams.ClassDiagram.push({ ...project.diagrams.ClassDiagram[0], id: 'cd2', title: 'Class Diagram 2' });
+      ProjectStorageRepository.saveProject(project);
+
+      expect(ProjectStorageRepository.addDiagram(project.id, 'ClassDiagram')!.diagram.title).toBe('Class Diagram 3');
+      expect(ProjectStorageRepository.addDiagram(project.id, 'QuantumCircuitDiagram')!.diagram.title).toBe('Quantum Circuit 2');
     });
   });
 

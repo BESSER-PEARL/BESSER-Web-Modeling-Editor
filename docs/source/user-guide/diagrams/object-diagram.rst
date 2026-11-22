@@ -46,6 +46,18 @@ Double-click the link to:
 *   Modify the **link name**.
 *   Choose the **Association** this link instantiates.
 
+Generating Objects
+~~~~~~~~~~~~~~~~~~
+
+To automatically generate an object diagram:
+
+*   **Generate**: adds objects with default attribute values.
+*   **Semantic generation**: generates an instance of the class diagram
+    that satisfies its OCL constraints. The generation searches within
+    bounded domains. See the `docs
+    <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+    for details.
+
 OCL Constraint Validation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

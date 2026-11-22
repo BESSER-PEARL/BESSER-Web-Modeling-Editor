@@ -44,7 +44,7 @@ backend at http://localhost:9000/besser_api in development mode.
    * - ``npm run lint``
      - Runs ESLint for webapp + server
      - root workspace
-   * - ``npm run lint --workspace=editor``
+   * - ``npm run lint --workspace=@besser/wme``
      - Lints the editor package
      - editor
    * - ``npm run lint --workspace=webapp``
@@ -56,6 +56,9 @@ backend at http://localhost:9000/besser_api in development mode.
    * - ``npm run test --workspace=webapp``
      - Runs unit tests with Vitest
      - webapp
+   * - ``npm run test --workspace=server``
+     - Runs the security-header tests with Vitest
+     - server
    * - ``npm run test:e2e --workspace=webapp``
      - Runs end-to-end tests with Playwright
      - webapp
@@ -73,8 +76,8 @@ When contributing to the editor, run package-specific checks:
 
 .. code-block:: bash
 
-   npm run lint --workspace=editor
-   npm run prettier:check --workspace=editor   # optional, run from package root
+   npm run lint --workspace=@besser/wme
+   npm run prettier:check --workspace=@besser/wme   # optional, run from package root
 
 4. Update documentation
 -----------------------
@@ -287,10 +290,12 @@ Tips
 
 CI will automatically run:
 
-* ESLint linting for webapp and server
-* Prettier formatting check
+* ESLint linting for webapp and server, and the OpenAPI types check
+* Unit tests (Vitest) for webapp and server
+* Type check (``npm run typecheck``: no more errors than the baseline)
 * Production build (``npm run build``)
-* Unit tests (Vitest) on webapp
+* Translation coverage (``npm run i18n:check``)
+* Documentation build (``python docs/check_docs.py``)
 
 If CI fails, check the logs, fix the issue, and push again. Maintainers
 will review once CI is green and the PR is marked ready.

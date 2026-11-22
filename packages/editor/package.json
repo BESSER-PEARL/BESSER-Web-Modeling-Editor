@@ -28,6 +28,7 @@
     "prettier:write": "prettier --write 'src/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'"
   },
   "dependencies": {
+    "dompurify": "^3.4.8",
     "elkjs": "0.11.1",
     "express": "4.22.1",
     "fast-json-patch": "3.1.1",
@@ -38,7 +39,7 @@
     "react-color": "2.19.3",
     "react-dom": "18.2.0",
     "react-redux": "8.1.3",
-    "react-router-dom": "6.30.3",
+    "react-router-dom": "6.30.6",
     "react-tooltip": "4.5.1",
     "redux": "4.2.1",
     "redux-saga": "1.3.0",
@@ -98,7 +99,7 @@
     "sleep-promise": "9.1.0",
     "start-server-and-test": "2.0.3",
     "style-loader": "3.3.4",
-    "stylelint": "16.3.1",
+    "stylelint": "^16.26.1",
     "stylelint-config-recommended": "14.0.0",
     "stylelint-config-styled-components": "0.1.1",
     "stylelint-processor-styled-components": "1.10.0",
@@ -107,7 +108,7 @@
     "typescript": "5.4.5",
     "webpack": "^5.105.4",
     "webpack-cli": "5.1.4",
-    "webpack-dev-server": "5.2.3",
+    "webpack-dev-server": "^5.2.7",
     "webpack-merge": "5.10.0"
   }
 }

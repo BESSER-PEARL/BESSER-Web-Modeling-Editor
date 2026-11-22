@@ -3,38 +3,71 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Menu, X } from 'lucide-react';
+import { reportError } from '../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../shared/services/analytics/events';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useProject } from '../hooks/useProject';
-import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram, type GrapesJSProjectData } from '../../shared/types/project';
-import { collectVariantProfiles } from '../../shared/utils/buildWebAppVersions';
+import { ALL_DIAGRAM_TYPES, getActiveDiagram, hasCustomEditor, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
-import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
+import { useRepoSync } from '../../features/github/hooks/useRepoSync';
+import { isGoLiveAvailable } from '../../shared/api/github';
+import { ModelAttributionBanner, ModelAttributionLayer } from '../../features/github/components/ModelAttributionLayer';
+import { ModelFocusLayer } from '../../features/assistant/components/ModelFocusLayer';
+import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
+import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
+import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
+import { RepoChatHeader } from '../../features/github/components/RepoChatHeader';
+import {
+  OPEN_HELP_GUIDE_EVENT,
+  type HelpGuideSectionId,
+  type OpenHelpGuideDetail,
+} from '../../shared/dialogs/helpGuide';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
-  useImportDiagramToProjectWorkflow,
-  useImportBpmnDiagramToProjectWorkflow,
-} from '../../features/import/useImportDiagram';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+  LocalStorageRepository,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+  type AgentRuntimeConfig,
+} from '../../shared/services/storage/local-storage-repository';
+import {
+  reportDerivationWarnings,
+  useGenerateComponentDiagram,
+  useGenerateDeploymentDiagram,
+} from '../../features/inter-diagram';
+import { useGenerateDockerCompose } from '../../features/generation/hooks/useGenerateDockerCompose';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
-import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
+import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
+import { buildProjectExportEnvelope, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
-import { ENABLE_STUDY_DEPLOY, localStorageStudyParticipantId, localStorageStudyModelUploaded } from '../../shared/constants/constant';
-import { captureAnalyticsEvent, getPostHog, identifyStudyParticipant } from '../../shared/services/analytics/lazy-analytics';
-import { acceptStudyConsent } from '../../shared/components/cookie-consent/CookieConsentBanner';
-import { getConsentStatus } from '../../shared/services/analytics/analytics-consent';
-import { apiClient } from '../../shared/api/api-client';
+import {
+  consumeAssistantOpenOnLoad,
+  readAssistantDrawerOpen,
+  writeAssistantDrawerOpen,
+} from '../../shared/services/storage/assistantStorage';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
-import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
+// Direct imports: the feature barrel re-exports BafChatWrapper and its heavy deps.
+import { CredentialsDialog } from '../../features/agent-simulation/CredentialsDialog';
+import {
+  selectIsSimulationRunning,
+  selectSessionId,
+  stopAgentSimulationThunk,
+  validateAgentThunk,
+} from '../../features/agent-simulation/agentSimulationSlice';
+import { agentSimulationApi } from '../../shared/api/agentSimulation';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -42,24 +75,21 @@ import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
-import { StudyDeployDialog } from '../../features/deploy/dialogs/StudyDeployDialog';
-import { StudyWelcomeDialog } from '../../features/deploy/dialogs/StudyWelcomeDialog';
-import { useStudyDeploy } from '../../features/deploy/hooks/useStudyDeploy';
-import { hasPersonalizationVariants } from '../../features/deploy/utils/agentPersonalizationPayload';
-import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
+import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
-import { useProjectPreview } from './hooks/useProjectPreview';
+import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
+import { useProjectBumlPreview } from '../../features/export/useProjectBumlPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
-import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type { QualityCheckResult, QualityCheckState } from '../../shared/types/quality-check';
 import type { AgentVariantOption } from './topbar-types';
+import { useHasOpened } from '../hooks/useHasOpened';
+import { useStableCallback } from '../hooks/useStableCallback';
+import { sanitizeRepoName } from '../../shared/utils/validation';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
-const GitHubSidebar = React.lazy(() =>
-  import('../../features/github/components/GitHubSidebar').then((m) => ({ default: m.GitHubSidebar })),
-);
 const AssistantWorkspaceDrawer = React.lazy(() =>
   import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({
     default: m.AssistantWorkspaceDrawer,
@@ -71,6 +101,12 @@ const FeedbackDialog = React.lazy(() =>
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
 );
+const GoLiveDialog = React.lazy(() =>
+  import('../../features/github/dialogs/GoLiveDialog').then((m) => ({ default: m.GoLiveDialog })),
+);
+const KgImportTargetModal = React.lazy(() =>
+  import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
+);
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
 // mixed static/dynamic import warning (the module is already in this chunk).
@@ -78,15 +114,19 @@ import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../share
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 
-export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
+export type { GeneratorType, GeneratorMenuMode } from '../../shared/types/workspace-types';
 
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
+// addDiagramThunk's message when a project already holds the maximum number
+// of diagrams of a type.
+const DIAGRAM_LIMIT_REACHED = /limit of \d+ reached/i;
+
+/** Message of a rejected thunk: `.unwrap()` rethrows a SerializedError (a plain object), not an Error. */
+const thunkErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+    return err.message;
+  }
+  return String(err);
 };
 
 interface OnboardingHook {
@@ -110,7 +150,8 @@ interface OnboardingHook {
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
@@ -118,6 +159,8 @@ interface WorkspaceShellProps {
   onOpenRecommendPersonalizationDialog?: () => void;
   onOpenPersonalizationOverview?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
+  /** Semantic check of the class diagram, offered next to the quality check on class diagrams. */
+  onSemanticCheck?: () => Promise<void>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating?: boolean;
@@ -166,6 +209,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onOpenRecommendPersonalizationDialog,
   onOpenPersonalizationOverview,
   onQualityCheck,
+  onSemanticCheck,
   showQualityCheck = false,
   generatorMode,
   isGenerating = false,
@@ -189,6 +233,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
   const importBpmnDiagramToProject = useImportBpmnDiagramToProjectWorkflow();
 
+  const isSimulationActive = useAppSelector(selectIsSimulationRunning);
+  const simulationSessionId = useAppSelector(selectSessionId);
+  const showSimulateAgent = currentProject?.currentDiagramType === UMLDiagramType.AgentDiagram;
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
+  const [simulationConfig, setSimulationConfig] = useState<Record<string, unknown>>({});
+
   // Local UI state
   // Sidebar starts expanded so diagram-type labels are visible; users can
   // collapse it with the bottom toggle to reclaim canvas space.
@@ -197,8 +248,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
-  const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
-  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  // Restore the drawer to wherever the user left it this tab (sessionStorage).
+  // Defaults to closed when nothing is stored or storage is unavailable.
+  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(readAssistantDrawerOpen);
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -206,7 +258,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
     [currentDiagramType],
   );
-  const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
+  const { isDeploymentAvailable } = getWorkspaceContext(currentProject?.currentDiagramType);
+
+  const simulationDiagramModel = useMemo(
+    (): object =>
+      diagram && isUMLModel(diagram.model) ? prepareAgentModelForBackend(diagram.model, diagram) : (diagram?.model ?? {}),
+    [diagram],
+  );
 
   // Extracted hooks
   const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
@@ -239,93 +297,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handleCreateNewInstead,
   } = useDeployment({ currentProject, isDeploymentAvailable });
 
-  const { isDeploying: isStudyDeploying, result: studyDeployResult, error: studyDeployError, deploy: deployToStudyServer, reset: resetStudyDeploy } = useStudyDeploy();
-  const [isStudyDeployDialogOpen, setIsStudyDeployDialogOpen] = useState(false);
-  const [isPersonalizedStudyDeploy, setIsPersonalizedStudyDeploy] = useState(false);
-
-  const [studyWelcomeOpen, setStudyWelcomeOpen] = useState(false);
-  const [studyParticipantId, setStudyParticipantId] = useState('');
-  const [studyModelUploaded, setStudyModelUploaded] = useState(
-    () => {
-      try { return ENABLE_STUDY_DEPLOY && localStorage.getItem(localStorageStudyModelUploaded) === '1'; }
-      catch { return false; }
-    },
-  );
-  const [studyUploading, setStudyUploading] = useState(false);
-
-  const handleUploadStudyModel = useCallback(async () => {
-    if (!currentProject || !studyParticipantId || studyUploading) return;
-    setStudyUploading(true);
-    try {
-      await apiClient.post('/upload_study_model', {
-        participant_id: studyParticipantId,
-        project: currentProject,
-      });
-      localStorage.setItem(localStorageStudyModelUploaded, '1');
-      setStudyModelUploaded(true);
-      getPostHog()?.capture('study_model_uploaded');
-      toast.success(t('study.upload.success'));
-    } catch {
-      toast.error(t('study.upload.error'));
-    } finally {
-      setStudyUploading(false);
-    }
-  }, [currentProject, studyParticipantId, studyUploading, t]);
-
-  const studyFormUrl = ENABLE_STUDY_DEPLOY && studyParticipantId
-    ? 'https://docs.google.com/forms/d/e/1FAIpQLScjqyRv9uH7M7UYQStrdoBko5v7q2yUax4uRGLrI8AS_YQKkQ/viewform' +
-      '?usp=pp_url&entry.153355410=' + encodeURIComponent(studyParticipantId)
-    : undefined;
-  useEffect(() => {
-    const allowedFields = new Set([
-      'language', 'languageComplexity', 'sentenceLength',
-      'size', 'font', 'lineSpacing', 'alignment', 'color', 'contrast',
-      'adaptContentToUserProfile', 'summarizeLongContent', 'readAloud',
-    ]);
-    const onGuiRuleChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ field?: string; enabled?: boolean }>).detail;
-      if (detail && typeof detail.field === 'string' && allowedFields.has(detail.field) && typeof detail.enabled === 'boolean') {
-        captureAnalyticsEvent('gui_personalization_rule_changed', { field: detail.field, enabled: detail.enabled });
-      }
-    };
-    window.addEventListener('besser:gui-personalization-rule-changed', onGuiRuleChanged);
-    return () => window.removeEventListener('besser:gui-personalization-rule-changed', onGuiRuleChanged);
-  }, []);
-  useEffect(() => {
-    if (!ENABLE_STUDY_DEPLOY) return;
-    let existing: string | null = null;
-    try { existing = localStorage.getItem(localStorageStudyParticipantId); } catch { /* consent dialog will report unavailable storage */ }
-    const participantId = existing ?? crypto.randomUUID();
-    if (!existing) {
-      try { localStorage.setItem(localStorageStudyParticipantId, participantId); } catch { /* consent remains pending */ }
-    }
-    if (getConsentStatus() !== 'accepted') {
-      setStudyWelcomeOpen(true);
-    }
-    setStudyParticipantId(participantId);
-    // Link all PostHog events to this participant for the duration of the session.
-    if (getConsentStatus() === 'accepted') identifyStudyParticipant(participantId);
-  }, []);
-
-  const handleOpenStudyDeployDialog = useCallback(() => {
-    if (!currentProject) {
-      toast.error(t('deploy.study.toasts.noProject'));
-      return;
-    }
-    // Keep showing the links of a previous successful deployment (the dialog
-    // offers a Redeploy button); only clear stale errors.
-    if (!studyDeployResult?.success) resetStudyDeploy();
-    setIsStudyDeployDialogOpen(true);
-  }, [currentProject, resetStudyDeploy, studyDeployResult, t]);
-
-  const handleStudyDeploy = useCallback(async () => {
-    if (!currentProject) return;
-    // Deploying also submits the participant's models (part of the study). An
-    // upload failure is reported by the upload handler but must not block deploying.
-    await handleUploadStudyModel();
-    deployToStudyServer(currentProject, isPersonalizedStudyDeploy).catch(console.error);
-  }, [currentProject, deployToStudyServer, handleUploadStudyModel, isPersonalizedStudyDeploy]);
-
   const {
     assistantImportMode,
     assistantApiKey,
@@ -340,20 +311,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   } = useAssistantImport({ currentProject });
 
   const {
-    isProjectPreviewOpen,
-    projectPreviewJson,
-    projectBumlPreview,
-    projectBumlPreviewError,
-    isProjectBumlPreviewLoading,
-    handleOpenProjectPreview,
-    handleCopyProjectPreview,
-    handleDownloadProjectPreview,
-    handleRequestProjectBumlPreview,
-    handleCloseProjectPreview,
-    handleCopyProjectBumlPreview,
-    handleDownloadProjectBumlPreview,
-    generateProjectBumlPreview,
-  } = useProjectPreview({ currentProject });
+    openPickerAndImport: openImportOwlPicker,
+    importTargetModalProps: kgImportTargetModalProps,
+  } = useImportOwlToKg();
+
+  const generateProjectBumlPreview = useProjectBumlPreview();
 
   const {
     isHelpDialogOpen,
@@ -369,7 +331,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   } = useDialogStates();
 
   // Global keyboard shortcut listener: ? or Ctrl+/ opens the shortcuts overlay
-  const openKeyboardShortcuts = useCallback(() => setIsKeyboardShortcutsOpen(true), [setIsKeyboardShortcutsOpen]);
+  const openKeyboardShortcuts = useCallback(() => {
+    track('ui_action', { action: 'shortcuts_opened' });
+    setIsKeyboardShortcutsOpen(true);
+  }, [setIsKeyboardShortcutsOpen]);
   useKeyboardShortcutsToggle(openKeyboardShortcuts);
 
   // Global keyboard shortcut listener: Ctrl+K / Cmd+K opens the command palette
@@ -388,6 +353,41 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
 
+  // Navigate to /agent-simulation only when the simulation transitions from idle to active.
+  // Using a ref avoids re-redirecting the user if they manually navigate away while
+  // the simulation is still running.
+  const prevIsSimulationActiveRef = useRef(isSimulationActive);
+  useEffect(() => {
+    const wasActive = prevIsSimulationActiveRef.current;
+    prevIsSimulationActiveRef.current = isSimulationActive;
+    if (!wasActive && isSimulationActive) {
+      navigate('/agent-simulation');
+    }
+  }, [isSimulationActive, navigate]);
+
+  // Stop any running simulation session when the user switches to a different project
+  const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
+  useEffect(() => {
+    const currentId = currentProject?.id;
+    const prevId = prevProjectIdRef.current;
+    prevProjectIdRef.current = currentId;
+    if (prevId !== undefined && prevId !== currentId) {
+      void dispatch(stopAgentSimulationThunk('project_switch'));
+    }
+  }, [currentProject?.id, dispatch]);
+
+  // Best-effort session cleanup when the browser tab is closed or reloaded.
+  // Uses keepalive so the request can outlive the page.
+  useEffect(() => {
+    const sessionId = simulationSessionId;
+    if (!sessionId) return;
+    const handleBeforeUnload = () => {
+      agentSimulationApi.stopSession(sessionId, { keepalive: true }).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [simulationSessionId]);
+
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
     const handleAssistantExport = async (e: Event) => {
@@ -395,7 +395,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const project = currentProjectRef.current;
 
       if (!project) {
-        toast.error(t('shell.errors.noProject'));
+        track('diagram_export_failed', { format: format === 'buml' ? 'buml' : 'json', reason: 'no_model', source: 'assistant' });
+        reportError(t('shell.errors.noProject'));
         return;
       }
 
@@ -409,14 +410,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               .toLowerCase()
               .replace(/[^a-z0-9_]/g, '_') || 'project';
           downloadFile(buml, `${normalizedName}_buml.py`, 'text/x-python');
+          track('diagram_exported', { format: 'buml', source: 'assistant' });
           toast.success(t('shell.export.bumlSuccess'));
         } catch (err) {
-          toast.error(t('shell.export.bumlFailed', { message: err instanceof Error ? err.message : t('shell.errors.unknown') }));
+          trackFailure('diagram_export_failed', err, { format: 'buml', reason: 'request', source: 'assistant' });
+          reportError(t('shell.export.bumlFailed', { message: err instanceof Error ? err.message : t('shell.errors.unknown') }), { error: err });
         }
       } else {
         const exportData = buildProjectExportEnvelope(freshProject);
         const projectName = sanitizeRepoName(project.name || 'project') || 'project';
         downloadJson(exportData, `${projectName}_export.json`);
+        track('diagram_exported', { format: 'json', source: 'assistant' });
         toast.success(t('shell.export.jsonSuccess'));
       }
     };
@@ -425,44 +429,63 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return () => window.removeEventListener('wme:assistant-export-project', handleAssistantExport);
   }, [generateProjectBumlPreview, t]);
 
-  // Theme classes
-  const shellBackgroundClass = isDarkTheme
-    ? 'bg-[radial-gradient(120%_120%_at_0%_0%,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(var(--background))_100%)] text-foreground'
-    : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,hsl(var(--background))_45%,#f7fafc_100%)] text-foreground';
-  const headerBackgroundClass = isDarkTheme
-    ? 'border-b border-border/70 bg-[linear-gradient(105deg,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(222_25%_14%)_100%)]'
-    : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
-  const outlineButtonClass = isDarkTheme
-    ? 'border-border bg-card text-foreground hover:bg-accent hover:border-border'
-    : 'border-border/60 bg-card hover:border-brand/25 hover:bg-brand/[0.03]';
-  const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
-  const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5'
-    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5';
-  const sidebarTitleClass = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
-  const sidebarDividerClass = 'my-2 border-t border-border/60';
-  const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-border hover:bg-accent'
-    : 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
-  const sidebarToggleTextClass = 'text-xs font-semibold text-foreground';
-
-  // Mobile drawer sidebar uses the same styles but is always flex (never hidden)
-  const mobileSidebarBaseClass = isDarkTheme
-    ? 'flex shrink-0 flex-col gap-1.5 border-r border-border/70 bg-card p-2.5'
-    : 'flex shrink-0 flex-col gap-1.5 border-r border-border/50 bg-card/90 p-2.5 backdrop-blur-sm';
-
-  const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
-
-  // Close mobile drawer on Escape key
+  // Agentic entry: when a project was created with the "agent" interface (or the
+  // app was opened with ?agentic), open the assistant drawer once the project is
+  // loaded so the user lands on the agentic welcome. The flag is set by
+  // ProjectHubDialog / useProjectBootstrap; consume-and-clear it here so the
+  // drawer opens exactly once and no prompt is auto-sent.
   useEffect(() => {
-    if (!isMobileDrawerOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsMobileDrawerOpen(false);
-      }
+    if (!currentProject) {
+      return;
+    }
+    if (consumeAssistantOpenOnLoad()) {
+      setIsAssistantWorkspaceOpen(true);
+    }
+  }, [currentProject?.id]);
+
+  // Persist the drawer's open/closed state for the tab so it stays where the
+  // user left it across in-tab reloads (session-scoped, mirrors the read above),
+  // and keep the floating FAB (AssistantWidget) in sync via the shared event so
+  // only one assistant surface shows — this also covers a restore-open on mount,
+  // when no user toggle fired the event.
+  useEffect(() => {
+    writeAssistantDrawerOpen(isAssistantWorkspaceOpen);
+    window.dispatchEvent(
+      new CustomEvent('besser:assistant-drawer', { detail: { open: isAssistantWorkspaceOpen } }),
+    );
+  }, [isAssistantWorkspaceOpen]);
+
+  // Theme classes. The shell stays transparent so the body wash in styles.css shows through.
+  const shellBackgroundClass = 'text-foreground';
+  const headerBackgroundClass = 'border-b border-brand/10 bg-background/60 dark:border-border/70';
+  // Header triggers use variant="ghost"; this keeps their quiet tint and shows the open state.
+  const outlineButtonClass =
+    'text-foreground/80 hover:bg-foreground/[0.05] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground dark:hover:bg-white/[0.06] dark:data-[state=open]:bg-white/[0.08] max-md:h-8 max-md:px-2';
+  const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
+  const sidebarBaseClass =
+    'hidden shrink-0 border-r border-border/50 bg-card p-2.5 md:flex md:flex-col md:gap-0.5 dark:border-border/70';
+  const sidebarTitleClass = 'px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted-foreground';
+  const sidebarDividerClass = 'my-2 border-t border-border/60';
+  const sidebarToggleClass =
+    'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 dark:hover:bg-white/[0.06]';
+  const sidebarToggleTextClass = 'truncate';
+
+  // Mobile drawer sidebar: same item styles, always visible, fills the drawer panel.
+  const mobileSidebarBaseClass = 'flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2.5 !w-full';
+
+  const mobileNavTriggerRef = useRef<HTMLButtonElement>(null);
+  const openMobileDrawer = useCallback(() => setIsMobileDrawerOpen(true), []);
+
+  // The drawer only exists below md; close it if the viewport grows past that.
+  useEffect(() => {
+    if (!isMobileDrawerOpen || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(min-width: 768px)');
+    const handleChange = () => {
+      if (query.matches) setIsMobileDrawerOpen(false);
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    handleChange();
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
   }, [isMobileDrawerOpen]);
 
   const handleNavigate = useCallback(
@@ -501,7 +524,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return record.outcome;
   }, [userModelValidationByDiagramId]);
 
-  const handleTrackedQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
+  // Handlers below that the memoized top bar / sidebar receive read the active diagram,
+  // which changes on every autosave, so they use stable identities (useStableCallback).
+  const handleTrackedQualityCheck = useStableCallback(async (): Promise<QualityCheckResult> => {
     const result = await onQualityCheck();
     if (result.executed && currentProject?.currentDiagramType === 'UserDiagram' && diagram?.id) {
       const modelFingerprint = createModelFingerprint(diagram.model);
@@ -515,7 +540,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       }));
     }
     return result;
-  }, [onQualityCheck, currentProject?.currentDiagramType, diagram?.id, diagram?.model]);
+  });
+
+  const handleSemanticCheck = useStableCallback(async (): Promise<void> => {
+    await onSemanticCheck?.();
+  });
+  const semanticCheckAvailable = Boolean(onSemanticCheck) && currentProject?.currentDiagramType === 'ClassDiagram';
 
   const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
     if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
@@ -562,7 +592,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return confirmLeaveWithIssues;
   }, [currentProject?.currentDiagramType, diagram, getUserModelValidationStatus, handleTrackedQualityCheck, t]);
 
-  const handleSwitchDiagramType = useCallback(async (type: SupportedDiagramType) => {
+  const handleSwitchDiagramType = useStableCallback(async (type: SupportedDiagramType) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
@@ -572,9 +602,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     dispatch(switchDiagramTypeThunk({ diagramType: type }));
-  }, [location.pathname, navigate, dispatch, ensureUserModelValidationBeforeNavigation]);
+  });
 
-  const handleSwitchUml = useCallback(async (type: UMLDiagramType) => {
+  const handleSwitchUml = useStableCallback(async (type: UMLDiagramType) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
@@ -584,11 +614,89 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
+    // (with a GUI / quantum / KG editor open, the UML type is not what is shown)
+    if (location.pathname === '/' && activeUmlType === type && !hasCustomEditor(currentDiagramType)) {
       return;
     }
     switchDiagramType(type);
-  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType, ensureUserModelValidationBeforeNavigation]);
+  });
+
+  const deriveComponentDiagram = useGenerateComponentDiagram();
+  const handleDeriveComponentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveComponentDiagram();
+      if (!r.ok) {
+        const reasonKey =
+          r.reason === 'no-pools'
+            ? 'interDiagram.derive.component.noPools'
+            : r.reason === 'no-lanes-in-any-pool'
+              ? 'interDiagram.derive.component.noLanes'
+              : 'interDiagram.derive.component.notBpmn';
+        track('inter_diagram_derive_failed', { kind: 'component', reason: r.reason });
+        reportError(t('interDiagram.derive.component.failed', { reason: t(reasonKey) }));
+        return;
+      }
+      track('inter_diagram_derived', { kind: 'component', warnings_count: r.warnings.length });
+      if (r.warnings.length > 0) {
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.component.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
+      } else {
+        toast.success(t('interDiagram.derive.component.done'));
+      }
+    } catch (err) {
+      // addDiagramThunk rejects at the per-type diagram limit; any other
+      // rejection is reported with its own message.
+      console.error('[inter-diagram] derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const limitReached = DIAGRAM_LIMIT_REACHED.test(message);
+      trackFailure('inter_diagram_derive_failed', err, { kind: 'component', reason: limitReached ? 'limit_reached' : 'exception' });
+      const reason = limitReached ? t('interDiagram.derive.component.limitReached') : message;
+      reportError(t('interDiagram.derive.component.failed', { reason }), { error: err });
+    }
+  }, [deriveComponentDiagram, t]);
+
+  const deriveDeploymentDiagram = useGenerateDeploymentDiagram();
+  const handleDeriveDeploymentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveDeploymentDiagram();
+      if (!r.ok) {
+        const reasonKey =
+          r.reason === 'no-components'
+            ? 'interDiagram.derive.deployment.noComponents'
+            : 'interDiagram.derive.deployment.notComponentDiagram';
+        track('inter_diagram_derive_failed', { kind: 'deployment', reason: r.reason });
+        reportError(t('interDiagram.derive.deployment.failed', { reason: t(reasonKey) }));
+        return;
+      }
+      track('inter_diagram_derived', { kind: 'deployment', warnings_count: r.warnings.length });
+      if (r.warnings.length > 0) {
+        reportDerivationWarnings(
+          '[inter-diagram]',
+          t('interDiagram.derive.deployment.doneWithWarnings', { count: r.warnings.length }),
+          r.warnings,
+          t,
+        );
+      } else {
+        toast.success(t('interDiagram.derive.deployment.done'));
+      }
+    } catch (err) {
+      console.error('[inter-diagram] deployment derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const limitReached = DIAGRAM_LIMIT_REACHED.test(message);
+      trackFailure('inter_diagram_derive_failed', err, { kind: 'deployment', reason: limitReached ? 'limit_reached' : 'exception' });
+      const reason = limitReached ? t('interDiagram.derive.deployment.limitReached') : message;
+      reportError(t('interDiagram.derive.deployment.failed', { reason }), { error: err });
+    }
+  }, [deriveDeploymentDiagram, t]);
+
+  const { generate: generateDockerCompose, isLoading: isDockerComposing } = useGenerateDockerCompose();
+  const handleGenerateDockerCompose = useCallback(async () => {
+    await generateDockerCompose();
+  }, [generateDockerCompose]);
 
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
@@ -601,13 +709,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setIsMobileDrawerOpen(false);
   }, [handleSwitchDiagramType]);
 
-  const handleSafeNavigate = useCallback(async (path: string) => {
+  const handleSafeNavigate = useStableCallback(async (path: string) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
     }
     handleNavigate(path);
-  }, [ensureUserModelValidationBeforeNavigation, handleNavigate]);
+  });
 
   const handleMobileNavigate = useCallback((path: string) => {
     void handleSafeNavigate(path);
@@ -650,7 +758,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }));
   }, [currentProject?.currentDiagramType, diagram, t]);
 
-  const handleAgentVariantChange = useCallback(async (variantId: string) => {
+  const handleAgentVariantChange = useStableCallback(async (variantId: string) => {
     if (currentProject?.currentDiagramType !== 'AgentDiagram' || !currentProject || !diagram?.id) {
       return;
     }
@@ -688,7 +796,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (!variantId) {
         const baseModel = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
         if (!baseModel) {
-          toast.error(t('shell.agentVariant.noBaseModel'));
+          track('agent_variant_switch_failed', { reason: 'no_base' });
+          reportError(t('shell.agentVariant.noBaseModel'));
           return;
         }
 
@@ -707,13 +816,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
         await dispatch(refreshProjectStateThunk()).unwrap();
         dispatch(bumpEditorRevision());
+        track('agent_variant_switched', { to_base: true, variant_count: readAgentVariants(activeAgentDiagram).length });
         toast.success(t('shell.agentVariant.switchedToBase'));
         return;
       }
 
       const selectedVariant = readAgentVariants(activeAgentDiagram).find((variant) => variant.id === variantId);
       if (!selectedVariant || !isUMLModel(selectedVariant.model) || selectedVariant.model.type !== UMLDiagramType.AgentDiagram) {
-        toast.error(t('shell.agentVariant.notAvailable'));
+        track('agent_variant_switch_failed', { reason: 'missing_variant' });
+        reportError(t('shell.agentVariant.notAvailable'));
         return;
       }
 
@@ -734,17 +845,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       await dispatch(refreshProjectStateThunk()).unwrap();
       dispatch(bumpEditorRevision());
+      track('agent_variant_switched', { to_base: false, variant_count: readAgentVariants(activeAgentDiagram).length });
       toast.success(t('shell.agentVariant.switchedToVariant', { name: selectedVariant.profileName }));
     } catch (error) {
       console.error('Failed to switch agent variant:', error);
+      trackFailure('agent_variant_switch_failed', error, { reason: 'exception' });
       const message = error instanceof Error ? error.message : t('shell.agentVariant.switchFailed');
-      toast.error(message);
+      reportError(message, { error });
     }
-  }, [currentProject, diagram, dispatch, t]);
+  });
 
   const handleRequestTabSwitch = useCallback(async (): Promise<boolean> => {
     return ensureUserModelValidationBeforeNavigation();
   }, [ensureUserModelValidationBeforeNavigation]);
+
+  const previewingRepoChanges = useRepoChangePreviewOpen();
+  useEffect(() => {
+    if (previewingRepoChanges && location.pathname !== '/') navigate('/');
+  }, [previewingRepoChanges, location.pathname, navigate]);
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
@@ -756,7 +874,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const supported = diagramType as SupportedDiagramType;
       await dispatch(switchDiagramTypeThunk({ diagramType: supported })).unwrap();
     } catch {
-      toast.error(t('shell.errors.couldNotSwitchDiagram', { type: diagramType }));
+      reportError(t('shell.errors.couldNotSwitchDiagram', { type: diagramType }));
       return false;
     }
 
@@ -780,6 +898,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return;
     }
     updateProject({ name: normalized });
+    track('project_renamed', {});
   }, [projectNameDraft, currentProject, updateProject]);
 
   const handleDiagramRename = useCallback(() => {
@@ -792,18 +911,122 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     dispatch(updateDiagramModelThunk({ title: normalized }));
   }, [diagramTitleDraft, diagram?.title, dispatch]);
 
-  const handleToggleTheme = () => {
-    toggleTheme();
-    setIsDarkTheme(isDarkThemeEnabled());
-  };
+  const handleSimulateAgent = useStableCallback(async () => {
+    if (isModelEmpty(diagram?.model)) {
+      toast.info(t('agentSimulation.launch.emptyDiagram'));
+      return;
+    }
 
-  const openExternalUrl = (url: string) => {
+    setIsValidatingBeforeTest(true);
+
+    // Read diagram config from fresh storage so that fields written directly to
+    // localStorage (e.g. default_llm_name via writeConfig) are not missed by the
+    // Redux state, which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const freshAgentDiagram = freshProject ? getActiveDiagram(freshProject, UMLDiagramType.AgentDiagram) : undefined;
+    const freshDiagramConfig = freshAgentDiagram?.config ?? null;
+    const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+    const freshLlmBlock =
+      freshDiagramConfig && typeof freshDiagramConfig.llm === 'object' && freshDiagramConfig.llm !== null
+        ? (freshDiagramConfig.llm as Record<string, unknown>)
+        : null;
+    const freshAgentConfig = freshDiagramConfig
+      ? normalizeAgentRuntimeConfig({
+          agentPlatform: asString(freshDiagramConfig.agentPlatform),
+          agentPlatformUseStreamlit:
+            typeof freshDiagramConfig.agentPlatformUseStreamlit === 'boolean'
+              ? freshDiagramConfig.agentPlatformUseStreamlit
+              : undefined,
+          intentRecognitionTechnology: asString(freshDiagramConfig.intentRecognitionTechnology) as
+            | AgentRuntimeConfig['intentRecognitionTechnology']
+            | undefined,
+          agentLlmProvider: asString(freshLlmBlock?.provider) as AgentRuntimeConfig['agentLlmProvider'] | undefined,
+          agentLlmModel: asString(freshLlmBlock?.model),
+          agentCustomLlmModel: undefined,
+          agentLlmName: asString(freshDiagramConfig.agentLlmName) ?? asString(freshLlmBlock?.name),
+        })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+    const freshResolvedOpenAiModel =
+      freshAgentConfig.agentLlmModel === 'other'
+        ? freshAgentConfig.agentCustomLlmModel.trim()
+        : freshAgentConfig.agentLlmModel;
+    const freshResolvedAgentPlatform =
+      freshAgentConfig.agentPlatform === 'websocket' && freshAgentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : freshAgentConfig.agentPlatform;
+    const freshDefaultLlmName = asString(freshDiagramConfig?.default_llm_name) || undefined;
+    const freshConfig: Record<string, unknown> = {
+      agentPlatform: freshResolvedAgentPlatform,
+      intentRecognitionTechnology: freshAgentConfig.intentRecognitionTechnology,
+      ...(freshDefaultLlmName ? { default_llm_name: freshDefaultLlmName } : {}),
+      ...(freshAgentConfig.agentLlmName
+        ? { llm: { name: freshAgentConfig.agentLlmName } }
+        : freshAgentConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: freshAgentConfig.agentLlmProvider,
+              ...(freshResolvedOpenAiModel ? { model: freshResolvedOpenAiModel } : {}),
+            },
+          }
+        : {}),
+    };
+    setSimulationConfig(freshConfig);
+
+    const result = await dispatch(
+      validateAgentThunk({
+        title: diagram?.title ?? t('agentSimulation.defaultDiagramTitle'),
+        // The same prepared model CredentialsDialog starts the session with.
+        model: simulationDiagramModel,
+        config: freshConfig,
+        configYaml: diagram?.configYaml,
+      }),
+    );
+
+    setIsValidatingBeforeTest(false);
+
+    const checked = {
+      agent_platform: freshResolvedAgentPlatform,
+      intent_recognition: freshAgentConfig.intentRecognitionTechnology,
+      llm_provider: freshAgentConfig.agentLlmProvider || undefined,
+    };
+    if (validateAgentThunk.rejected.match(result)) {
+      // The check itself could not run (the payload is only a message).
+      track('agent_simulation_start_failed', { reason: 'validation_request' });
+      const msg = result.payload ?? t('agentSimulation.launch.validationFailedGeneric');
+      reportError(t('agentSimulation.launch.validationFailed', { message: msg }));
+      return;
+    }
+
+    if (validateAgentThunk.fulfilled.match(result) && !result.payload.valid) {
+      const errors = result.payload.errors;
+      track('agent_simulation_checked', { ...checked, passed: false, errors_count: errors.length });
+      const msg = errors.length > 0 ? `\n${errors.join('\n')}` : t('agentSimulation.launch.validationFailedGeneric');
+      reportError(t('agentSimulation.launch.validationFailed', { message: msg }));
+      return;
+    }
+
+    track('agent_simulation_checked', { ...checked, passed: true, errors_count: 0 });
+    setIsCredentialsDialogOpen(true);
+  });
+
+  const handleToggleTheme = useCallback(() => {
+    toggleTheme();
+    const dark = isDarkThemeEnabled();
+    track('theme_changed', { theme: dark ? 'dark' : 'light' });
+    setIsDarkTheme(dark);
+  }, []);
+
+  /** `link` names the destination for analytics; the URL itself is never sent. */
+  const openExternalUrl = (url: string, link: string) => {
+    track('ui_action', { action: 'link_opened', link });
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleImportSingleDiagram = async () => {
+  const handleImportSingleDiagram = useStableCallback(async () => {
     if (!currentProject) {
-      toast.error(t('shell.errors.noProject'));
+      reportError(t('shell.errors.noProject'));
       return;
     }
 
@@ -815,13 +1038,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (message.toLowerCase().includes('cancel')) {
         return;
       }
-      toast.error(t('shell.import.failed', { message }));
+      reportError(t('shell.import.failed', { message }), { error });
     }
-  };
+  });
 
-  const handleImportBpmnDiagram = async () => {
+  const handleImportBpmnDiagram = useStableCallback(async () => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      reportError('Create or load a project first.');
       return;
     }
 
@@ -833,9 +1056,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       if (message.toLowerCase().includes('cancel')) {
         return;
       }
-      toast.error(`Import failed: ${message}`);
+      reportError(`Import failed: ${message}`, { error });
     }
-  };
+  });
 
   // Command palette actions (filter by enabled per-project perspectives)
   const perspectives = useAppSelector(selectPerspectives);
@@ -861,8 +1084,78 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, perspectives],
   );
 
+  // Primitive key so the memoized sidebar only re-renders when a count changes.
+  const diagramCountsKey = ALL_DIAGRAM_TYPES.map((type) => currentProject?.diagrams?.[type]?.length ?? 0).join(',');
+  const diagramCounts = useMemo(() => {
+    const counts = diagramCountsKey.split(',').map(Number);
+    return Object.fromEntries(ALL_DIAGRAM_TYPES.map((type, index) => [type, counts[index]])) as Record<SupportedDiagramType, number>;
+  }, [diagramCountsKey]);
+  const activeDiagramType = currentProject?.currentDiagramType ?? 'ClassDiagram';
+
+  const openAssistantImportImage = useCallback(() => openAssistantImportDialog('image'), [openAssistantImportDialog]);
+  const openAssistantImportKg = useCallback(() => openAssistantImportDialog('kg'), [openAssistantImportDialog]);
+  const openClassicDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const [isGoLiveOpen, setIsGoLiveOpen] = useState(false);
+  const [goLiveAvailable, setGoLiveAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void isGoLiveAvailable().then((available) => !cancelled && setGoLiveAvailable(available));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  // The top bar's GitHub menu checks the repo's sync status; the shell needs only the link.
+  const repoSync = useRepoSync({ checkRemote: false });
+  const canGoLive = goLiveAvailable && !!repoSync.link && !!repoSync.githubSession && !!currentProject;
+  // A project linked to a repo deploys that repo (the agent's app); others keep the classic deploy.
+  const openDeployDialog = useStableCallback(() => (canGoLive ? setIsGoLiveOpen(true) : openClassicDeployDialog()));
+  const [helpSection, setHelpSection] = useState<HelpGuideSectionId | undefined>();
+  // A repository opened from the GitHub menu: its summary goes to the chat, and the chat opens.
+  const showOpenedRepoInAssistant = useCallback((summary: string) => {
+    void import('../../features/assistant/hooks/assistantConversationStore').then((m) => m.postAssistantMessage(summary));
+    setIsAssistantWorkspaceOpen(true);
+  }, []);
+  const openHelpDialog = useCallback(() => {
+    track('ui_action', { action: 'help_opened' });
+    setHelpSection(undefined);
+    setIsHelpDialogOpen(true);
+  }, [setIsHelpDialogOpen]);
+  // Other parts of the app open the guide at a section (e.g. the GitHub menu's "How GitHub works").
+  useEffect(() => {
+    const onOpen = (event: Event) => {
+      const section = (event as CustomEvent<OpenHelpGuideDetail>).detail?.section;
+      track('ui_action', { action: 'help_opened', section });
+      setHelpSection(section);
+      setIsHelpDialogOpen(true);
+    };
+    window.addEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_HELP_GUIDE_EVENT, onOpen);
+  }, [setIsHelpDialogOpen]);
+  const openAboutDialog = useCallback(() => {
+    track('ui_action', { action: 'about_opened' });
+    setIsAboutDialogOpen(true);
+  }, [setIsAboutDialogOpen]);
+  const openFeedback = useCallback(() => {
+    track('ui_action', { action: 'feedback_opened' });
+    setIsFeedbackDialogOpen(true);
+  }, [setIsFeedbackDialogOpen]);
+  const toggleSidebarExpanded = useCallback(() => setIsSidebarExpanded((previous) => !previous), []);
+  const testAgent = showSimulateAgent ? handleSimulateAgent : undefined;
+
+  // Lazy panels mount on first open so their chunks are not fetched at startup.
+  const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
+  const helpDialogMounted = useHasOpened(isHelpDialogOpen);
+  const goLiveDialogMounted = useHasOpened(isGoLiveOpen);
+
   return (
+    <TooltipProvider delayDuration={400}>
     <div className={`flex h-screen flex-col overflow-hidden ${shellBackgroundClass}`}>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t('shell.skipToEditor', { defaultValue: 'Skip to Editor' })}
+      </a>
       <WorkspaceTopBar
         isDarkTheme={isDarkTheme}
         headerBackgroundClass={headerBackgroundClass}
@@ -870,27 +1163,27 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
-        isGenerating={isGenerating}
-        locationPath={location.pathname}
-        activeUmlType={activeUmlType}
+        isGenerating={isGenerating || isDockerComposing}
         isAuthenticated={isAuthenticated}
         username={username || undefined}
         githubLoading={githubLoading}
         hasProject={Boolean(currentProject)}
         isDeploymentAvailable={isDeploymentAvailable}
+        deployGoesLive={canGoLive}
         onOpenProjectHub={onOpenProjectHub}
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
         onImportSingleDiagram={handleImportSingleDiagram}
         onImportBpmnDiagram={handleImportBpmnDiagram}
-        onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
-        onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
-        onOpenProjectPreview={handleOpenProjectPreview}
+        onOpenAssistantImportImage={openAssistantImportImage}
+        onOpenAssistantImportKg={openAssistantImportKg}
+        onImportOwl={openImportOwlPicker}
         onGenerate={onGenerate}
         onOpenPersonalizeDialog={onOpenPersonalizeDialog}
         onOpenRecommendPersonalizationDialog={onOpenRecommendPersonalizationDialog}
         onOpenPersonalizationOverview={onOpenPersonalizationOverview}
         onQualityCheck={handleTrackedQualityCheck}
+        onSemanticCheck={semanticCheckAvailable ? handleSemanticCheck : undefined}
         qualityCheckState={activeQualityCheckState}
         showAgentVariantSelector={currentProject?.currentDiagramType === 'AgentDiagram'}
         agentVariantOptions={agentVariantOptions}
@@ -899,99 +1192,79 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
-        onOpenGitHubSidebar={() => setIsGitHubSidebarOpen((previous) => !previous)}
+        onRepoOpened={showOpenedRepoInAssistant}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
-        onOpenDeployDialog={handleOpenDeployDialog}
-        onOpenStudyDeployDialog={handleOpenStudyDeployDialog}
-        onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
-        onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
-        onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
+        onOpenDeployDialog={openDeployDialog}
+        onOpenHelpDialog={openHelpDialog}
+        onOpenAboutDialog={openAboutDialog}
+        onOpenFeedback={openFeedback}
         onOpenKeyboardShortcuts={openKeyboardShortcuts}
         onShowWelcomeGuide={onboarding?.startTutorial}
-        activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-        perspectives={perspectives}
-        onSwitchUml={(type) => {
-          void handleSwitchUml(type);
-        }}
-        onSwitchDiagramType={(type) => {
-          void handleSwitchDiagramType(type);
-        }}
-        onNavigate={(path) => {
-          void handleSafeNavigate(path);
-        }}
+        activeDiagramType={activeDiagramType}
+        onSwitchDiagramType={handleSwitchDiagramType}
+        onDeriveComponentDiagram={
+          isPerspectiveVisible(perspectives, 'ComponentDiagram') ? handleDeriveComponentDiagram : undefined
+        }
+        onDeriveDeploymentDiagram={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleDeriveDeploymentDiagram : undefined
+        }
+        onGenerateDockerCompose={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleGenerateDockerCompose : undefined
+        }
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}
+        isMobileNavOpen={isMobileDrawerOpen}
+        onOpenMobileNav={openMobileDrawer}
+        mobileNavTriggerRef={mobileNavTriggerRef}
       />
 
-      {/* Mobile hamburger button - visible only below md breakpoint */}
-      <button
-        type="button"
-        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-card shadow-lg border border-border"
-        onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-        aria-label={isMobileDrawerOpen ? t('shell.nav.close') : t('shell.nav.open')}
-      >
-        {isMobileDrawerOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      {/* Mobile slide-in drawer overlay */}
-      <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
-          isMobileDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/50" onClick={closeMobileDrawer} aria-hidden="true" />
-        {/* Drawer panel */}
-        <div
-          className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
-            isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
-          } bg-background`}
-        >
-          {/* Close button inside drawer */}
-          <div
-            className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}
+      {/* Mobile navigation drawer (below md): a left-side Radix dialog */}
+      <Dialog open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen}>
+        <DialogPortal>
+          <DialogOverlay className="duration-[240ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-[state=closed]:duration-[180ms] md:hidden" />
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              mobileNavTriggerRef.current?.focus();
+            }}
+            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border/60 bg-card shadow-xl duration-[240ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left data-[state=closed]:duration-[180ms] focus:outline-none md:hidden"
           >
-            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>
-              {t('shell.nav.title')}
-            </span>
-            <button
-              type="button"
-              className="p-1 rounded text-muted-foreground hover:bg-muted"
-              onClick={closeMobileDrawer}
+            <DialogTitle className="sr-only">{t('shell.nav.title')}</DialogTitle>
+            <DialogPrimitive.Close
+              className="absolute right-2.5 top-2.5 z-10 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={t('shell.nav.close')}
             >
-              <X size={18} />
-            </button>
-          </div>
-          {/* Sidebar content rendered expanded for mobile */}
-          <WorkspaceSidebar
-            isDarkTheme={isDarkTheme}
-            isSidebarExpanded={true}
-            sidebarBaseClass={mobileSidebarBaseClass}
-            sidebarTitleClass={sidebarTitleClass}
-            sidebarDividerClass={sidebarDividerClass}
-            sidebarToggleClass={sidebarToggleClass}
-            sidebarToggleTextClass={sidebarToggleTextClass}
-            locationPath={location.pathname}
-            activeUmlType={activeUmlType}
-            activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-            project={currentProject}
-            onSwitchUml={handleMobileSwitchUml}
-            onSwitchDiagramType={handleMobileSwitchDiagramType}
-            onNavigate={handleMobileNavigate}
-            onToggleExpanded={closeMobileDrawer}
-            studyFormUrl={studyFormUrl}
-            studyModelUploaded={studyModelUploaded}
-            studyUploading={studyUploading}
-            onUploadStudyModel={() => { void handleUploadStudyModel(); }}
-          />
-        </div>
-      </div>
+              <X className="size-4" aria-hidden="true" />
+            </DialogPrimitive.Close>
+            <WorkspaceSidebar
+              isDarkTheme={isDarkTheme}
+              isSidebarExpanded={true}
+              sidebarBaseClass={mobileSidebarBaseClass}
+              sidebarTitleClass={sidebarTitleClass}
+              sidebarDividerClass={sidebarDividerClass}
+              sidebarToggleClass={sidebarToggleClass}
+              sidebarToggleTextClass={sidebarToggleTextClass}
+              locationPath={location.pathname}
+              activeUmlType={activeUmlType}
+              activeDiagramType={activeDiagramType}
+              diagramCounts={diagramCounts}
+              perspectives={perspectives}
+              onSwitchUml={handleMobileSwitchUml}
+              onSwitchDiagramType={handleMobileSwitchDiagramType}
+              onNavigate={handleMobileNavigate}
+              onTestAgent={testAgent}
+            />
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      </Dialog>
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      {/* overflow-clip, not hidden: the closed assistant drawer is parked below this box by a transform, and a
+          hidden box is still scrollable by that overflow, so focusing anything pushed the page up and left a blank gap. */}
+      <div className="relative flex min-h-0 flex-1 overflow-clip">
         <WorkspaceSidebar
           isDarkTheme={isDarkTheme}
           isSidebarExpanded={isSidebarExpanded}
@@ -1002,25 +1275,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           sidebarToggleTextClass={sidebarToggleTextClass}
           locationPath={location.pathname}
           activeUmlType={activeUmlType}
-          activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-          project={currentProject}
-          onSwitchUml={(type) => {
-            void handleSwitchUml(type);
-          }}
-          onSwitchDiagramType={(type) => {
-            void handleSwitchDiagramType(type);
-          }}
-          onNavigate={(path) => {
-            void handleSafeNavigate(path);
-          }}
-          onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
-          studyFormUrl={studyFormUrl}
-          studyModelUploaded={studyModelUploaded}
-          studyUploading={studyUploading}
-          onUploadStudyModel={() => { void handleUploadStudyModel(); }}
+          activeDiagramType={activeDiagramType}
+          diagramCounts={diagramCounts}
+          perspectives={perspectives}
+          onSwitchUml={handleSwitchUml}
+          onSwitchDiagramType={handleSwitchDiagramType}
+          onNavigate={handleSafeNavigate}
+          onToggleExpanded={toggleSidebarExpanded}
+          onTestAgent={testAgent}
         />
 
-        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-clip focus:outline-none">
           <HiddenPerspectivesBanner />
           {location.pathname === '/' && (
             <DiagramTabs
@@ -1028,40 +1293,46 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               userModelValidationStatusById={userModelValidationStatusById}
             />
           )}
-          <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
-
-          {/* Onboarding checklist - fixed bottom-right */}
-          {onboarding && !onboarding.checklistDismissed && (
-            <div className="absolute bottom-4 right-4 z-30 w-56">
-              <OnboardingChecklist
-                checklist={onboarding.checklist}
-                completed={onboarding.checklistCompleted}
-                total={onboarding.checklistTotal}
-                allDone={onboarding.allChecklistDone}
-                isDarkTheme={isDarkTheme}
-                onDismiss={onboarding.dismissChecklist}
-              />
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {children}
+            {location.pathname === '/' && <ModelAttributionLayer />}
+            {location.pathname === '/' && <ModelFocusLayer />}
+            {location.pathname === '/' && <RepoChangePreview />}
+            {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+              <ModelProposalBanner />
+              {location.pathname === '/' && <ModelAttributionBanner />}
             </div>
-          )}
+          </div>
+
         </main>
 
-        <Suspense fallback={null}>
-          <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
-        </Suspense>
+        {/*
+          Bottom-sheet assistant drawer. Renders a 28-px drag handle at
+          the bottom of the viewport in its closed state; the user drags
+          up to expand into the full-page assistant surface. When the
+          drawer is open, ``AssistantWidget`` (the floating FAB) hides
+          itself automatically via the ``besser:assistant-drawer``
+          custom event so only one assistant surface is visible at a
+          time.
 
-        {/* TODO: re-enable assistant drawer after release
+          The drawer internally calls ``useAssistantLogic`` (the same
+          hook the FAB uses), so the ``trigger_smart_generator`` action
+          from the modeling agent is handled there too — a spec-driven
+          run started from the drawer streams its events into the same
+          chat as the modeling-agent conversation.
+        */}
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
-            onOpenChange={(open) => {
-              setIsAssistantWorkspaceOpen(open);
-              window.dispatchEvent(new CustomEvent('besser:assistant-drawer', { detail: { open } }));
-            }}
+            onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
+            showTrigger={location.pathname === '/'}
+            // The repository this conversation works on, when the project is linked.
+            chatHeader={<RepoChatHeader className="mb-4" />}
           />
         </Suspense>
-        */}
       </div>
 
       <AssistantImportDialog
@@ -1083,34 +1354,41 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }}
       />
 
-      <JsonViewerModal
-        isVisible={isProjectPreviewOpen}
-        jsonData={projectPreviewJson}
-        diagramType={t('shell.preview.projectLabel', { version: PROJECT_EXPORT_VERSION })}
-        onClose={handleCloseProjectPreview}
-        onCopy={handleCopyProjectPreview}
-        onDownload={handleDownloadProjectPreview}
-        enableBumlView
-        bumlData={projectBumlPreview}
-        bumlLabel={currentProject?.name ? t('shell.preview.bumlLabelNamed', { name: currentProject.name }) : t('shell.preview.bumlLabel')}
-        isBumlLoading={isProjectBumlPreviewLoading}
-        bumlError={projectBumlPreviewError}
-        onRequestBuml={() => {
-          handleRequestProjectBumlPreview().catch(console.error);
-        }}
-        onCopyBuml={handleCopyProjectBumlPreview}
-        onDownloadBuml={handleDownloadProjectBumlPreview}
-      />
-
+      {/* Destination prompt for an OWL/RDF import when the active Knowledge
+          Graph tab already has content: merge alongside, or a new tab. */}
       <Suspense fallback={null}>
-        <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+        <KgImportTargetModal {...kgImportTargetModalProps} />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
-      </Suspense>
+      {feedbackDialogMounted && (
+        <Suspense fallback={null}>
+          <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+        </Suspense>
+      )}
+
+      {helpDialogMounted && (
+        <Suspense fallback={null}>
+          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} initialSection={helpSection} />
+        </Suspense>
+      )}
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
+
+      <Suspense fallback={null}>
+        {goLiveDialogMounted && canGoLive && repoSync.link && repoSync.githubSession && currentProject && (
+          <GoLiveDialog
+            open={isGoLiveOpen}
+            projectId={currentProject.id}
+            link={repoSync.link}
+            githubSession={repoSync.githubSession}
+            onOpenChange={setIsGoLiveOpen}
+            onUseClassicDeploy={() => {
+              setIsGoLiveOpen(false);
+              openClassicDeployDialog();
+            }}
+          />
+        )}
+      </Suspense>
 
       <DeployDialog
         open={isDeployDialogOpen}
@@ -1142,45 +1420,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         open={isDeployResultOpen}
         deploymentResult={deploymentResult}
         onOpenChange={setIsDeployResultOpen}
-        onOpenExternal={(url) => openExternalUrl(url)}
-      />
-
-      <StudyWelcomeDialog
-        open={studyWelcomeOpen}
-        participantId={studyParticipantId}
-        onConfirm={() => {
-          if (!acceptStudyConsent()) {
-            toast.error('Could not save analytics consent in this browser. Enable storage and try again.');
-            return;
-          }
-          if (studyParticipantId) {
-            identifyStudyParticipant(studyParticipantId);
-          }
-          setStudyWelcomeOpen(false);
-        }}
-      />
-
-      <StudyDeployDialog
-        open={isStudyDeployDialogOpen}
-        isDeploying={isStudyDeploying}
-        result={studyDeployResult}
-        error={studyDeployError}
-        hasPersonalizationVariants={hasPersonalizationVariants(currentProject) || (currentProject ? collectVariantProfiles(getActiveDiagram(currentProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined).length > 0 : false)}
-        isPersonalized={isPersonalizedStudyDeploy}
-        onPersonalizedChange={setIsPersonalizedStudyDeploy}
-        onOpenChange={setIsStudyDeployDialogOpen}
-        onDeploy={() => { void handleStudyDeploy(); }}
-        onRedeploy={resetStudyDeploy}
-        onOpenAgent={(url) => openExternalUrl(url)}
-        onOpenWebsite={(url) => openExternalUrl(url)}
+        onOpenExternal={(url) => openExternalUrl(url, 'deployed_app')}
       />
 
       <AboutDialog
         open={isAboutDialogOpen}
         onOpenChange={setIsAboutDialogOpen}
-        onOpenMainRepository={() => openExternalUrl(besserMainRepositoryLink)}
-        onOpenWmeRepository={() => openExternalUrl(besserWMERepositoryLink)}
-        onOpenLibraryRepository={() => openExternalUrl(besserLibraryRepositoryLink)}
+        onOpenMainRepository={() => openExternalUrl(besserMainRepositoryLink, 'main_repository')}
+        onOpenWmeRepository={() => openExternalUrl(besserWMERepositoryLink, 'wme_repository')}
+        onOpenLibraryRepository={() => openExternalUrl(besserLibraryRepositoryLink, 'library_repository')}
       />
 
       <CommandPalette
@@ -1188,6 +1436,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsCommandPaletteOpen}
         actions={commandPaletteActions}
       />
+
+      <CredentialsDialog
+        open={isCredentialsDialogOpen}
+        onOpenChange={setIsCredentialsDialogOpen}
+        diagramTitle={diagram?.title ?? t('agentSimulation.defaultDiagramTitle')}
+        diagramModel={simulationDiagramModel}
+        diagramConfig={simulationConfig}
+        diagramConfigYaml={diagram?.configYaml}
+      />
+
     </div>
+    </TooltipProvider>
   );
 };

@@ -1,29 +1,25 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
-import './grapesjs-styles.css';
-import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { getChartConfigs } from './configs/chartConfigs';
-import { getTableConfig } from './configs/tableConfig';
-import { getMetricCardConfig } from './configs/metricCardConfigs';
-import { getMapConfig } from './configs/mapConfig';
-import { registerChartComponent } from './component-registrars/registerChartComponent';
-import { registerTableComponent } from './component-registrars/registerTableComponent';
-import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
-import { registerMapComponent } from './component-registrars/registerMapComponent';
-import { registerButtonComponent } from './component-registrars/registerButtonComponent';
-import { registerFormComponents } from './component-registrars/registerFormComponents';
-import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
-import { registerAgentComponent } from './component-registrars/registerAgentComponent';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
+import '../../../shared/styles/grapesjs-styles.css';
+import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { NavigationMapDialog } from './navigation/NavigationMapDialog';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
-import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
-import { setupInputBlocks } from './setup/setupInputBlocks';
-import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
+import { registerAllComponents } from './registerAllComponents';
+import { ensureDesignSystemStyles } from './designSystem';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
+import { guiTraceRecorderOf } from './guiTraceRecording';
 import i18n from '@/main/shared/i18n';
+import { track, trackFailure } from '../../../shared/services/analytics/events';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 import { READABILITY_FONT_STYLESHEETS } from '@/main/shared/utils/gui-personalization';
 
@@ -66,6 +62,13 @@ export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Empty-page guidance: shown over the canvas while the current page has no components.
+  const [isPageEmpty, setIsPageEmpty] = useState(false);
+  const [isDraggingBlock, setIsDraggingBlock] = useState(false);
+  const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const [isNavigationMapOpen, setIsNavigationMapOpen] = useState(false);
+  const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track the active language so a switch remounts the editor (see the init
@@ -113,9 +116,17 @@ export const GraphicalUIEditor: React.FC = () => {
       // Setup all editor features
       const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
 
+      editor.Commands.add('open-navigation-map', {
+        run() {
+          setIsNavigationMapOpen(true);
+          track('editor_action', { editor: 'gui', action: 'navigation_map_opened', pages_count: editor.Pages.getAll().length });
+        },
+      });
+
       const handleAssistantAutoGenerate = async () => {
         try {
-          await autoGenerateGUIFromClassDiagram(editor);
+          const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+          track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'assistant' });
           editor.runCommand('notifications:add', {
             type: 'success',
             message: `✓ ${i18n.t('editors.gui.guiGeneratedFromClass')}`,
@@ -129,6 +140,11 @@ export const GraphicalUIEditor: React.FC = () => {
         } catch (error) {
           const message = error instanceof Error ? error.message : i18n.t('editors.gui.unknownError');
           console.error('[Assistant Auto-Generate] Error:', error);
+          trackFailure('editor_action_failed', error, {
+            editor: 'gui',
+            action: 'generate_from_classes',
+            reason: generationFailureReason(error),
+          });
           editor.runCommand('notifications:add', {
             type: 'error',
             message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message })}`,
@@ -150,6 +166,17 @@ export const GraphicalUIEditor: React.FC = () => {
             throw new Error('Invalid GrapesJS model data');
           }
 
+          // GrapesJS only allows double-click text editing when a component has
+          // BOTH type:'text' AND editable:true. Models loaded via loadProjectData
+          // use their component defs as-is (the preset-webpage plugin's defaults
+          // are NOT applied), so agent-generated text arrives locked. Walk the
+          // model and mark every text component editable (and coerce bare text
+          // tags like <p> to editable text) so generated GUIs can be edited just
+          // like manually-created ones. Mutating `model` here fixes both the live
+          // load (below) and the persisted copy (saved further down). The shared
+          // helper is reused on the assistant's editor-bypass injection paths.
+          markTextEditable(model);
+
           // Clear existing pages
           const pages = editor.Pages;
           if (pages) {
@@ -159,6 +186,15 @@ export const GraphicalUIEditor: React.FC = () => {
 
           // Load the new project data into the live editor
           editor.loadProjectData(model);
+
+          // The undo stack now spans two unrelated documents — Ctrl+Z would
+          // walk back into a mix of the old and new pages. Programmatic loads
+          // are a fresh baseline, not an edit: clear the history.
+          editor.UndoManager?.clear?.();
+
+          // Older agent models may predate the ds-* stylesheet — make sure
+          // the design system exists so palette blocks stay on-theme.
+          ensureDesignSystemStyles(editor);
 
           // Persist to ProjectStorageRepository (Redux sync happens
           // automatically via useStorageSync listening to notifyChange)
@@ -172,6 +208,7 @@ export const GraphicalUIEditor: React.FC = () => {
                 model: normalized,
                 lastUpdate: new Date().toISOString(),
               });
+              guiTraceRecorderOf(editor).recordLoaded(project, currentGuiDiagram, 'assistant');
             }
           }
 
@@ -239,23 +276,39 @@ export const GraphicalUIEditor: React.FC = () => {
       window.addEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
       window.addEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
       window.addEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+
+      // Empty-page state: re-check after anything that can add/remove components or switch pages.
+      const updateEmptyState = () => {
+        const wrapper = editor.getWrapper();
+        setIsPageEmpty(Boolean(wrapper) && wrapper!.components().length === 0);
+        setCanvasEl(editor.Canvas.getElement() ?? null);
+      };
+      const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
+      const onBlockDragStart = () => setIsDraggingBlock(true);
+      // GrapesJS passes the dropped component (undefined when the drop was cancelled) and the palette block.
+      const onBlockDragStop = (component?: unknown, block?: { getId?: () => string }) => {
+        setIsDraggingBlock(false);
+        deferEmptyCheck();
+        if (component) track('editor_action', { editor: 'gui', action: 'block_added', block_id: block?.getId?.() });
+      };
+      editor.on('load page:select component:add component:remove', deferEmptyCheck);
+      editor.on('block:drag:start', onBlockDragStart);
+      editor.on('block:drag:stop', onBlockDragStop);
+      updateEmptyState();
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
-      // Register all custom components
-      registerCustomComponents(editor);
+      // Custom components, blocks and traits are registered once in
+      // setupEditorFeatures() via registerAllComponents().
 
-      // Handle editor load event
-      editor.on('load', () => {
-        // console.log('[GraphicalUIEditor] Editor ready, loading stored data');
-        editor.StorageManager.load((data: unknown) => {
-          if (data && Object.keys(data as Record<string, unknown>).length > 0) {
-            console.log('[GraphicalUIEditor] Stored data loaded successfully');
-          } else {
-            console.log('[GraphicalUIEditor] No stored data found, using defaults');
-          }
-        });
-      });
+      // Stored data is loaded by the StorageManager itself (autoload: true in
+      // the init config) — no manual re-load here: a second load re-imported
+      // the project on top of the already-loaded document.
+
+      // Blank/manual projects get the baseline ds-* stylesheet so palette
+      // blocks render in the same design language as agent-generated pages.
+      // (Agent projects already carry their own themed ds-* rules — no-op.)
+      editor.on('load', () => ensureDesignSystemStyles(editor));
 
       // Store cleanup so the synchronous teardown can call it
       cleanupFn = () => {
@@ -307,6 +360,9 @@ export const GraphicalUIEditor: React.FC = () => {
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
         window.removeEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+        editor.off('load page:select component:add component:remove', deferEmptyCheck);
+        editor.off('block:drag:start', onBlockDragStart);
+        editor.off('block:drag:stop', onBlockDragStop);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
 
         // Destroy editor and clean up global reference
@@ -328,14 +384,100 @@ export const GraphicalUIEditor: React.FC = () => {
     // Synchronous cleanup returned to React
     return () => {
       cancelled = true;
+      // The map reads this editor instance, which is about to be destroyed.
+      setIsNavigationMapOpen(false);
       if (cleanupFn) cleanupFn();
     };
     // `lang` is a dependency so switching language remounts the editor and every
     // GrapesJS registrar/config re-runs in the new language (see the `lang` state above).
   }, [lang]);
 
+  // Stamp the "Saved · hh:mm" time whenever a save round-trip completes.
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      setLastSavedAt(new Date());
+    }
+  }, [saveStatus]);
+
+  // Classes of the referenced class diagram, read when the empty state is about to show.
+  const emptyStateClasses = useMemo(
+    () =>
+      isPageEmpty
+        ? getClassOptions().map((c) => ({ name: c.label, attributes: getAttributeOptionsByClassId(c.value).map((a) => a.label) }))
+        : [],
+    [isPageEmpty],
+  );
+
+  const openBlocksPanel = () => {
+    const button = editorRef.current?.Panels?.getButton?.('views', 'open-blocks');
+    if (button && !button.get('active')) button.set('active', true);
+  };
+
+  const describeScreen = () => {
+    const first = emptyStateClasses.find((c) => c.attributes.length > 0) ?? emptyStateClasses[0];
+    const prompt = first
+      ? i18n.t('editors.gui.emptyState.starterPrompt', { page: pluralize(first.name).toLowerCase() })
+      : i18n.t('editors.gui.emptyState.starterPromptNoClasses');
+    // Opens the bottom assistant with the prompt typed in (not sent), so the user can adjust it.
+    window.dispatchEvent(new CustomEvent('wme:assistant-prefill', { detail: { prompt } }));
+  };
+
   return (
-    <div ref={containerRef} id="gjs"></div>
+    <div className="relative h-full min-h-0">
+      <div ref={containerRef} id="gjs"></div>
+      {isPageEmpty &&
+        !isDraggingBlock &&
+        canvasEl &&
+        createPortal(
+          <GuiEmptyState
+            classes={emptyStateClasses}
+            onGenerate={() => editorRef.current?.runCommand('auto-generate-gui')}
+            onOpenBlocks={openBlocksPanel}
+            onDescribe={describeScreen}
+            onAddClasses={() => void dispatch(switchDiagramTypeThunk({ diagramType: 'ClassDiagram' }))}
+          />,
+          canvasEl,
+        )}
+      <NavigationMapDialog
+        editor={editorRef.current}
+        open={isNavigationMapOpen}
+        onOpenChange={setIsNavigationMapOpen}
+      />
+      {/* Save-status badge — the only user-visible confirmation that edits
+          persist. Driven by the storage listeners above; pointer-events-none
+          so it never blocks canvas interaction. */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-sm"
+      >
+        {saveStatus === 'saving' && (
+          <>
+            <Loader2 className="size-3 animate-spin text-brand" />
+            <span className="text-muted-foreground">{i18n.t('editors.gui.statusSaving')}</span>
+          </>
+        )}
+        {saveStatus === 'saved' && (
+          <>
+            <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-muted-foreground">
+              {i18n.t('editors.gui.statusSaved')}
+              {lastSavedAt && (
+                <span className="font-mono text-[10px] text-muted-foreground/70">
+                  {' · '}
+                  {lastSavedAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </span>
+          </>
+        )}
+        {saveStatus === 'error' && (
+          <>
+            <AlertTriangle className="size-3 text-destructive" />
+            <span className="text-destructive">{i18n.t('editors.gui.statusErrorSaving')}</span>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -387,7 +529,17 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     height: '100%',
     width: 'auto',
     fromElement: false,
+    telemetry: false,
     components: '', // Empty initially - pages will load default content
+
+    // Load the design typefaces (Inter + Fraunces, shipped same-origin in
+    // /public/fonts) into the canvas iframe — the CSP blocks external font
+    // hosts, so real typography has to come from our own origin. The agent's
+    // design-system tokens reference these families.
+    canvas: {
+      styles: ['/fonts/design-fonts.css', ...READABILITY_FONT_STYLESHEETS],
+      scripts: [],
+    },
 
     // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` uses our
     // own pack (`grapesjsLocaleLb`) since GrapesJS ships none.
@@ -469,10 +621,6 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     },
 
     showOffsets: true,
-    canvas: {
-      styles: [...READABILITY_FONT_STYLESHEETS],
-      scripts: [],
-    },
   });
 }
 
@@ -489,60 +637,30 @@ function setupEditorFeatures(
   const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
   setupCommands(editor);
   setupKeyboardShortcuts(editor);
-  
+
   // Remove unwanted blocks after editor loads
   editor.on('load', () => {
     removeUnwantedBlocks(editor);
   });
-  
+
   // Page system (consolidated)
   if (editor.Pages) {
     setupPageSystem(editor);
-    setupPageRouting(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
   }
-  
+
   setupSidebarButtonHoverLabels(editor);
   setupAutoOpenTraitsPanel(editor);
-  
+
   // Additional features
   setupDataBindingTraits(editor);
-  setupCustomTraits(editor);
-  setupLayoutBlocks(editor);
-  setupInputBlocks(editor);
-  // enableAbsolutePositioning(editor);
-  
+  // Shared components, blocks and traits (also used by AgentGUIEditor).
+  registerAllComponents(editor);
+
   // Return cleanup function
   return cleanupStorage;
-}
-
-/**
- * Register all custom components
- */
-function registerCustomComponents(editor: Editor) {
-  // Configs are built via factories so labels resolve in the current language
-  // on every (re)mount — e.g. after a language switch remounts the editor.
-  // Register charts
-  getChartConfigs().forEach((config) => {
-    registerChartComponent(editor, config);
-  });
-
-  // Register table
-  registerTableComponent(editor, getTableConfig());
-
-  // Register metric card
-  registerMetricCardComponent(editor, getMetricCardConfig());
-
-  // Register other components
-  registerMapComponent(editor, getMapConfig());
-  registerButtonComponent(editor);
-  // registerFormComponents(editor); // Commented out - forms removed for now
-  registerLayoutComponents(editor);
-  registerAgentComponent(editor);
-  
-  // console.log('[GraphicalUIEditor] All custom components registered');
 }
 
 /**
@@ -550,14 +668,14 @@ function registerCustomComponents(editor: Editor) {
  */
 function removeUnwantedBlocks(editor: Editor) {
   const blockManager = editor.BlockManager;
-  
+
   // Blocks to explicitly remove (unwanted blocks)
   const blocksToRemove = [
     'link-block',      // Link Block
     'quote',           // Quote
     // 'link',            // Link
     'video',           // Video
-    'map',             // Map (we have custom map in Charts category)
+    // 'map' is our custom Leaflet map block — do NOT remove it
     'sect100',         // Section blocks
     'sect50',
     'sect30',
@@ -574,7 +692,7 @@ function removeUnwantedBlocks(editor: Editor) {
     'checkbox',        // Checkbox
     'radio',           // Radio
   ];
-  
+
   // Remove unwanted blocks by ID
   blocksToRemove.forEach(blockId => {
     try {
@@ -584,7 +702,7 @@ function removeUnwantedBlocks(editor: Editor) {
       // Block might not exist, ignore
     }
   });
-  
+
   // console.log('[Block Manager] Unwanted blocks removed, keeping Basic, Layout, and Charts');
 }
 
@@ -595,7 +713,7 @@ function removeUnwantedBlocks(editor: Editor) {
 /**
  * Setup ProjectStorageRepository integration
  */
-function setupProjectStorageIntegration(
+export function setupProjectStorageIntegration(
   editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
   saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
@@ -622,12 +740,12 @@ function setupProjectStorageIntegration(
             // console.log('[Storage] Loading GrapesJS data from project storage');
             return model;
           }
-          
+
           // Model exists but has no pages - this is a new/empty diagram (first visit)
           if (project && Array.isArray(model.pages) && model.pages.length === 0) {
             console.log('[Storage] First visit to GUI editor - initializing with default template');
             const defaultTemplate = createDefaultGUITemplate();
-            
+
             // Save the template to the project (Redux sync via useStorageSync)
             ProjectStorageRepository.updateDiagram(
               project.id,
@@ -641,11 +759,11 @@ function setupProjectStorageIntegration(
 
             return defaultTemplate;
           }
-          
+
           // console.log('[Storage] Stored data has no pages, keeping defaults');
           return {};
         }
-        
+
         // console.log('[Storage] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
@@ -654,7 +772,7 @@ function setupProjectStorageIntegration(
         return {};
       }
     },
-    
+
     async store(data: unknown) {
       try {
         setSaveStatus('saving');
@@ -699,40 +817,43 @@ function setupProjectStorageIntegration(
         if (updated) {
           // Redux sync happens automatically via useStorageSync
           setSaveStatus('saved');
-          setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
+          if (targetDiagram) guiTraceRecorderOf(editor).record(project, targetDiagram, grapesData);
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
+          track('editor_action_failed', { editor: 'gui', action: 'save', reason: 'storage' });
         }
       } catch (error) {
         console.error('[Storage] Error saving:', error);
         setSaveStatus('error');
+        trackFailure('editor_action_failed', error, { editor: 'gui', action: 'save', reason: 'exception' });
       }
     },
   });
-  
+
   // Listen to storage events
   editor.on('storage:start', () => {
     setSaveStatus('saving');
-    updateSaveStatusUI(editor, 'saving');
   });
-  
+
   editor.on('storage:end', () => {
     setSaveStatus('saved');
-    updateSaveStatusUI(editor, 'saved');
   });
-  
+
   editor.on('storage:error', () => {
     setSaveStatus('error');
-    updateSaveStatusUI(editor, 'error');
   });
-  
+
   // Wait for editor to be fully loaded before setting up auto-save
   let isEditorReady = false;
-  
+
   editor.on('load', () => {
     // Add a delay to ensure everything is fully initialized
     setTimeout(() => {
+      // The project trace compares each save with the model as it loaded (ids given to traced components).
+      const traceRecorder = guiTraceRecorderOf(editor, () => ProjectStorageRepository.getCurrentProject());
+      traceRecorder.start();
+      editor.on('component:add', (component: any) => traceRecorder.added(component));
       isEditorReady = true;
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
 
@@ -792,21 +913,24 @@ function setupProjectStorageIntegration(
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
       };
-      
+
       // Auto-save on changes
       editor.on('component:add component:remove component:update', debouncedSave);
       editor.on('page:add page:remove page:update', debouncedSave);
       editor.on('style:update', debouncedSave);
-      
-      // Periodic backup save every 30 seconds - store in ref so we can clear it
+
+      // Periodic backup save every 30 seconds - store in ref so we can clear it.
+      // Skipped when nothing changed: each store replaces the whole project
+      // and re-renders the shell.
       saveIntervalRef.current = setInterval(() => {
+        if (editor.getDirtyCount() === 0) return;
         safeSave();
       }, 30000);
-      
+
       // console.log('[Storage] Auto-save listeners initialized');
     }, 2000); // Wait 2 seconds after load event
   });
-  
+
   // Return cleanup function
   return () => {
     // console.log('[Storage] Cleaning up storage integration');
@@ -824,30 +948,6 @@ function setupProjectStorageIntegration(
   };
 }
 
-/**
- * Update save status UI indicator
- */
-function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error') {
-  const statusEl = document.getElementById('save-status-indicator');
-  if (!statusEl) return;
-  
-  const config = {
-    saved: { icon: '✓', message: i18n.t('editors.gui.statusSaved'), color: '#27ae60' },
-    saving: { icon: '⟳', message: i18n.t('editors.gui.statusSaving'), color: '#3498db' },
-    error: { icon: '⚠', message: i18n.t('editors.gui.statusErrorSaving'), color: '#e74c3c' }
-  };
-  
-  const { icon, message, color } = config[status];
-  const spinAnimation = status === 'saving' ? 'animation: spin 1s linear infinite;' : '';
-  
-  statusEl.innerHTML = `
-    <span style="color: ${color}; display: flex; align-items: center; gap: 6px;">
-      <span style="font-size: 16px; ${spinAnimation}">${icon}</span>
-      <span style="font-size: 12px; font-weight: 500;">${message}</span>
-    </span>
-  `;
-}
-
 // ============================================
 // COMMANDS
 // ============================================
@@ -859,29 +959,6 @@ function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error'
  * Setup custom commands for export, JSON, etc.
  */
 function setupCommands(editor: Editor) {
-  // Save project command
-  editor.Commands.add('save-project', {
-    run(editor: Editor) {
-      try {
-        console.log('[Save] Manual save triggered');
-        
-        // Check if editor has storables before trying to save
-        const editorModel = (editor as any).em;
-        if (!editorModel || !editorModel.storables) {
-          console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          alert(i18n.t('editors.gui.editorStillLoading'));
-          return;
-        }
-        
-        editor.store();
-        console.log('[Save] Manual save completed');
-      } catch (error) {
-        console.error('[Save] Manual save error:', error);
-        alert(i18n.t('editors.gui.errorSavingProject'));
-      }
-    }
-  });
-  
   // Export template command
   editor.Commands.add('export-template', {
     run(editor: Editor) {
@@ -895,7 +972,7 @@ function setupCommands(editor: Editor) {
         .setTitle(i18n.t('editors.gui.exportTemplate'))
         .setContent(createModalContent(downloadBtn, fullCode, 'export-code-textarea'))
         .open();
-        
+
       setTimeout(() => {
         attachDownloadHandler('download-html-btn', fullCode, 'index.html', 'text/html');
       }, 100);
@@ -912,13 +989,13 @@ function setupCommands(editor: Editor) {
         .setTitle(i18n.t('editors.gui.projectJson'))
         .setContent(createModalContent(downloadBtn, projectData, 'json-data-textarea'))
         .open();
-        
+
       setTimeout(() => {
         attachDownloadHandler('download-json-btn', projectData, 'project.json', 'application/json');
       }, 100);
     },
   });
-  
+
   // Clear canvas command
   editor.Commands.add('clear-canvas', {
     async run(editor: Editor) {
@@ -934,22 +1011,7 @@ function setupCommands(editor: Editor) {
       }
     },
   });
-  
-  // // Preview mode with filtering
-  // editor.Commands.add('preview-mode', {
-  //   run(editor: Editor) {
-  //     setTimeout(() => filterPreviewContent(editor), 100);
-  //     editor.runCommand('preview');
-  //   },
-  //   stop(editor: Editor) {
-  //     editor.stopCommand('preview');
-  //     restorePreviewContent(editor);
-  //   },
-  // });
-  
-//   // Filter preview on default preview command
-//   editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
-//   editor.on('stop:preview', () => restorePreviewContent(editor));
+
 }
 
 /**
@@ -979,7 +1041,7 @@ ${html}
  */
 function createDownloadButton(id: string, label: string): string {
   return `
-    <button id="${id}" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+    <button id="${id}" style="margin-bottom: 15px; background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
       ${label}
     </button>
   `;
@@ -992,7 +1054,7 @@ function createModalContent(downloadBtn: string, content: string, textareaId: st
   return `
     <div style="padding: 20px;">
       ${downloadBtn}
-      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${content}</textarea>
+      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground));">${content}</textarea>
     </div>
   `;
 }
@@ -1022,7 +1084,7 @@ function attachDownloadHandler(buttonId: string, content: string, filename: stri
 function setupKeyboardShortcuts(editor: Editor) {
   editor.on('load', () => {
     const keymaps = editor.Keymaps;
-    
+
     const shortcuts = [
       { id: 'core:save', keys: 'ctrl+s, cmd+s', action: () => { editor.store(); return false; } },
       { id: 'core:preview-toggle', keys: 'ctrl+p, cmd+p', action: () => { editor.runCommand('preview'); return false; } },
@@ -1030,7 +1092,7 @@ function setupKeyboardShortcuts(editor: Editor) {
       { id: 'core:redo', keys: 'ctrl+shift+z, cmd+shift+z', action: () => { editor.runCommand('core:redo'); return false; } },
       { id: 'core:copy', keys: 'ctrl+c, cmd+c', action: () => { editor.runCommand('core:copy'); return false; } },
       { id: 'core:paste', keys: 'ctrl+v, cmd+v', action: () => { editor.runCommand('core:paste'); return false; } },
-      { id: 'core:component-delete', keys: 'delete, backspace', action: () => { 
+      { id: 'core:component-delete', keys: 'delete, backspace', action: () => {
         const selected = editor.getSelected();
         if (selected) selected.remove();
         return false;
@@ -1060,11 +1122,11 @@ function setupKeyboardShortcuts(editor: Editor) {
       { id: 'core:export', keys: 'ctrl+e, cmd+e', action: () => { editor.runCommand('export-template'); return false; } },
       { id: 'core:show-json', keys: 'ctrl+j, cmd+j', action: () => { editor.runCommand('show-json'); return false; } },
     ];
-    
+
     shortcuts.forEach(({ id, keys, action }) => {
       keymaps.add(id, keys, action);
     });
-    
+
     // console.log('[Keyboard] Shortcuts registered');
   });
 }
@@ -1079,7 +1141,7 @@ function setupKeyboardShortcuts(editor: Editor) {
 function addAutoGenerateGUIButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
-    
+
     // Remove preview button (eye icon) - moved here from removed addPagesButton
     try {
       const previewBtn = document.querySelector('[title="Preview"]');
@@ -1089,7 +1151,7 @@ function addAutoGenerateGUIButton(editor: Editor) {
     } catch (error) {
       console.warn('[Toolbar] Could not remove preview button:', error);
     }
-    
+
     // Add button to devices panel (where monitor, tablet, cellphone icons are)
     if (!panelManager.getButton('devices-c', 'auto-generate-gui')) {
       panelManager.addButton('devices-c', {
@@ -1099,81 +1161,82 @@ function addAutoGenerateGUIButton(editor: Editor) {
         label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
       });
     }
-    
+
   });
-  
+
   // Define the command for auto-generating GUI
   editor.Commands.add('auto-generate-gui', {
     run(editor: Editor) {
-      
+
       // Show custom confirmation modal
       const modal = editor.Modal;
       modal.setTitle(i18n.t('editors.gui.autoGenerateTitle'));
 
       const modalContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; line-height: 1.5;">
             ${i18n.t('editors.gui.autoGenerateIntro')}
           </p>
 
-          <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
+          <div style="background-color: rgba(127, 127, 127, 0.08); border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: hsl(var(--brand)); margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
             </div>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
+            <ul style="margin: 0; padding-left: 1.5rem; color: inherit; font-size: 0.875rem; line-height: 1.8;">
               <li>${i18n.t('editors.gui.autoGenerateItemNav')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemPage')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemMethods')}</li>
             </ul>
           </div>
 
-          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; color: #664d03;">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+          <div style="background-color: rgba(255, 193, 7, 0.14); border: 1px solid rgba(255, 193, 7, 0.55); border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; color: inherit;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="color: #d39e00; margin-right: 0.5rem;">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCannotUndo')}</strong>
             </div>
           </div>
 
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; font-weight: 500;">
             ${i18n.t('editors.gui.autoGenerateConfirmQuestion')}
           </p>
 
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid rgba(127, 127, 127, 0.25);">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('common.cancel')}
             </button>
-            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: 1px solid hsl(var(--brand)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>
         </div>
       `;
-      
+
       modal.setContent(modalContent);
       modal.open();
-      
+
       // Add hover effects matching Bootstrap buttons
       const confirmBtn = document.getElementById('modal-confirm-btn');
       const cancelBtn = document.getElementById('modal-cancel-btn');
-      
+
       if (confirmBtn) {
         confirmBtn.onmouseover = () => {
-          confirmBtn.style.backgroundColor = '#0b5ed7';
-          confirmBtn.style.borderColor = '#0a58ca';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand-dark))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand-dark))';
         };
         confirmBtn.onmouseout = () => {
-          confirmBtn.style.backgroundColor = '#0d6efd';
-          confirmBtn.style.borderColor = '#0d6efd';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand))';
         };
         confirmBtn.onclick = async () => {
           modal.close();
           try {
-            await autoGenerateGUIFromClassDiagram(editor);
+            const pagesCount = await autoGenerateGUIFromClassDiagram(editor);
+            track('editor_action', { editor: 'gui', action: 'generate_from_classes', pages_count: pagesCount, kind: 'manual' });
             // Show success notification using GrapesJS notification system
             editor.runCommand('notifications:add', {
               type: 'success',
@@ -1182,6 +1245,11 @@ function addAutoGenerateGUIButton(editor: Editor) {
             });
           } catch (error) {
             console.error('[Auto-Generate] Error:', error);
+            trackFailure('editor_action_failed', error, {
+              editor: 'gui',
+              action: 'generate_from_classes',
+              reason: generationFailureReason(error),
+            });
             editor.runCommand('notifications:add', {
               type: 'error',
               message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message: (error as Error).message })}`,
@@ -1190,15 +1258,13 @@ function addAutoGenerateGUIButton(editor: Editor) {
           }
         };
       }
-      
+
       if (cancelBtn) {
         cancelBtn.onmouseover = () => {
-          cancelBtn.style.backgroundColor = '#5c636a';
-          cancelBtn.style.borderColor = '#565e64';
+          cancelBtn.style.backgroundColor = 'hsl(var(--muted))';
         };
         cancelBtn.onmouseout = () => {
-          cancelBtn.style.backgroundColor = '#6c757d';
-          cancelBtn.style.borderColor = '#6c757d';
+          cancelBtn.style.backgroundColor = 'transparent';
         };
         cancelBtn.onclick = () => {
           modal.close();
@@ -1208,10 +1274,22 @@ function addAutoGenerateGUIButton(editor: Editor) {
   });
 }
 
+/** Thrown once the class diagram failed validation; its errors are already shown in a modal. */
+class ClassDiagramInvalidError extends Error {
+  constructor() {
+    super(i18n.t('editors.gui.qualityCheckFailed'));
+    this.name = 'ClassDiagramInvalidError';
+  }
+}
+
+const generationFailureReason = (error: unknown): string =>
+  error instanceof ClassDiagramInvalidError ? 'validation' : 'exception';
+
 /**
- * Auto-generate GUI pages and components from the class diagram
+ * Auto-generate GUI pages and components from the class diagram.
+ * Resolves to the number of pages created.
  */
-async function autoGenerateGUIFromClassDiagram(editor: Editor) {
+async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> {
   // Get class diagram model for validation
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
@@ -1235,15 +1313,15 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
       : `<li>${i18n.t('editors.gui.unknownError')}</li>`;
     const modalContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-        <h2 style="color:#e74c3c; margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
-        <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+        <h2 style="color:hsl(var(--destructive)); margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
+        <p style="font-size:1rem; color:inherit; margin-bottom:1rem;">
           ${i18n.t('editors.gui.qualityCheckFailedMessage')}
         </p>
-        <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+        <ul style="background:hsl(var(--destructive) / 0.08); border:1px solid hsl(var(--destructive) / 0.5); border-radius:6px; padding:1rem; color:hsl(var(--destructive)); font-size:1rem;">
           ${errorList}
         </ul>
         <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
-          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:hsl(var(--destructive)); color:hsl(var(--destructive-foreground)); border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
         </div>
       </div>
     `;
@@ -1256,7 +1334,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
         closeBtn.onclick = () => modal.close();
       }
     }, 100);
-    return; // Abort GUI generation
+    throw new ClassDiagramInvalidError();
   }
 
   // Get all classes from the class diagram
@@ -1265,75 +1343,89 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
   if (classes.length === 0) {
     throw new Error(i18n.t('editors.gui.noClassesFound'));
   }
-  
-  // Clear all existing pages
-  const pages = editor.Pages;
-  if (pages) {
-    const existingPages = pages.getAll();
-    existingPages.forEach((page: any) => {
-      pages.remove(page);
+
+  // From clearing the pages to the last save, the GUI generator's saves are one run in the project trace.
+  const traceRecorder = guiTraceRecorderOf(editor);
+  traceRecorder.beginDerivation();
+  try {
+    // Clear all existing pages
+    const pages = editor.Pages;
+    if (pages) {
+      const existingPages = pages.getAll();
+      existingPages.forEach((page: any) => {
+        pages.remove(page);
+      });
+    }
+
+    // Create all pages and force render each one to ensure proper styling
+    const createdPages: any[] = [];
+
+    classes.forEach((classOption: any, index: number) => {
+      const className = classOption.label;
+      const classId = classOption.value;
+      const pageName = className.toLowerCase().replace(/\s+/g, '-');
+      const pageRoute = `/${pageName}`;
+
+      // Get class metadata (attributes and methods)
+      const classMetadata = getClassMetadata(classId);
+      const methods = getMethodsByClassId(classId);
+
+      // Create the page with route_path
+      const page = pages.add({
+        id: `page-${pageName}-${index}`,
+        name: className,
+      });
+
+      // Set the route_path on the page
+      if (page) {
+        page.set('route_path', pageRoute);
+      }
+
+      // Store created page
+      createdPages.push({ page, className, classId, classMetadata, methods, index });
     });
+
+    // Process each page sequentially with delays to ensure GrapesJS renders each one
+    // This ensures all pages get proper IDs and normalized styles
+    const processPages = async () => {
+      const initializations: Promise<void>[] = [];
+      for (let i = 0; i < createdPages.length; i++) {
+        const { page, className, classId, classMetadata, methods, index } = createdPages[i];
+
+        // Select the page to force GrapesJS to render it
+        pages.select(page);
+
+        // Build the page components
+        initializations.push(buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index));
+
+        // Wait for GrapesJS to process the page (render and assign IDs)
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Trigger a canvas refresh to ensure components are processed
+        editor.refresh();
+      }
+
+      // Every page's components are initialized before the GUI is saved and recorded.
+      await Promise.all(initializations);
+
+      // Return to the first page after all pages are processed
+      if (createdPages.length > 0) {
+        pages.select(createdPages[0].page);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 120));
+      await editor.store();
+
+      // Auto-generate replaced every page: the undo history behind it mixes
+      // the old and new documents. Reset it so Ctrl+Z can't corrupt the result.
+      editor.UndoManager?.clear?.();
+    };
+
+    await processPages();
+    return createdPages.length;
+  } finally {
+    traceRecorder.endDerivation();
   }
-  
-  // Create all pages and force render each one to ensure proper styling
-  const createdPages: any[] = [];
-  
-  classes.forEach((classOption: any, index: number) => {
-    const className = classOption.label;
-    const classId = classOption.value;
-    const pageName = className.toLowerCase().replace(/\s+/g, '-');
-    const pageRoute = `/${pageName}`;
-    
-    // Get class metadata (attributes and methods)
-    const classMetadata = getClassMetadata(classId);
-    const methods = getMethodsByClassId(classId);
-    
-    // Create the page with route_path
-    const page = pages.add({
-      id: `page-${pageName}-${index}`,
-      name: className,
-    });
-    
-    // Set the route_path on the page
-    if (page) {
-      page.set('route_path', pageRoute);
-    }
-    
-    // Store created page
-    createdPages.push({ page, className, classId, classMetadata, methods, index });
-  });
-  
-  // Process each page sequentially with delays to ensure GrapesJS renders each one
-  // This ensures all pages get proper IDs and normalized styles
-  const processPages = async () => {
-    for (let i = 0; i < createdPages.length; i++) {
-      const { page, className, classId, classMetadata, methods, index } = createdPages[i];
-      
-      // Select the page to force GrapesJS to render it
-      pages.select(page);
-      
-      // Build the page components
-      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
-      
-      // Wait for GrapesJS to process the page (render and assign IDs)
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Trigger a canvas refresh to ensure components are processed
-      editor.refresh();
-    }
-    
-    // Return to the first page after all pages are processed
-    if (createdPages.length > 0) {
-      pages.select(createdPages[0].page);
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 120));
-    editor.store();
-  };
-  
-  // Execute the async page processing
-  return processPages();
-  
 }
 
 /**
@@ -1348,12 +1440,12 @@ function buildPageComponents(
   methods: any[],
   allClasses: any[],
   pageCounter: number
-) {
+): Promise<void> {
   const wrapper = page.getMainComponent();
-  
+
   // Generate a unique table ID for this page using counter
   const tableId = `table-${className.toLowerCase()}-${pageCounter}`;
-  
+
   // Build navigation links
   const navLinksComponents = allClasses.map(c => {
     const isActive = c.label === className;
@@ -1373,12 +1465,12 @@ function buildPageComponents(
       }
     };
   });
-  
+
   // Create method buttons components
   const methodButtonsComponents: any[] = [];
   if (methods && methods.length > 0) {
     methods.forEach((method, idx) => {
-      
+
       // Create action-button component with proper traits
       const buttonComponent = {
         type: 'action-button',
@@ -1400,11 +1492,11 @@ function buildPageComponents(
         'confirmation-required': false,
         components: [{ type: 'textnode', content: method.name }],
       };
-      
+
       methodButtonsComponents.push(buttonComponent);
     });
   }
-  
+
   // Build the page structure
   const pageStructure = {
     tagName: 'div',
@@ -1501,7 +1593,7 @@ function buildPageComponents(
           (() => {
             // Pre-generate columns from class metadata (same logic as in registerTableComponent)
             const autoColumns: any[] = [];
-            
+
             // Add Field columns from class attributes
             if (classMetadata?.attributes?.length) {
               classMetadata.attributes.forEach((attr: any) => {
@@ -1513,13 +1605,13 @@ function buildPageComponents(
                 });
               });
             }
-            
+
             // Add Lookup columns from class relationship ends
             const classEnds = getEndsByClassId(classId);
             if (classEnds?.length) {
               classEnds.forEach((end: any) => {
                 const targetClassMetadata = getClassMetadata(end.value);
-                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                const firstAttribute = getDisplayAttribute(targetClassMetadata);
                 autoColumns.push({
                   field: end.label || end.value,
                   label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
@@ -1530,7 +1622,7 @@ function buildPageComponents(
                 });
               });
             }
-            
+
             const tableComponent = {
               type: 'table',
               attributes: {
@@ -1574,135 +1666,66 @@ function buildPageComponents(
       }
     ]
   };
-  
+
   // Clear existing components and add the new structure
   wrapper.components().reset();
   wrapper.append(pageStructure);
-  
+
   // Force the page to be selected to ensure components are properly initialized
   editor.Pages?.select(page);
-  
-  // Initialize components after they are added and page is selected
-  setTimeout(() => {
-    try {
-      // Re-select the page to ensure we're working with the right context
-      editor.Pages?.select(page);
-      const pageWrapper = page.getMainComponent();
-      
-      // Find the table component by ID within this page
-      const tables = pageWrapper?.find(`#${tableId}`) || [];
-      const tableComp = tables[0];
-      
-      if (tableComp) {
-        
-        // Get the current data-source value
-        const currentDataSource = tableComp.get('data-source') || classId;
-        
-        // Force re-initialization by clearing and setting again
-        tableComp.set('data-source', '');
-        
-        setTimeout(() => {
-          tableComp.set('data-source', currentDataSource);
-          
-          // After table is initialized, initialize buttons
-          setTimeout(() => {
-            const buttons = pageWrapper?.find('.action-button-component') || [];
-            
-            buttons.forEach((buttonComp: any, btnIdx: number) => {
-              const methodClass = buttonComp.get('method-class');
-              const methodId = buttonComp.get('method');
-              const instanceSource = buttonComp.get('instance-source');
-              
-              // console.log(`[Auto-Generate] Initializing button ${btnIdx + 1}:`, {
-              //   methodClass,
-              //   methodId,
-              //   instanceSource,
-              //   expectedTableId: tableId
-              // });
-              
-              // Force the button to re-initialize its traits
-              buttonComp.set('method-class', '');
-              
-              setTimeout(() => {
-                buttonComp.set('method-class', methodClass);
-                
-                setTimeout(() => {
-                  if (methodId) {
-                    buttonComp.set('method', methodId);
-                  }
-                  
-                  setTimeout(() => {
-                    if (instanceSource) {
-                      buttonComp.set('instance-source', instanceSource);
-                      console.log(`[Auto-Generate] Button ${btnIdx + 1} instance-source set to: ${instanceSource}`);
-                    }
-                  }, 50);
-                }, 50);
-              }, 50);
-            });
-          }, 100);
-        }, 100);
-      } else {
-        console.warn(`[Auto-Generate] Table not found with id: ${tableId}`);
-      }
-    } catch (e) {
-      console.warn('[Auto-Generate] Could not trigger component initialization:', e);
-    }
-  }, 300);
-  
+
+  return initializePageComponents(editor, page, classId, tableId);
 }
 
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /**
- * Setup page routing system
+ * Initialize a generated page's table and method buttons once GrapesJS has rendered them, by setting their traits
+ * again. Resolves when they are all set.
  */
-/**
- * Setup page routing system
- */
-function setupPageRouting(editor: Editor) {
-  if (!editor.Pages) return;
-  
-  editor.on('page:select', (page: any) => {
-    if (!page) return;
-    // Use route_path as primary, fallback to attributes.route or auto-generated
-    const currentRoute = page.get('route_path') || 
-      page.get('attributes')?.route || 
-      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
-  });
-  
-  // Add command to edit page route (legacy - now handled in Pages panel)
-  editor.Commands.add('edit-page-route', {
-    run(editor: Editor) {
-      const currentPage = editor.Pages.getSelected();
-      if (!currentPage) {
-        alert(i18n.t('editors.gui.noPageSelected'));
-        return;
-      }
-      
-      const pageName = currentPage.getName();
-      const storedRoute = currentPage.get('route_path');
-      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
-        ? storedRoute 
-        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
-      
-      const newRoute = prompt(
-        i18n.t('editors.gui.editRoutePrompt', { pageName }),
-        currentRoute
-      );
-      
-      if (newRoute !== null && newRoute.trim()) {
-        let route = newRoute.trim();
-        if (!route.startsWith('/')) route = '/' + route;
-        // Clean the route
-        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
-        
-        currentPage.set('route_path', route);
-        
-        // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        alert(i18n.t('editors.gui.routeUpdated', { route }));
-      }
+async function initializePageComponents(editor: Editor, page: any, classId: string, tableId: string): Promise<void> {
+  await wait(300);
+  try {
+    // Re-select the page to ensure we're working with the right context
+    editor.Pages?.select(page);
+    const pageWrapper = page.getMainComponent();
+
+    // Find the table component by ID within this page
+    const tableComp = (pageWrapper?.find(`#${tableId}`) || [])[0];
+    if (!tableComp) {
+      console.warn(`[Auto-Generate] Table not found with id: ${tableId}`);
+      return;
     }
-  });
+
+    // Force re-initialization by clearing and setting the data source again
+    const currentDataSource = tableComp.get('data-source') || classId;
+    tableComp.set('data-source', '');
+    await wait(100);
+    tableComp.set('data-source', currentDataSource);
+    await wait(100);
+
+    // After the table is initialized, initialize the buttons
+    const buttons: any[] = pageWrapper?.find('.action-button-component') || [];
+    await Promise.all(buttons.map(async (buttonComp: any, btnIdx: number) => {
+      const methodClass = buttonComp.get('method-class');
+      const methodId = buttonComp.get('method');
+      const instanceSource = buttonComp.get('instance-source');
+
+      // Force the button to re-initialize its traits
+      buttonComp.set('method-class', '');
+      await wait(50);
+      buttonComp.set('method-class', methodClass);
+      await wait(50);
+      if (methodId) buttonComp.set('method', methodId);
+      await wait(50);
+      if (instanceSource) {
+        buttonComp.set('instance-source', instanceSource);
+        console.log(`[Auto-Generate] Button ${btnIdx + 1} instance-source set to: ${instanceSource}`);
+      }
+    }));
+  } catch (e) {
+    console.warn('[Auto-Generate] Could not trigger component initialization:', e);
+  }
 }
 
 // ============================================
@@ -1721,10 +1744,10 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
       'open-layers': i18n.t('editors.gui.sidebarLayers'),
       'open-pages-tab': i18n.t('editors.gui.sidebarPages'),
     };
-    
+
     const selector = '.gjs-pn-views .gjs-pn-btn, .gjs-pn-commands .gjs-pn-btn';
     const measurementEl = createTooltipMeasurementElement();
-    
+
     const updatePlacement = (button: HTMLElement, label: string) => {
       measurementEl.textContent = label;
       const tooltipWidth = measurementEl.getBoundingClientRect().width;
@@ -1736,23 +1759,23 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
       const placement = prefersRight ? 'right' : prefersLeft ? 'left' : 'right';
       button.setAttribute('data-tooltip-placement', placement);
     };
-    
+
     document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
       const label = resolveSidebarButtonLabel(button, labelOverrides);
       if (!label) return;
-      
+
       button.setAttribute('data-tooltip', label);
       button.setAttribute('aria-label', label);
       updatePlacement(button, label);
-      
+
       button.addEventListener('mouseenter', () => updatePlacement(button, label));
       button.addEventListener('focus', () => updatePlacement(button, label));
-      
+
       if (button.getAttribute('title')) {
         button.removeAttribute('title');
       }
     });
-    
+
     const handleResize = () => {
       document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
         const label = button.getAttribute('data-tooltip');
@@ -1760,7 +1783,7 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
         updatePlacement(button, label);
       });
     };
-    
+
     window.addEventListener('resize', handleResize);
     editor.on('destroy', () => {
       window.removeEventListener('resize', handleResize);
@@ -1804,7 +1827,7 @@ function setupAutoOpenTraitsPanel(editor: Editor) {
 function createTooltipMeasurementElement(): HTMLDivElement {
   let measurementEl = document.getElementById('gjs-tooltip-measure') as HTMLDivElement | null;
   if (measurementEl) return measurementEl;
-  
+
   measurementEl = document.createElement('div');
   measurementEl.id = 'gjs-tooltip-measure';
   measurementEl.style.position = 'fixed';
@@ -1829,14 +1852,14 @@ function resolveSidebarButtonLabel(
     || button.getAttribute('aria-label')
     || button.getAttribute('title');
   if (existingLabel) return existingLabel;
-  
+
   const id = button.getAttribute('id');
   if (!id) return null;
   if (labelOverrides[id]) return labelOverrides[id];
-  
+
   const cleaned = id.replace(/^open-/, '').replace(/-/g, ' ').trim();
   if (!cleaned) return null;
-  
+
   return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
@@ -1852,45 +1875,76 @@ function resolveSidebarButtonLabel(
  */
 function setupDataBindingTraits(editor: Editor) {
   const dataBindableTypes = ['text', 'input', 'select', 'textarea', 'default', 'list', 'data-list', 'table'];
-  
-  // Add data binding traits to components
+
+  // Bindings are picked from the class diagram, never typed by hand: the
+  // class dropdown lists the referenced diagram's classes, and the two field
+  // dropdowns list the chosen class's attributes. Options are rebuilt on
+  // every selection so they track class-diagram changes.
+  const fieldOptions = (classId: string) => {
+    const meta = classId ? getClassMetadata(classId) : null;
+    const attrs = (meta?.attributes || []).map((a: any) => ({ value: a.name, label: a.name }));
+    return [{ value: '', label: '—' }, ...attrs];
+  };
+
+  const currentValue = (component: any, name: string) =>
+    component.get(name) ?? component.getAttributes()[name] ?? '';
+
+  const rebuildBindingTraits = (component: any) => {
+    const traits = component.get('traits');
+    const classId = currentValue(component, 'data-source');
+    const defs = [
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDataSource'),
+        name: 'data-source',
+        options: [{ value: '', label: '—' }, ...getClassOptions()],
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDisplayField'),
+        name: 'label-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitValueField'),
+        name: 'value-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+    ];
+    defs.forEach((def) => {
+      const existing = traits.where({ name: def.name })[0];
+      if (existing) traits.remove(existing);
+      traits.add({ ...def, value: currentValue(component, def.name) });
+    });
+  };
+
   editor.on('component:selected', (component: any) => {
     if (!component) return;
-    
+
     const compType = component.get('type');
     if (!dataBindableTypes.includes(compType) && component.get('tagName') !== 'input') return;
-    
-    const traits = component.get('traits');
-    const hasDataSource = traits.where({ name: 'data-source' }).length > 0;
-    
-    if (!hasDataSource) {
-      traits.add([
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDataSource'),
-          name: 'data-source',
-          placeholder: i18n.t('editors.gui.traitDataSourcePlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDisplayField'),
-          name: 'label-field',
-          placeholder: i18n.t('editors.gui.traitDisplayFieldPlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitValueField'),
-          name: 'value-field',
-          placeholder: i18n.t('editors.gui.traitValueFieldPlaceholder'),
-          changeProp: 1,
-        }
-      ]);
-      console.log('[Data Binding] Added traits to:', compType);
+
+    rebuildBindingTraits(component);
+
+    if (!component.__dsBindingWired) {
+      component.__dsBindingWired = true;
+      // Mirror binding values into HTML attributes (what the generator
+      // reads) and refresh the field dropdowns when the class changes.
+      ['data-source', 'label-field', 'value-field'].forEach((name) => {
+        component.on(`change:${name}`, () => {
+          const attrs = { ...component.getAttributes() };
+          attrs[name] = component.get(name) || '';
+          component.setAttributes(attrs);
+        });
+      });
+      component.on('change:data-source', () => rebuildBindingTraits(component));
     }
   });
-  
+
   // Visual indicator for components with data binding
   editor.on('component:update', (component: any) => {
     const attrs = component.getAttributes();
@@ -1900,211 +1954,6 @@ function setupDataBindingTraits(editor: Editor) {
       component.removeClass('has-data-binding');
     }
   });
-  
+
   console.log('[Data Binding] System initialized');
-}
-
-/**
- * Setup custom traits (columns-manager, etc.)
- */
-function setupCustomTraits(editor: Editor) {
-  // Register columns-manager trait for tables
-  registerColumnsManagerTrait(editor);
-  
-  // console.log('[Custom Traits] Registered columns-manager trait');
-}
-
-// ============================================
-// ABSOLUTE POSITIONING
-// ============================================
-
-/**
- * Enable absolute positioning with free dragging
- */
-/**
- * Enable absolute positioning with free dragging
- */
-function enableAbsolutePositioning(editor: Editor) {
-  editor.on('load', () => {
-    const canvas = editor.Canvas;
-    const frame = canvas.getFrameEl();
-    
-    if (!frame || !frame.contentWindow) return;
-    
-    const frameDoc = frame.contentWindow.document;
-    let isDragging = false;
-    let dragTarget: any = null;
-    let dragStart = { x: 0, y: 0, left: 0, top: 0 };
-    
-    frameDoc.addEventListener('mousedown', (e: any) => {
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (!el) return;
-      
-      const component = findComponent(editor, el);
-      if (!component) return;
-      
-      const style = component.getStyle();
-      const position = Array.isArray(style.position) ? style.position[0] : style.position;
-      
-      if (position === 'absolute' || position === 'fixed') {
-        isDragging = true;
-        dragTarget = component;
-        dragStart = {
-          x: e.clientX,
-          y: e.clientY,
-          left: parseStyleValue(style.left),
-          top: parseStyleValue(style.top)
-        };
-        
-        el.style.cursor = 'move';
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (!isDragging || !dragTarget) return;
-      
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      dragTarget.setStyle({
-        left: `${dragStart.left + deltaX}px`,
-        top: `${dragStart.top + deltaY}px`,
-      });
-      
-      e.preventDefault();
-    });
-    
-    frameDoc.addEventListener('mouseup', () => {
-      if (isDragging && dragTarget) {
-        const el = dragTarget.getEl();
-        if (el) el.style.cursor = '';
-      }
-      isDragging = false;
-      dragTarget = null;
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (isDragging) return;
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (el) el.style.cursor = 'move';
-    });
-  });
-  
-  console.log('[Absolute Positioning] Dragging enabled');
-}
-
-/**
- * Find GrapesJS component for DOM element
- */
-function findComponent(editor: Editor, el: HTMLElement): any {
-  const componentId = el.getAttribute('data-gjs-id');
-  if (componentId) {
-    const wrapper = editor.getWrapper();
-    if (wrapper) {
-      const found = wrapper.find(`[data-gjs-id="${componentId}"]`);
-      if (found && found[0]) return found[0];
-    }
-  }
-  
-  let checkEl: any = el;
-  while (checkEl) {
-    if (checkEl.__gjscomp) return checkEl.__gjscomp;
-    if (!checkEl.parentElement || checkEl.parentElement === el.ownerDocument.body) break;
-    checkEl = checkEl.parentElement;
-  }
-  
-  return null;
-}
-
-/**
- * Parse CSS style value to number
- */
-function parseStyleValue(value: any): number {
-  if (Array.isArray(value)) value = value[0];
-  if (typeof value !== 'string') return 0;
-  const parsed = parseInt(value.replace('px', ''), 10);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-// ============================================
-// PREVIEW FILTERING
-// ============================================
-
-/**
- * Filter preview content to show only widgets and base components
- */
-/**
- * Filter preview content to show only widgets and base components
- */
-function filterPreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove existing filter if any
-  const existingStyle = frameDoc.getElementById('preview-filter-style');
-  if (existingStyle) existingStyle.remove();
-  
-  // Add CSS to hide editor UI
-  const style = frameDoc.createElement('style');
-  style.id = 'preview-filter-style';
-  style.textContent = `
-    .gjs-selected, .gjs-hovered, .gjs-highlightable, [data-gjs-highlightable],
-    [data-gjs-type="toolbar"], [data-gjs-type="toolbar-item"], .gjs-toolbar,
-    .gjs-cv-cover, .gjs-cv-canvas > .gjs-cover, .gjs-resizer, .gjs-ruler,
-    .gjs-ruler-v, .gjs-ruler-h, .gjs-offset-v, .gjs-offset-h, .gjs-offset, .gjs-badge {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-    }
-    [data-gjs-type]:not([data-gjs-type="toolbar"]):not([data-gjs-type="toolbar-item"]) {
-      visibility: visible !important;
-      display: block !important;
-    }
-  `;
-  frameDoc.head.appendChild(style);
-  
-  // Hide elements programmatically
-  const hideSelectors = ['.gjs-selected', '.gjs-hovered', '.gjs-toolbar', '.gjs-resizer', '.gjs-cv-cover', '.gjs-ruler', '.gjs-offset'];
-  hideSelectors.forEach(selector => {
-    try {
-      frameDoc.body.querySelectorAll(selector).forEach((el: any) => {
-        if (el && !el.hasAttribute('data-gjs-type')) {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.setAttribute('data-preview-hidden', 'true');
-        }
-      });
-    } catch (e) {
-      // Ignore errors
-    }
-  });
-  
-  console.log('[Preview] Content filtered');
-}
-
-/**
- * Restore preview content
- */
-function restorePreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove filter style
-  const filterStyle = frameDoc.getElementById('preview-filter-style');
-  if (filterStyle) filterStyle.remove();
-  
-  // Restore hidden elements
-  frameDoc.querySelectorAll('[data-preview-hidden="true"]').forEach((el: any) => {
-    el.style.display = '';
-    el.style.visibility = '';
-    el.removeAttribute('data-preview-hidden');
-  });
-  
-  console.log('[Preview] Content restored');
 }

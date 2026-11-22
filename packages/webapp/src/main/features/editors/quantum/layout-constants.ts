@@ -4,6 +4,14 @@ export const WIRE_SPACING = 40;
 export const TOP_MARGIN = 50;
 export const LEFT_MARGIN = 50;
 
+/** Grid cell under a point given relative to the grid's top-left; the single source for all placement maths. */
+export function cellAt(x: number, y: number): { col: number; row: number } {
+    return {
+        col: Math.floor((x - LEFT_MARGIN) / WIRE_SPACING),
+        row: Math.floor((y - TOP_MARGIN) / WIRE_SPACING),
+    };
+}
+
 export const COLORS = {
     GATE_FILL: 'white',
     HIGHLIGHTED_GATE_FILL: '#FB7',

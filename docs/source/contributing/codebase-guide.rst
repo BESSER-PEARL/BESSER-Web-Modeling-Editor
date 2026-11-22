@@ -36,12 +36,16 @@ it, but external applications can use it directly.
    │   ├── diagram-bridge/      #   Cross-diagram data sharing
    │   ├── uml-element/         #   Element CRUD, selection, movement
    │   ├── uml-relationship/    #   Relationship CRUD
-   │   ├── patcher/             #   JSON Patch for collaboration
+   │   ├── patcher/             #   JSON Patch diffing of the model
    │   ├── layouter/            #   Auto-layout algorithms
    │   ├── undo/                #   Undo/redo stack
    │   └── editor/              #   Editor lifecycle management
-   ├── i18n/                    # Translation files (en.json, de.json, ...)
+   ├── components/i18n/         # Editor-side translation wiring
    └── utils/                   # Pure utility functions
+
+Translation *strings* for both packages live outside the workspaces, in
+``packages/i18n/<locale>/{editor,webapp}.json`` (``en``, ``lb``, ``de``, ``fr``,
+``es``, ``ca``). English is the source of truth and the runtime fallback.
 
 **Key patterns:**
 
@@ -60,8 +64,8 @@ Web Application (``packages/webapp``)
 --------------------------------------
 
 The webapp is the React SPA deployed at editor.besser-pearl.org. It embeds
-the editor and adds project management, code generation, deployment, and
-collaboration.
+the editor and adds project management, the AI assistant, code generation, and
+deployment.
 
 .. code-block:: text
 
@@ -80,29 +84,35 @@ collaboration.
    │   │       └── TopBarUtilities.tsx  # Quality Check, Theme, GitHub, Sync
    │   ├── store/                  #   Redux store
    │   │   ├── workspaceSlice.ts   #     Unified project + diagram state
-   │   │   └── errorManagementSlice.ts
+   │   │   ├── errorManagementSlice.ts
+   │   │   └── (specDrivenSlice lives in features/spec-driven/state)
    │   └── hooks/                  #   App-level React hooks
    ├── features/                   # Feature modules (one folder per feature)
-   │   ├── editors/                #   Editor wrappers
+   │   ├── editors/                #   Editor wrappers + diagram tab strip
    │   │   └── uml/ApollonEditorComponent.tsx  # Main editor wrapper
-   │   ├── project/                #   Project hub, creation, templates
+   │   ├── project/                #   Project hub, settings, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment
-   │   ├── github/                 #   GitHub OAuth and deploy-to-repo
-   │   ├── import/                 #   Import dialogs (file, image, KG)
-   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PDF)
+   │   ├── github/                 #   GitHub sign-in, repo storage, push
+   │   ├── import/                 #   Import dialogs (file, image, KG, BPMN XML)
+   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PNG, PDF)
    │   ├── agent-config/           #   Agent-specific configuration
-   │   ├── assistant/              #   AI agent widget (bot icon)
-   │   └── onboarding/             #   Tutorial / first-use flow
+   │   ├── assistant/              #   AI assistant (WebSocket client, converters)
+   │   └── spec-driven/            #   Spec-Driven Agent runs (HTTP + SSE)
    ├── shared/                     # Cross-feature shared code
    │   ├── types/project.ts        #   BesserProject, ProjectDiagram types
-   │   ├── constants/constant.ts   #   Environment variables, URLs, keys
-   │   ├── services/               #   Storage, validation, analytics
-   │   │   └── storage/ProjectStorageRepository.ts
-   │   ├── components/             #   Reusable UI components
+   │   ├── constants/constant.ts   #   Environment variables, URLs, storage keys
+   │   ├── perspectives.ts         #   Diagram-visibility presets
+   │   ├── services/               #   Storage, validation, analytics, SSE,
+   │   │   │                       #   telemetry, llmKeyStorage, confirm
+   │   │   ├── errors/             #   reportError: error toast + Sentry
+   │   │   └── storage/            #   The only Web Storage access: projects,
+   │   │                           #   GitHub, assistant, preferences
+   │   ├── components/             #   Reusable UI, incl. byok/LlmKeyDialog
    │   ├── hooks/                  #   Shared React hooks
    │   ├── dialogs/                #   Shared dialog components
-   │   ├── api/                    #   Backend API client functions
+   │   ├── i18n/                   #   react-i18next setup + language list
+   │   ├── api/                    #   ApiClient (centralised fetch wrapper)
    │   └── utils/                  #   Pure utility functions
    └── templates/                  # Starter project templates
 
@@ -110,9 +120,27 @@ collaboration.
 
 - ``app/`` contains the shell (layout, menus, store). This is the entry point.
 - ``features/`` follows the feature-folder pattern — each feature owns its
-  components, hooks, and logic. Features should not import from other features.
+  components, hooks, and logic. Each feature's ``index.ts`` is its public API:
+  other features import it only through that index, never its internals.
 - ``shared/`` contains code used by multiple features. If you need something
-  in two features, move it here.
+  in two features, move it here. ``shared/`` never imports from ``app/`` or
+  ``features/``.
+- ESLint (``no-restricted-imports`` in ``packages/webapp/.eslintrc.js``)
+  enforces both rules as errors.
+- Browser storage is read and written only through the typed modules in
+  ``shared/services/storage/``, ``shared/services/llmKeyStorage.ts`` and
+  ``features/spec-driven/storage.ts``; every key is a constant in
+  ``constant.ts``. ESLint rejects ``localStorage`` / ``sessionStorage``
+  (including ``window.localStorage``, casts and aliases) anywhere else in
+  ``src/`` outside tests.
+- A failure the user should see is reported with ``reportError()`` from
+  ``shared/services/errors/reportError.ts``: the error toast, plus the caught
+  error to Sentry when ``SENTRY_DSN`` is set and the user accepted analytics.
+  Offline, aborted and 4xx failures are not sent, and every Sentry event is
+  reduced to the error type, HTTP status and stack (no messages). A notice uses
+  ``globalAlert()`` (the confirm dialog with one button). ESLint rejects
+  ``toast.error(``, an error ``toast.update(`` (use the ``updateToast``
+  option) and ``alert(`` anywhere else in ``src/`` outside tests.
 - The single ``workspaceSlice.ts`` manages all project and diagram state.
   There are no separate project/diagram slices.
 - Menu components (``app/shell/menus/``) are where top-bar actions are defined.
@@ -121,28 +149,38 @@ collaboration.
 Server (``packages/server``)
 -----------------------------
 
-The Express server is lightweight. It serves the compiled webapp and provides
-a few API endpoints.
+The Express server is deliberately minimal. It serves the compiled webapp and
+exposes two small endpoints.
 
 .. code-block:: text
 
    packages/server/src/main/
-   ├── server.ts              # Express app setup, middleware, route mounting
-   ├── routes.ts              # API routes (/api/diagrams, /api/collaborate, etc.)
-   ├── services/              # Business logic
-   │   ├── diagram-service/   #   CRUD for diagrams (file or Redis storage)
-   │   └── pdf-service/       #   SVG-to-PDF conversion
-   ├── resources/             # Static assets
-   ├── constants.ts           # Port, storage paths
-   └── utils.ts               # Shared helpers
+   ├── server.ts                          # Express setup, static hosting, Sentry
+   ├── routes.ts                          # Mounts /api
+   ├── resources/
+   │   ├── uml-agent-rate-limiter-resource.ts  # POST/DELETE /api/uml-agent/rate-limit/check
+   │   └── svg-export-resource.ts              # POST /api/svg
+   ├── services/
+   │   ├── conversion-service/            #   SVG conversion helpers
+   │   └── storage-service/               #   File-backed storage helper
+   ├── constants.ts                       # Paths to build/webapp
+   └── utils.ts                           # Shared helpers
 
 **Key patterns:**
 
-- Diagrams are stored on the filesystem by default (``diagrams/`` folder).
-  When ``APOLLON_REDIS_URL`` is set, storage switches to Redis.
-- The server does NOT run code generation — that is handled by the BESSER
-  Python backend at ``BACKEND_URL``.
-- WebSocket connections for collaboration are managed through the server.
+- The server does NOT run code generation, validation, or GitHub OAuth — all of
+  that is handled by the BESSER Python backend at ``BACKEND_URL``.
+- It does NOT talk to the modeling agent either; the browser opens that
+  WebSocket directly (``UML_BOT_WS_URL``).
+- The listening port is hardcoded to ``8080``.
+- On start-up it rewrites literal ``http://localhost:8080`` strings inside
+  ``build/webapp/*.js`` using ``DEPLOYMENT_URL`` — the one piece of runtime
+  configuration in the whole frontend.
+
+.. note::
+   Real-time collaboration and server-side shared diagram storage (the
+   ``diagram-service`` and the ``APOLLON_REDIS_*`` variables) have been removed.
+   Projects are stored in the browser; see :doc:`../webapp/local-projects`.
 
 
 Where Code Lives: Quick Lookup
@@ -163,9 +201,16 @@ Where Code Lives: Quick Lookup
    * - Code generation dialogs
      - ``webapp/src/main/features/generation/``
    * - GitHub deploy / OAuth
-     - ``webapp/src/main/features/github/``
-   * - The AI assistant bot
+     - ``webapp/src/main/features/github/``; the tab's sign-in is one store,
+       ``shared/services/github/githubAuth.ts``, read through
+       ``shared/hooks/useGitHubAuth`` (a 401 on any request carrying
+       ``X-GitHub-Session`` marks it expired everywhere)
+   * - The AI assistant (chat, WebSocket client, diagram converters)
      - ``webapp/src/main/features/assistant/``
+   * - The Spec-Driven Agent (full-app generation runs)
+     - ``webapp/src/main/features/spec-driven/``
+   * - The BYOK / API-key dialog
+     - ``webapp/src/main/shared/components/byok/LlmKeyDialog.tsx``
    * - An element's visual appearance
      - ``editor/src/main/packages/<diagram-type>/<element>-component.tsx``
    * - An element's data model
@@ -181,12 +226,12 @@ Where Code Lives: Quick Lookup
    * - Undo/redo
      - ``editor/src/main/services/undo/``
    * - Translations
-     - ``editor/src/main/i18n/en.json``
+     - ``packages/i18n/<locale>/{editor,webapp}.json``
    * - Environment variables
      - ``webapp/src/main/shared/constants/constant.ts``
    * - Project data model
      - ``webapp/src/main/shared/types/project.ts``
    * - Local storage persistence
      - ``webapp/src/main/shared/services/storage/ProjectStorageRepository.ts``
-   * - Server diagram storage
-     - ``server/src/main/services/diagram-service/``
+   * - Browser project storage
+     - ``webapp/src/main/shared/services/storage/``

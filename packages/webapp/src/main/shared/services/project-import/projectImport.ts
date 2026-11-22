@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DIAGRAM_KIND_BY_TYPE,
   ProjectDiagram,
   PROJECT_SCHEMA_VERSION,
   SupportedDiagramType,
@@ -8,6 +9,7 @@ import {
   createEmptyDiagram,
   getActiveDiagram,
   toSupportedDiagramType,
+  isProject,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
@@ -16,7 +18,11 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
-import { BACKEND_URL } from '../../constants/constant';
+import { readImportedTrace, replaceProjectTrace } from '../../traceability/traceStore';
+import { getProjectJsonModel } from '../../api/conversion';
+import { ApiError } from '../../api/api-client';
+import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
+import { reportImportRepairs } from './reportImportRepairs';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 // Interface for V2 JSON export format
@@ -29,6 +35,8 @@ interface V2ExportData {
   agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
   activeAgentConfigurationId?: string | null;
   agentBaseModels?: Record<string, UMLModel>;
+  /** The project trace, when it was exported with the project (validated on import). */
+  trace?: unknown;
 }
 
 // Interface for legacy import validation (V1 format)
@@ -53,6 +61,19 @@ function validateV2ExportData(data: any): data is V2ExportData {
 }
 
 // Check if this is an old webapp export (single diagrams instead of arrays, may have UserDiagram)
+/** A project with no export envelope: how the former "Share as gist" and the old GitHub sidebar saved it. */
+function isBareProject(data: any): boolean {
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    !data.project &&
+    typeof data.id === 'string' &&
+    typeof data.name === 'string' &&
+    typeof data.diagrams === 'object' &&
+    data.diagrams !== null
+  );
+}
+
 function isOldWebappFormat(data: any): boolean {
   if (!data?.project?.diagrams) return false;
   const diagrams = data.project.diagrams;
@@ -74,6 +95,8 @@ function migrateOldWebappProject(data: any): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
+    'ComponentDiagram',
+    'DeploymentDiagram',
     'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram',
@@ -94,10 +117,8 @@ function migrateOldWebappProject(data: any): BesserProject {
       migratedDiagrams[diagramType] = [
         createEmptyDiagram(
           diagramType.replace(/([A-Z])/g, ' $1').trim(),
-          diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
-            ? null
-            : ((UMLDiagramType as any)[diagramType] ?? null),
-          diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined,
+          DIAGRAM_KIND_BY_TYPE[diagramType] ? null : ((UMLDiagramType as any)[diagramType] ?? null),
+          DIAGRAM_KIND_BY_TYPE[diagramType],
         ),
       ];
     }
@@ -108,11 +129,14 @@ function migrateOldWebappProject(data: any): BesserProject {
     ObjectDiagram: 0,
     StateMachineDiagram: 0,
     AgentDiagram: 0,
+    ComponentDiagram: 0,
+    DeploymentDiagram: 0,
     UserDiagram: 0,
     GUINoCodeDiagram: 0,
     QuantumCircuitDiagram: 0,
     NNDiagram: 0,
     BPMN: 0,
+    KnowledgeGraphDiagram: 0,
   };
 
   return {
@@ -149,11 +173,14 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
+    'ComponentDiagram',
+    'DeploymentDiagram',
     'NNDiagram',
     'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram',
     'BPMN',
+    'KnowledgeGraphDiagram',
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -161,9 +188,12 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
+    ComponentDiagram: UMLDiagramType.ComponentDiagram,
+    DeploymentDiagram: UMLDiagramType.DeploymentDiagram,
     NNDiagram: UMLDiagramType.NNDiagram,
     UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
+    KnowledgeGraphDiagram: null,
     QuantumCircuitDiagram: null,
     BPMN: UMLDiagramType.BPMN,
   };
@@ -173,16 +203,14 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
+    ComponentDiagram: 'Component Diagram',
+    DeploymentDiagram: 'Deployment Diagram',
     NNDiagram: 'NN Diagram',
     UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit',
     BPMN: 'BPMN Diagram',
-  };
-
-  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
-    GUINoCodeDiagram: 'gui',
-    QuantumCircuitDiagram: 'quantum',
+    KnowledgeGraphDiagram: 'Knowledge Graph',
   };
 
   // Ensure all diagram types exist as arrays
@@ -191,8 +219,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     if (!existing) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      const kind = diagramKinds[diagramType];
-      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
+      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, DIAGRAM_KIND_BY_TYPE[diagramType])];
     } else if (!Array.isArray(existing)) {
       // Migrate single diagram to array
       (project.diagrams as any)[diagramType] = [existing];
@@ -285,8 +312,28 @@ interface ImportedPersonalization {
   agentBaseModels?: Record<string, UMLModel>;
 }
 
+/**
+ * Store an imported project with the trace its file carried, under the project's new id. The trace is checked
+ * first and stored only once the project itself is (a project that fails to import leaves no orphan trace). A
+ * B-UML file has no project settings, so a project imported from one with a trace goes on recording traces.
+ */
+function storeImportedProjectWithTrace(
+  project: BesserProject, imported: unknown, fromBuml: boolean, personalization?: ImportedPersonalization,
+): void {
+  const trace = imported == null ? undefined : readImportedTrace(imported);
+  if (trace && fromBuml) project.settings = { ...project.settings, traceabilityEnabled: true };
+  storeImportedProject(project, personalization);
+  if (trace) void replaceProjectTrace(project.id, { ...trace, projectId: project.id });
+}
+
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
+  // Loading runs this check too: without it here, a project is stored that can never be opened,
+  // and a repo's invalid model would replace a working local project.
+  if (!isProject(project)) {
+    throw new Error('This file is not a valid BESSER project.');
+  }
+
   // Check if the imported GUI model is empty
   const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
   const importedGUIModel = importedGUIDiagram?.model;
@@ -337,20 +384,14 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
-  const formData = new FormData();
-  formData.append('buml_file', file);
-
-  const response = await fetch(`${BACKEND_URL}/get-project-json-model`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Import failed with status ${response.status}`);
+  let jsonData;
+  try {
+    jsonData = await getProjectJsonModel(file);
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+    throw new Error(error.detail || `Import failed with status ${error.status}`);
   }
-
-  const jsonData = await response.json();
+  reportImportRepairs(jsonData.warnings);
 
   if (isOldWebappFormat(jsonData)) {
     const project = migrateOldWebappProject(jsonData);
@@ -363,7 +404,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
     });
-    storeImportedProject(project, extractPersonalization(jsonData));
+    storeImportedProjectWithTrace(project, jsonData.trace, true, extractPersonalization(jsonData));
     return project;
   } else if (validateLegacyImportData(jsonData)) {
     const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
@@ -374,6 +415,46 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   }
 }
 
+/**
+ * Store a repository's model file (`buml/diagrams.json`, a V2 export envelope,
+ * or an older repo's bare project file) as the project `projectId`, replacing
+ * it. Used to pull a linked repo or restore one of its versions in place.
+ * Agent credentials the repo holds as `[REDACTED]` keep their local values.
+ */
+export function storeRepoModelAsProject(data: unknown, projectId: string): BesserProject {
+  const { project: base, personalization } = readRepoModel(data);
+  const filled = fillMissingDiagrams({ ...base, id: projectId });
+  const local = ProjectStorageRepository.loadProject(projectId);
+  const project = local ? restoreRedactedSecrets(filled, alignDiagramsById(filled, local)) : filled;
+  storeImportedProject(project, personalization);
+  return project;
+}
+
+/** The project in a repository's model file, in whichever format an editor saved it. */
+export function readRepoModel(data: unknown): { project: BesserProject; personalization?: ImportedPersonalization } {
+  if (isOldWebappFormat(data)) return { project: migrateOldWebappProject(data) };
+  if (validateV2ExportData(data)) return { project: data.project, personalization: extractPersonalization(data) };
+  if (data && typeof data === 'object' && typeof (data as BesserProject).diagrams === 'object') {
+    return { project: data as BesserProject };
+  }
+  throw new Error('This file is not a BESSER model.');
+}
+
+/** A repository's model as a whole project, to read without storing it. */
+export const readRepoProject = (data: unknown): BesserProject => fillMissingDiagrams(readRepoModel(data).project);
+
+/** `local` with each diagram list in the order of `incoming`'s ids, so values compare diagram by diagram. */
+function alignDiagramsById(incoming: BesserProject, local: BesserProject): BesserProject {
+  const diagrams = Object.fromEntries(
+    Object.entries(incoming.diagrams ?? {}).map(([type, list]) => {
+      const localList = ((local.diagrams as Record<string, unknown>)?.[type] ?? []) as { id?: string }[];
+      const ids = (Array.isArray(list) ? list : []) as { id?: string }[];
+      return [type, ids.map((diagram) => localList.find((candidate) => candidate.id === diagram.id))];
+    }),
+  );
+  return { ...local, diagrams } as BesserProject;
+}
+
 // Import from JSON file
 export async function importProjectFromJson(file: File): Promise<BesserProject> {
   return new Promise((resolve, reject) => {
@@ -381,7 +462,8 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
     reader.onload = (e) => {
       try {
-        const jsonData = JSON.parse(e.target?.result as string);
+        const parsed = JSON.parse(e.target?.result as string);
+        const jsonData = isBareProject(parsed) ? { project: parsed } : parsed;
 
         // Check for old webapp format (single diagrams, not arrays) before V2 check
         if (isOldWebappFormat(jsonData)) {
@@ -403,7 +485,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           });
 
           // Store using project storage
-          storeImportedProject(importedProject, extractPersonalization(jsonData));
+          storeImportedProjectWithTrace(importedProject, jsonData.trace, false, extractPersonalization(jsonData));
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
           resolve(importedProject);
@@ -433,22 +515,28 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             ObjectDiagram: UMLDiagramType.ObjectDiagram,
             StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
             AgentDiagram: UMLDiagramType.AgentDiagram,
+              ComponentDiagram: UMLDiagramType.ComponentDiagram,
+              DeploymentDiagram: UMLDiagramType.DeploymentDiagram,
             UserDiagram: UMLDiagramType.UserDiagram,
             GUINoCodeDiagram: null,
             QuantumCircuitDiagram: null,
             NNDiagram: UMLDiagramType.NNDiagram,
             BPMN: UMLDiagramType.BPMN,
+            KnowledgeGraphDiagram: null,
           };
           const diagramTitles: Record<SupportedDiagramType, string> = {
             ClassDiagram: 'Class Diagram',
             ObjectDiagram: 'Object Diagram',
             StateMachineDiagram: 'State Machine Diagram',
             AgentDiagram: 'Agent Diagram',
+            ComponentDiagram: 'Component Diagram',
+            DeploymentDiagram: 'Deployment Diagram',
             UserDiagram: 'User Diagram',
             GUINoCodeDiagram: 'GUI Diagram',
             QuantumCircuitDiagram: 'Quantum Circuit',
             NNDiagram: 'NN Diagram',
             BPMN: 'BPMN Diagram',
+            KnowledgeGraphDiagram: 'Knowledge Graph',
           };
 
 
@@ -467,8 +555,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
                 },
               ];
             } else {
-              const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], kind)];
+              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], DIAGRAM_KIND_BY_TYPE[t])];
             }
           }
 
@@ -486,11 +573,14 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
               ObjectDiagram: 0,
               StateMachineDiagram: 0,
               AgentDiagram: 0,
+              ComponentDiagram: 0,
+              DeploymentDiagram: 0,
               UserDiagram: 0,
               GUINoCodeDiagram: 0,
               QuantumCircuitDiagram: 0,
               NNDiagram: 0,
               BPMN: 0,
+              KnowledgeGraphDiagram: 0,
             },
             diagrams,
             settings: {
@@ -505,11 +595,12 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
           resolve(importedProject);
         } else {
-          throw new Error('Invalid project file format - unsupported structure');
+          throw new Error('this file is not a BESSER project');
         }
       } catch (error) {
         console.error('JSON import failed:', error);
-        reject(new Error('Failed to import project: Invalid JSON format'));
+        const reason = error instanceof SyntaxError ? 'Invalid JSON format' : (error as Error)?.message || 'unknown error';
+        reject(new Error(`Failed to import project: ${reason}`));
       }
     };
 

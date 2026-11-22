@@ -1,3 +1,5 @@
+import { aggregateProfilePersonalization } from '../../shared/utils/personalization-aggregation';
+import { splitUserDiagramIntoProfiles, uniquifyNames, mergeSingletonBoxes, reinjectHiddenContainers } from '../../shared/utils/user-profile-graph';
 /**
  * useGeneratorExecution
  *
@@ -15,14 +17,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
-import { toast } from 'react-toastify';
+import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
-import { notifyError } from '../../shared/utils/notifyError';
+import { notifyError, reportError } from '../../shared/services/errors/reportError';
 import { useProject } from '../../app/hooks/useProject';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
+import { elapsedMs, errorProperties, track, type ModelMetrics } from '../../shared/services/analytics/events';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../shared/constants/constant';
 import {
   useGenerateCode,
@@ -33,8 +35,17 @@ import {
   JSONSchemaConfig,
   AgentConfig,
   QiskitConfig,
+  ForecasterConfig,
+  DEFAULT_FORECASTER_CONFIG,
+  SpringConfig,
+  DEFAULT_SPRING_BOOT_VERSION,
+  DEFAULT_SPRING_JAVA_VERSION,
+  DEFAULT_SPRING_PACKAGE_NAME,
+  type SpringBootVersion,
+  type SpringJavaVersion,
 } from './hooks/useGenerateCode';
-import type { GenerationResult, QualityCheckResult } from './types';
+import type { GenerationResult } from './types';
+import type { QualityCheckResult } from '../../shared/types/quality-check';
 import { useDeployLocally } from './hooks/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
@@ -44,14 +55,26 @@ import {
   normalizeAgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import {
+  validateJavaClassName,
+  validateJavaPackageName,
+  validateProjectName,
+} from '../../shared/utils/validation';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
-import { validateDiagram } from '../../shared/services/validation/validateDiagram';
+import { validateDiagram, type ValidateDiagramResult } from '../../shared/services/validation/validateDiagram';
+import {
+  checkSemanticConsistency,
+  isSemanticSearchRunning,
+  semanticSearchErrorMessage,
+  showSemanticSearchResult,
+} from '../../shared/services/validation/semanticCheck';
 import {
   ConfigDialog,
   getConfigDialogForGenerator,
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
-import type { GeneratorType } from '../../app/shell/workspace-types';
+import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
+import type { GeneratorType } from '../../shared/types/workspace-types';
 import i18n from '../../shared/i18n';
 import {
   buildAllWebAppVersions,
@@ -60,13 +83,6 @@ import {
   type WebAppVersion,
   type WebAppVersionMode,
 } from '../../shared/utils/buildWebAppVersions';
-import { aggregateProfilePersonalization } from '../../shared/utils/personalization-aggregation';
-import {
-  splitUserDiagramIntoProfiles,
-  uniquifyNames,
-  mergeSingletonBoxes,
-  reinjectHiddenContainers,
-} from '../../shared/utils/user-profile-graph';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -83,6 +99,31 @@ const toIdentifier = (value: string, fallback: string): string => {
 
 const validateDjangoName = (name: string): boolean =>
   /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
+
+/**
+ * Turns a free-form title into a PascalCase Java identifier.
+ *
+ * The Spring generator writes `<AppName>.java`, so the derived default has to
+ * be a legal class name rather than the snake_case form Django wants.
+ */
+const toJavaClassName = (value: string, fallback: string): string => {
+  const parts = value
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const pascal = parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+  if (!pascal) return fallback;
+  return /^[0-9]/.test(pascal) ? `App${pascal}` : pascal;
+};
+
+/** Lower-cases a title into a single Java package segment. */
+const toPackageSegment = (value: string, fallback: string): string => {
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (!normalized) return fallback;
+  return /^[0-9]/.test(normalized) ? `p${normalized}` : normalized;
+};
 
 function isUMLModelEmpty(diagram: ProjectDiagram | undefined): boolean {
   if (!diagram || !diagram.model) return true;
@@ -120,7 +161,7 @@ function didValidationPass(result: any): boolean {
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
 
-function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+function getModelMetrics(project: BesserProject | undefined): ModelMetrics {
   const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);
@@ -147,6 +188,52 @@ function getModelMetrics(project: BesserProject | undefined): Record<string, num
     relationships_count: relationshipsCount,
     total_size: elements.length + relationshipsCount,
   };
+}
+
+interface ExecuteGeneratorOptions {
+  autoGenerateGuiIfEmpty?: boolean;
+  agentModelOverride?: UMLModel;
+  deferDownload?: boolean;
+}
+
+/** The generator's config dialog rejected the input, so it never ran. */
+const trackInvalidGeneratorInput = (generatorType: string): void =>
+  track('generator_failed', { generator_type: generatorType, source: 'menu', reason: 'invalid_input' });
+
+/**
+ * Sends generator_used or generator_failed for one run; an unmounted surface is not a failure,
+ * and a run the user declined over validation warnings is generator_blocked.
+ */
+export function trackGeneration(
+  generatorType: string,
+  result: GenerationResult,
+  context: { project: BesserProject | null | undefined; source: 'menu' | 'assistant'; durationMs: number },
+): void {
+  const base = {
+    generator_type: generatorType,
+    diagram_type: context.project?.currentDiagramType,
+    source: context.source,
+    duration_ms: context.durationMs,
+  };
+  if (result.ok) {
+    track('generator_used', {
+      ...base,
+      ...(result.fromStoredModel ? { diagram_type: 'ClassDiagram', from_stored_model: true } : {}),
+      ...getModelMetrics(context.project ?? undefined),
+    });
+    return;
+  }
+  if (result.reason === 'unmounted') return;
+  if (result.reason === 'warnings_declined') {
+    const { duration_ms: _durationMs, ...blocked } = base;
+    track('generator_blocked', { ...blocked, reason: 'warnings_declined' });
+    return;
+  }
+  track('generator_failed', {
+    ...base,
+    reason: result.reason ?? 'request',
+    ...(result.cause !== undefined ? errorProperties(result.cause) : {}),
+  });
 }
 
 // ─── Web App checklist builder ──────────────────────────────────────────────
@@ -323,10 +410,12 @@ function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?:
  * Grouped by generator:
  *  - Dialog control          – which modal is open
  *  - Django                  – project/app names, Docker flag
+ *  - Spring                  – project/app/package names, Boot & Java versions
  *  - SQL / SQLAlchemy        – dialect / DBMS selection
  *  - JSON Schema             – regular vs smart-data mode
  *  - Agent                   – spoken languages, advanced config & personalization
  *  - Qiskit                  – backend type and shot count
+ *  - Forecaster              – window, horizon, season and transforms
  *  - Execution callbacks     – one per generator to trigger code generation
  */
 /** Describes one diagram row in the Web App pre-generation checklist. */
@@ -420,6 +509,13 @@ export interface GeneratorConfigState {
   djangoAppName: string;
   useDocker: boolean;
 
+  // ── Spring ───────────────────────────────────────────────────────────────
+  springProjectName: string;
+  springAppName: string;
+  springPackageName: string;
+  springBootVersion: SpringBootVersion;
+  springJavaVersion: SpringJavaVersion;
+
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
 
@@ -461,10 +557,18 @@ export interface GeneratorConfigState {
   qiskitBackend: QiskitConfig['backend'];
   qiskitShots: number;
 
+  // ── Forecaster ───────────────────────────────────────────────────────────
+  forecasterConfig: ForecasterConfig;
+
   // ── Field change handlers ────────────────────────────────────────────────
   onDjangoProjectNameChange: (v: string) => void;
   onDjangoAppNameChange: (v: string) => void;
   onUseDockerChange: (v: boolean) => void;
+  onSpringProjectNameChange: (v: string) => void;
+  onSpringAppNameChange: (v: string) => void;
+  onSpringPackageNameChange: (v: string) => void;
+  onSpringBootVersionChange: (v: SpringBootVersion) => void;
+  onSpringJavaVersionChange: (v: SpringJavaVersion) => void;
   onSqlDialectChange: (v: SQLConfig['dialect']) => void;
   onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
@@ -474,6 +578,8 @@ export interface GeneratorConfigState {
   onSelectedAgentLanguagesChange: (v: string[]) => void;
   onQiskitBackendChange: (v: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (v: number) => void;
+  /** Merge a partial update into the forecaster settings. */
+  onForecasterConfigChange: (v: Partial<ForecasterConfig>) => void;
   onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
   onSelectedAgentVariantIdChange: (v: string) => void;
@@ -493,12 +599,14 @@ export interface GeneratorConfigState {
   /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
+  onSpringGenerate: () => void;
   onSqlGenerate: () => void;
   onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
   onQiskitGenerate: () => void;
+  onForecasterGenerate: () => void;
   onWebAppGenerate: () => void;
 }
 
@@ -510,6 +618,8 @@ export interface UseGeneratorExecutionReturn {
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
   handleQualityCheck: () => Promise<QualityCheckResult>;
+  /** Passed to WorkspaceShell → onSemanticCheck */
+  handleSemanticCheck: () => Promise<void>;
   /** Props bag to spread onto <GeneratorConfigDialogs /> */
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
@@ -527,7 +637,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const deployLocally = useDeployLocally();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
-    location.pathname,
     currentProject?.currentDiagramType,
   );
 
@@ -553,6 +662,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [djangoProjectName, setDjangoProjectName] = useState('');
   const [djangoAppName, setDjangoAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
+  const [springProjectName, setSpringProjectName] = useState('');
+  const [springAppName, setSpringAppName] = useState('');
+  const [springPackageName, setSpringPackageName] = useState(DEFAULT_SPRING_PACKAGE_NAME);
+  const [springBootVersion, setSpringBootVersion] = useState<SpringBootVersion>(DEFAULT_SPRING_BOOT_VERSION);
+  const [springJavaVersion, setSpringJavaVersion] = useState<SpringJavaVersion>(DEFAULT_SPRING_JAVA_VERSION);
   const [sqlDialect, setSqlDialect] = useState<SQLConfig['dialect']>('sqlite');
   const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
@@ -562,6 +676,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [pendingAgentLanguage, setPendingAgentLanguage] = useState('none');
   const [qiskitBackend, setQiskitBackend] = useState<QiskitConfig['backend']>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [forecasterConfig, setForecasterConfig] = useState<ForecasterConfig>(DEFAULT_FORECASTER_CONFIG);
   const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
@@ -596,6 +711,22 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     const appName = toIdentifier(activeDiagram?.title || 'core_app', 'core_app');
     setDjangoProjectName(projectName);
     setDjangoAppName(appName === projectName ? `${appName}_app` : appName);
+  }, [currentProject?.id, currentProject?.name, activeDiagram?.title]);
+
+  // Auto-derive Spring project/app/package names from current project.
+  // Kept separate from the Django derivation because Spring needs Java-shaped
+  // defaults: a PascalCase class name and a dotted package.
+  useEffect(() => {
+    if (!currentProject) return;
+    const projectName = toIdentifier(currentProject.name || 'besser_project', 'besser_project');
+    setSpringProjectName(projectName);
+    setSpringAppName(toJavaClassName(activeDiagram?.title || currentProject.name || 'Application', 'Application'));
+    // A project named e.g. "package" would derive a reserved-word segment and
+    // leave the dialog permanently invalid, so fall back to the plain default.
+    const derivedPackage = `${DEFAULT_SPRING_PACKAGE_NAME}.${toPackageSegment(currentProject.name || 'app', 'app')}`;
+    setSpringPackageName(
+      validateJavaPackageName(derivedPackage) ? DEFAULT_SPRING_PACKAGE_NAME : derivedPackage,
+    );
   }, [currentProject?.id, currentProject?.name, activeDiagram?.title]);
 
   // Load agent configurations when dialog opens
@@ -694,15 +825,22 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [currentProject, dispatch, location.pathname, navigate, t],
   );
 
-  const executeGenerator = useCallback(
+  const executeGeneratorUntracked = useCallback(
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
+      options?: ExecuteGeneratorOptions,
     ): Promise<GenerationResult> => {
+      // The assistant flow defers the browser download so the result renders as
+      // a card with a manual Download button; the menu path auto-downloads.
+      const runGen: typeof generateCode = (editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, optsArg) =>
+        generateCode(editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, {
+          ...optsArg,
+          autoDownload: !options?.deferDownload,
+        });
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
-        return { ok: false, error: 'Create or load a project before generating code.' };
+        reportError(t('generation.toasts.createOrLoadProject'));
+        return { ok: false, error: 'Create or load a project before generating code.', reason: 'no_project' };
       }
 
       try {
@@ -716,10 +854,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
               const autoGenerateError = await ensureGuiForAssistantWebAppGeneration();
-              if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-              if (autoGenerateError) {
-                toast.error(autoGenerateError.error);
-                return autoGenerateError;
+              if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
+              if (autoGenerateError && !autoGenerateError.ok) {
+                reportError(autoGenerateError.error);
+                return { ...autoGenerateError, reason: 'auto_gui' };
               }
               // After auto-generation, read from storage as a safety net
               // (the async Redux sync may not have propagated yet)
@@ -729,95 +867,118 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
 
             if (isGuiModelEmpty(guiModel)) {
-              toast.error(t('generation.toasts.guiDiagramEmpty'));
-              return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.' };
+              reportError(t('generation.toasts.guiDiagramEmpty'));
+              return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.', reason: 'gui_empty' };
             }
           }
 
-          const webAppResult = await generateCode(null, 'web_app', activeDiagramTitle, config as any);
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (webAppResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: 'web_app',
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          const webAppResult = await runGen(null, 'web_app', activeDiagramTitle, config as any);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return webAppResult;
         }
 
         if (generatorType === 'qiskit') {
           if (!isQuantumContext) {
-            toast.error(t('generation.toasts.openQuantumEditor'));
-            return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
+            reportError(t('generation.toasts.openQuantumEditor'));
+            return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.', reason: 'wrong_context' };
           }
 
-          const qiskitResult = await generateCode(
+          const qiskitResult = await runGen(
             null,
             'qiskit',
             activeDiagramTitle,
             (config as QiskitConfig) ?? { backend: 'aer_simulator', shots: 1024 },
           );
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (qiskitResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: 'qiskit',
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return qiskitResult;
         }
 
-        if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+        if (generatorType === 'pytorch' || generatorType === 'tensorflow' || generatorType === 'forecaster') {
           if (!isNNContext) {
-            toast.error(t('generation.toasts.openNnEditor'));
-            return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
+            reportError(t('generation.toasts.openNnEditor'));
+            return {
+              ok: false,
+              error: 'Open the NN Diagram editor before generating neural network code.',
+              reason: 'wrong_context',
+            };
           }
-          const nnResult = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
-          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-          if (nnResult.ok) {
-            getPostHog()?.capture('generator_used', {
-              generator_type: generatorType,
-              diagram_type: currentProject.currentDiagramType,
-              ...getModelMetrics(currentProject),
-            });
-          }
+          const nnResult = await runGen(editor ?? null, generatorType, activeDiagramTitle, config as any);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return nnResult;
         }
 
+        // Agentic flow: a class-diagram generator was requested while a
+        // non-UML tab is active (or no UML editor is mounted). The visible tab
+        // is irrelevant to the request — the assistant knows the project has a
+        // class diagram — so generate from the STORED class diagram instead of
+        // bouncing the user with "Switch to a UML diagram".
+        // The class-diagram generators of the Generate menu (`CLASS_GENERATORS` in generator-menu-config.ts),
+        // but the web app, which reads the whole project, plus `rest_api` and `rdf`, which are not in the menu
+        // but which the modeling agent requests (`GENERATOR_PREREQUISITES` in its generation_signals.py).
+        const CLASS_MODEL_GENERATORS = [
+          'django', 'spring', 'backend', 'sql', 'supabase', 'sqlalchemy', 'python', 'java',
+          'test_case', 'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'alloy',
+        ];
+        if ((isQuantumContext || isGuiContext || !editor)
+            && CLASS_MODEL_GENERATORS.includes(generatorType)) {
+          const storedClassDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+          const storedModel = storedClassDiagram?.model as UMLModel | undefined;
+          const hasElements =
+            !!storedModel && Object.keys((storedModel as any).elements ?? {}).length > 0;
+          if (hasElements) {
+            // Smart Data Models is the jsonschema generator in smart_data mode
+            // (the backend has no 'smartdata' generator), as in the switch below.
+            const isSmartData = generatorType === 'smartdata';
+            const overrideResult = await runGen(
+              null,
+              isSmartData ? 'jsonschema' : generatorType,
+              storedClassDiagram?.title || activeDiagramTitle,
+              isSmartData ? { mode: 'smart_data' } : (config as any),
+              undefined,
+              storedModel,
+              // The trace names the stored diagram the model was read from, not the open tab's.
+              { traceDiagramId: storedClassDiagram?.id },
+            );
+            if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
+            return overrideResult.ok ? { ...overrideResult, fromStoredModel: true } : overrideResult;
+          }
+        }
+
         if (isQuantumContext || isGuiContext) {
-          toast.error(t('generation.toasts.switchToUmlDiagram'));
-          return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
+          reportError(t('generation.toasts.switchToUmlDiagram'));
+          return { ok: false, error: 'Switch to a UML diagram to use this generator.', reason: 'wrong_context' };
         }
 
         if (!editor) {
-          toast.error(t('generation.toasts.noUmlEditor'));
-          return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.' };
+          reportError(t('generation.toasts.noUmlEditor'));
+          return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.', reason: 'no_editor' };
         }
 
         let result: GenerationResult = { ok: false, error: 'Generation was not executed.' };
         switch (generatorType) {
           case 'smartdata':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
             break;
           case 'django':
-            result = await generateCode(editor, 'django', activeDiagramTitle, config as DjangoConfig);
+            result = await runGen(editor, 'django', activeDiagramTitle, config as DjangoConfig);
+            break;
+          case 'spring':
+            result = await runGen(editor, 'spring', activeDiagramTitle, config as SpringConfig);
             break;
           case 'sql':
-            result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
+            result = await runGen(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
           case 'supabase':
-            result = await generateCode(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
+            result = await runGen(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
             break;
           case 'sqlalchemy':
-            result = await generateCode(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
+            result = await runGen(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
             break;
           case 'jsonschema':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(
+            result = await runGen(
               editor,
               'agent',
               activeDiagramTitle,
@@ -827,12 +988,16 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             );
             break;
           case 'test_case':
-            result = await generateCode(editor, 'test_case', activeDiagramTitle);
+            result = await runGen(editor, 'test_case', activeDiagramTitle);
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
-              toast.error(t('generation.toasts.switchToObjectOrUserDiagram'));
-              return { ok: false, error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.' };
+              reportError(t('generation.toasts.switchToObjectOrUserDiagram'));
+              return {
+                ok: false,
+                error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.',
+                reason: 'wrong_context',
+              };
             }
             // Object diagrams need their referenced ClassDiagram so the backend can build
             // the domain model. User diagrams use a preset reference domain server-side
@@ -844,34 +1009,22 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
                 referenceDiagramData = classDiagram.model;
               }
             }
-            // A UserDiagram canvas may hold several profiles (one `User` box
-            // each). The backend detects this from the converted object model
-            // and returns a ZIP of one object-model file per profile; a single
-            // profile keeps the plain single-file response.
-            result = await generateCode(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
+            result = await runGen(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
             break;
           }
           default:
-            result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+            result = await runGen(editor, generatorType, activeDiagramTitle, config as any);
         }
 
-        if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
-
-        if (result.ok) {
-          getPostHog()?.capture('generator_used', {
-            generator_type: generatorType,
-            diagram_type: currentProject.currentDiagramType,
-            ...getModelMetrics(currentProject),
-          });
-        }
+        if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
 
         return result;
       } catch (error) {
         const errorMessage = t('generation.toasts.generationFailed', {
           error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
         });
-        toast.error(errorMessage);
-        return { ok: false, error: errorMessage };
+        reportError(errorMessage, { error });
+        return { ok: false, error: errorMessage, reason: 'exception', cause: error };
       } finally {
         setIsGenerating(false);
       }
@@ -882,12 +1035,28 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     ],
   );
 
+  /** Runs a generator and reports its outcome once: generator_used or generator_failed. */
+  const executeGenerator = useCallback(
+    async (generatorType: GeneratorType, config?: unknown, options?: ExecuteGeneratorOptions): Promise<GenerationResult> => {
+      const startedAt = performance.now();
+      const result = await executeGeneratorUntracked(generatorType, config, options);
+      trackGeneration(generatorType, result, {
+        project: currentProject,
+        source: options?.deferDownload ? 'assistant' : 'menu',
+        durationMs: elapsedMs(startedAt),
+      });
+      return result;
+    },
+    [currentProject, executeGeneratorUntracked],
+  );
+
   // ── Public handlers ────────────────────────────────────────────────────────
 
   const handleGenerateRequest = useCallback(
     async (generatorType: GeneratorType, menuConfig?: Record<string, any>) => {
       if (!currentProject) {
-        toast.error(t('generation.toasts.createOrLoadProject'));
+        reportError(t('generation.toasts.createOrLoadProject'));
+        track('generator_failed', { generator_type: generatorType, source: 'menu', reason: 'no_project' });
         return;
       }
       const requiredDialog = getConfigDialogForGenerator(generatorType);
@@ -902,55 +1071,111 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleAssistantGenerate = useCallback(
     async (generatorType: GeneratorType, config?: unknown): Promise<GenerationResult> =>
-      executeGenerator(generatorType, config, { autoGenerateGuiIfEmpty: generatorType === 'web_app' }),
+      executeGenerator(generatorType, config, {
+        autoGenerateGuiIfEmpty: generatorType === 'web_app',
+        // Defer the download so the assistant renders a result card with a
+        // manual Download button instead of auto-saving.
+        deferDownload: true,
+      }),
     [executeGenerator],
   );
 
   const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
+    const diagramType = currentProject?.currentDiagramType;
     if (!currentProject) {
-      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
+      track('quality_check_failed', { reason: 'no_project' });
       return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error(t('generation.toasts.comingSoon'));
+      reportError(t('generation.toasts.comingSoon'));
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'not_supported' });
       return { executed: false, passed: false };
     }
+
+    /** Reports a finished check: a request that failed, or a result with its counts. */
+    const checked = (result: ValidateDiagramResult): QualityCheckResult => {
+      const passed = didValidationPass(result);
+      if (result.failure !== undefined) {
+        track('quality_check_failed', { diagram_type: diagramType, reason: 'exception', ...errorProperties(result.failure) });
+      } else if (result.empty) {
+        track('quality_check_failed', { diagram_type: diagramType, reason: 'empty_diagram' });
+      } else {
+        track('quality_check_run', {
+          diagram_type: diagramType,
+          passed,
+          error_count: (result.errors?.length ?? 0) + (result.invalid_constraints?.length ?? 0),
+          warning_count: result.warnings?.length ?? 0,
+        });
+      }
+      return { executed: true, passed };
+    };
 
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
-        const result = await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
-        return { executed: true, passed: didValidationPass(result) };
+        return checked(await validateDiagram(null, activeDiagramTitle, activeDiagram.model));
       }
 
       if (editor) {
-        const result = await validateDiagram(editor, activeDiagramTitle);
-        return { executed: true, passed: didValidationPass(result) };
+        return checked(await validateDiagram(editor, activeDiagramTitle));
       }
 
-      toast.error(t('generation.toasts.noDiagramToValidate'));
+      reportError(t('generation.toasts.noDiagramToValidate'));
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'no_diagram' });
       return { executed: false, passed: false };
     } catch (error) {
-      toast.error(t('generation.toasts.qualityCheckFailed', {
+      reportError(t('generation.toasts.qualityCheckFailed', {
         error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
-      }));
+      }), { error });
+      track('quality_check_failed', { diagram_type: diagramType, reason: 'exception', ...errorProperties(error) });
       return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
+
+  const handleSemanticCheck = useCallback(async (): Promise<void> => {
+    if (isSemanticSearchRunning()) {
+      toast.info(t('validation.semantic.alreadyRunning'));
+      return;
+    }
+    if (!currentProject) {
+      reportError(t('generation.toasts.createOrLoadProjectValidate'));
+      return;
+    }
+    const model = editor?.model ?? activeDiagram?.model;
+    if (currentProject.currentDiagramType !== 'ClassDiagram' || !isUMLModel(model)) {
+      reportError(t('generation.toasts.noDiagramToValidate'));
+      return;
+    }
+
+    const toastId = toast.loading(t('validation.semantic.searching'));
+    try {
+      const result = await checkSemanticConsistency(activeDiagramTitle, model, (event) => {
+        toast.update(toastId, { render: event.message });
+      });
+      toast.dismiss(toastId);
+      showSemanticSearchResult(result);
+    } catch (error) {
+      reportError(semanticSearchErrorMessage(error), { error, updateToast: toastId, isLoading: false, autoClose: 5000 });
+    }
+  }, [currentProject, editor, activeDiagram, activeDiagramTitle, t]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
   const handleDjangoGenerate = useCallback(async () => {
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
+      trackInvalidGeneratorInput('django');
       return;
     }
     await executeGenerator('django', {
@@ -963,19 +1188,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleDjangoDeploy = useCallback(async () => {
     if (!editor || !currentProject) {
-      toast.error(t('generation.toasts.openUmlBeforeDeploy'));
+      reportError(t('generation.toasts.openUmlBeforeDeploy'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'no_diagram' });
       return;
     }
     if (!djangoProjectName || !djangoAppName) {
-      toast.error(t('generation.toasts.namesRequired'));
+      reportError(t('generation.toasts.namesRequired'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error(t('generation.toasts.namesMustDiffer'));
+      reportError(t('generation.toasts.namesMustDiffer'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error(t('generation.toasts.namesInvalid'));
+      reportError(t('generation.toasts.namesInvalid'));
+      track('local_deploy_blocked', { generator_type: 'django', reason: 'invalid_input' });
       return;
     }
     await deployLocally(editor, 'django', activeDiagramTitle, {
@@ -984,6 +1213,48 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       containerization: useDocker,
     } as DjangoConfig);
   }, [editor, currentProject, djangoProjectName, djangoAppName, useDocker, deployLocally, activeDiagramTitle, t]);
+
+  const handleSpringGenerate = useCallback(async () => {
+    // `app_name` becomes the generated Java class and `package_name` becomes a
+    // source directory path, so invalid identifiers here produce a project that
+    // does not compile. Guard with the same validators the dialog shows inline.
+    if (!springProjectName || !springAppName || !springPackageName) {
+      reportError(t('generation.toasts.springFieldsRequired'));
+      trackInvalidGeneratorInput('spring');
+      return;
+    }
+    if (validateProjectName(springProjectName)) {
+      reportError(t('generation.toasts.namesInvalid'));
+      trackInvalidGeneratorInput('spring');
+      return;
+    }
+    if (validateJavaClassName(springAppName)) {
+      reportError(t('generation.toasts.springAppNameInvalid'));
+      trackInvalidGeneratorInput('spring');
+      return;
+    }
+    if (validateJavaPackageName(springPackageName)) {
+      reportError(t('generation.toasts.springPackageNameInvalid'));
+      trackInvalidGeneratorInput('spring');
+      return;
+    }
+    await executeGenerator('spring', {
+      project_name: springProjectName.trim(),
+      app_name: springAppName.trim(),
+      spring_boot_version: springBootVersion,
+      java_version: springJavaVersion,
+      package_name: springPackageName.trim(),
+    } as SpringConfig);
+    setConfigDialog('none');
+  }, [
+    springProjectName,
+    springAppName,
+    springPackageName,
+    springBootVersion,
+    springJavaVersion,
+    executeGenerator,
+    t,
+  ]);
 
   const handleSqlGenerate = useCallback(async () => {
     await executeGenerator('sql', { dialect: sqlDialect } as SQLConfig);
@@ -1010,7 +1281,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // single source of truth. Falls back to hardcoded defaults when no agent
     // diagram exists in the project (edge case: generator triggered without an
     // agent diagram present).
-    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    // Read the diagram config from fresh storage so that fields written directly
+    // to localStorage (e.g. default_llm_name via writeConfig in AgentComponentsPanel)
+    // are not missed by the Redux state which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const activeAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
     const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
     const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
       ? (diagramConfig.llm as Record<string, any>)
@@ -1069,7 +1346,92 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     let finalConfig: AgentConfig = baseConfig;
     let agentModelOverride: UMLModel | undefined;
 
-    if (agentGenerationMode === 'personalization') {
+    if (agentGenerationMode === 'personalization' && LocalStorageRepository.getAgentProfileConfigurationMappings().length > 0) {
+      const localProfiles = LocalStorageRepository.getUserProfiles();
+      const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
+        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+        .map((diagram) => ({ id: diagram.id, name: diagram.title, model: diagram.model as Record<string, any> }));
+
+      const profileByName = new Map<string, { id: string; name: string; model: Record<string, any> }>();
+      for (const profile of localProfiles) {
+        if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
+          profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model });
+        }
+      }
+      for (const profile of projectProfiles) {
+        profileByName.set(profile.name, profile);
+      }
+
+      const configs = LocalStorageRepository.getAgentConfigurations();
+      const configById = new Map(configs.map((entry) => [entry.id, entry]));
+      const variantByConfigurationId = new Map(agentVariantOptions.map((variant) => [variant.configurationId, variant]));
+
+      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+      const personalizationMapping = mappings
+        .map((entry) => {
+          const profile = profileByName.get(entry.userProfileName) || null;
+          const config = configById.get(entry.agentConfigurationId) || null;
+          const variantModel = variantByConfigurationId.get(entry.agentConfigurationId)?.model;
+          const fallbackAgentModel = config?.personalizedAgentModel || config?.baseAgentModel || null;
+          const agentModel = variantModel || fallbackAgentModel;
+
+          if (!profile || !agentModel || !config) {
+            return null;
+          }
+
+          return {
+            name: profile.name,
+            configuration: structuredClone(config.config),
+            user_profile: structuredClone(profile.model),
+            // Normalize to the canonical nested transition shape before sending.
+            // Variant/config snapshots can bypass the editor (e.g. imported
+            // projects) and still carry the legacy flat shape, which the backend
+            // collapses to when_no_intent_matched. The shared helper is pure and
+            // idempotent, and also attaches the diagram's off-canvas components.
+            agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
+          };
+        })
+        .filter((entry): entry is {
+          name: string;
+          configuration: (typeof configs)[number]['config'];
+          user_profile: Record<string, any>;
+          agent_model: Record<string, any>;
+        } => Boolean(entry));
+
+      if (personalizationMapping.length === 0) {
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
+        return;
+      }
+
+      finalConfig = {
+        ...baseConfig,
+        personalizationMapping,
+      };
+
+      // Personalization codegen rebuilds every variant on top of the model the
+      // backend receives. Send the un-personalized base from localStorage so
+      // generation is deterministic — without this, whichever variant is
+      // active in the editor would silently become the new "base" each variant
+      // is layered onto.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
+        agentModelOverride = storedBase;
+      } else {
+        // No stored base resolved — generation falls back to the active editor
+        // model, which may be a personalized variant rather than the
+        // un-personalized base. Surface it instead of silently shipping the
+        // wrong base.
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Save & Apply at least once to capture the base.',
+        );
+      }
+    }
+    else if (agentGenerationMode === 'personalization') {
       // Personalization is now authored directly on each UserDiagram profile:
       // the per-element specs (profile-level + attribute-level) live on the
       // model, and `aggregateProfilePersonalization` collapses them into the
@@ -1106,7 +1468,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           : (activeAgentDiagram?.model as UMLModel | undefined);
 
       if (!resolvedBase) {
-        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
         return;
       }
       if (storedBase) {
@@ -1155,14 +1518,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               configuration: aggregateProfilePersonalization(merged)
                 .configuration as Record<string, any>,
               user_profile: structuredClone(merged) as Record<string, any>,
-              agent_model: normalizeAgentModel(storedVariantModel ?? resolvedBase) as Record<string, any>,
+              agent_model: prepareAgentModelForBackend(storedVariantModel ?? resolvedBase, activeAgentDiagram ?? null) as Record<string, any>,
             };
           }),
         ),
       );
 
       if (personalizationMapping.length === 0) {
-        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
         return;
       }
 
@@ -1190,12 +1554,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   ]);
 
   const handleQiskitGenerate = useCallback(async () => {
-    await executeGenerator('qiskit', {
+    const result = await executeGenerator('qiskit', {
       backend: qiskitBackend,
       shots: Math.max(1, qiskitShots || 1024),
     } as QiskitConfig);
-    setConfigDialog('none');
+    // A failed generation keeps the dialog open, so the settings can be corrected after the error toast.
+    if (result.ok) setConfigDialog('none');
   }, [qiskitBackend, qiskitShots, executeGenerator]);
+
+  const handleForecasterGenerate = useCallback(async () => {
+    // The backend checks the horizon against the network's last layer: on a 400 the dialog stays open.
+    const result = await executeGenerator('forecaster', forecasterConfig);
+    if (result.ok) setConfigDialog('none');
+  }, [forecasterConfig, executeGenerator]);
+
+  const handleForecasterConfigChange = useCallback((update: Partial<ForecasterConfig>) => {
+    setForecasterConfig((prev) => ({ ...prev, ...update }));
+  }, []);
 
   const handleWebAppGenerate = useCallback(async () => {
     // Flush the live GUI canvas (active page) into its snapshot and persist to
@@ -1242,6 +1617,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     djangoProjectName,
     djangoAppName,
     useDocker,
+    springProjectName,
+    springAppName,
+    springPackageName,
+    springBootVersion,
+    springJavaVersion,
     sqlDialect,
     supabaseUserRoot,
     sqlAlchemyDbms,
@@ -1251,6 +1631,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentLanguages,
     qiskitBackend,
     qiskitShots,
+    forecasterConfig,
     hasSavedAgentConfiguration,
     agentMode,
     storedAgentConfigurations,
@@ -1267,6 +1648,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
+    onSpringProjectNameChange: setSpringProjectName,
+    onSpringAppNameChange: setSpringAppName,
+    onSpringPackageNameChange: setSpringPackageName,
+    onSpringBootVersionChange: setSpringBootVersion,
+    onSpringJavaVersionChange: setSpringJavaVersion,
     onSqlDialectChange: setSqlDialect,
     onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
@@ -1276,18 +1662,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onSelectedAgentLanguagesChange: setSelectedAgentLanguages,
     onQiskitBackendChange: setQiskitBackend,
     onQiskitShotsChange: setQiskitShots,
+    onForecasterConfigChange: handleForecasterConfigChange,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
     onSelectedAgentVariantIdChange: setSelectedAgentVariantId,
     onAgentGenerationModeChange: setAgentGenerationMode,
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError(t('generation.context.djangoGeneration'))); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError(t('generation.context.djangoDeployment'))); },
+    onSpringGenerate: () => { handleSpringGenerate().catch(notifyError(t('generation.context.springGeneration'))); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError(t('generation.context.sqlGeneration'))); },
     onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError(t('generation.context.supabaseGeneration'))); },
     onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError(t('generation.context.sqlAlchemyGeneration'))); },
     onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError(t('generation.context.jsonSchemaGeneration'))); },
     onAgentGenerate: () => { handleAgentGenerate().catch(notifyError(t('generation.context.agentGeneration'))); },
     onQiskitGenerate: () => { handleQiskitGenerate().catch(notifyError(t('generation.context.qiskitGeneration'))); },
+    onForecasterGenerate: () => { handleForecasterGenerate().catch(notifyError(t('generation.context.forecasterGeneration'))); },
     onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError(t('generation.context.webAppGeneration'))); },
   };
 
@@ -1296,6 +1685,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleGenerateRequest,
     handleAssistantGenerate,
     handleQualityCheck,
+    handleSemanticCheck,
     configState,
     isLocalEnvironment,
   };

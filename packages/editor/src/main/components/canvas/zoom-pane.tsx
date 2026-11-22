@@ -1,6 +1,8 @@
 import React, { FunctionComponent } from 'react';
 import { clamp } from '../../utils/clamp';
 import { styled } from '../theme/styles';
+import { I18nContext } from '../i18n/i18n-context';
+import { localized } from '../i18n/localized';
 
 type Props = {
   min?: number;
@@ -10,7 +12,7 @@ type Props = {
   onChange: (value: number) => void;
   onAutoLayout?: () => void;
   style?: React.CSSProperties | undefined;
-};
+} & I18nContext;
 
 const ZoomButton = styled.button`
   background: var(--apollon-background);
@@ -25,9 +27,16 @@ const ZoomButton = styled.button`
   align-items: center;
   justify-content: center;
 
-  :hover {
-    background-color: var(--apollon-gray);
-    border-color: var(--apollon-gray-variant);
+  @media (hover: hover) {
+    :hover {
+      background-color: var(--apollon-gray);
+      border-color: var(--apollon-gray-variant);
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid ${(props) => props.theme.color.primary};
+    outline-offset: 2px;
   }
 
   :active {
@@ -37,7 +46,8 @@ const ZoomButton = styled.button`
 `;
 
 export const ZoomPaneComponent: FunctionComponent<Props> = (props) => {
-  const { min = 0.5, max = 5, step = 0.5, value, onChange, onAutoLayout, style } = props;
+  const { min = 0.5, max = 5, step = 0.5, value, onChange, onAutoLayout, style, translate } = props;
+  const label = (key: string, fallback: string) => translate?.(key) || fallback;
 
   return (
     <div
@@ -51,7 +61,12 @@ export const ZoomPaneComponent: FunctionComponent<Props> = (props) => {
       }}
     >
       {onAutoLayout && (
-        <ZoomButton style={{ marginBottom: '0.5em' }} onClick={onAutoLayout} title="Auto-layout (ELK)">
+        <ZoomButton
+          style={{ marginBottom: '0.5em' }}
+          onClick={onAutoLayout}
+          title="Auto-layout (ELK)"
+          aria-label={label('zoomPane.autoLayout', 'Auto-layout')}
+        >
           <svg
             width="16"
             height="16"
@@ -70,12 +85,18 @@ export const ZoomPaneComponent: FunctionComponent<Props> = (props) => {
           </svg>
         </ZoomButton>
       )}
-      <ZoomButton style={{ marginBottom: '0.5em' }} onClick={() => onChange(clamp(value + step, min, max))}>
+      <ZoomButton
+        style={{ marginBottom: '0.5em' }}
+        onClick={() => onChange(clamp(value + step, min, max))}
+        aria-label={label('zoomPane.zoomIn', 'Zoom in')}
+      >
         +
       </ZoomButton>
-      <ZoomButton onClick={() => onChange(clamp(value - step, min, max))}>-</ZoomButton>
+      <ZoomButton onClick={() => onChange(clamp(value - step, min, max))} aria-label={label('zoomPane.zoomOut', 'Zoom out')}>
+        -
+      </ZoomButton>
     </div>
   );
 };
 
-export const ZoomPane = ZoomPaneComponent;
+export const ZoomPane = localized(ZoomPaneComponent);

@@ -1,0 +1,248 @@
+import type { MutableRefObject } from 'react';
+import { useCallback, useMemo } from 'react';
+import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
+import { track, trackFailure } from '../../shared/services/analytics/events';
+import { useTranslation } from 'react-i18next';
+import type { AgentDiagramLinker, ApollonEditor, UMLModel } from '@besser/wme';
+import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
+import {
+  addDiagramThunk,
+  bumpEditorRevision,
+  openDiagramThunk,
+  refreshProjectStateThunk,
+  selectActiveDiagram,
+  selectActiveDiagramType,
+  setElementLineageThunk,
+  switchDiagramTypeThunk,
+  updateDiagramModelThunk,
+} from '../../app/store/workspaceSlice';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { MODEL_GENERATORS } from '../../shared/traceability/traceStore';
+import { MAX_DIAGRAMS_PER_TYPE, isUMLModel } from '../../shared/types/project';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
+import { reportDerivationWarnings } from './derivation-warnings';
+import { laneToAgentModel } from './lane-to-agent';
+import type { AgentDerivationRefusalReason } from './types';
+
+/** Why a lane produced an empty Agent diagram instead of a derived one. */
+const REFUSAL_MESSAGE_KEYS: Record<AgentDerivationRefusalReason, string> = {
+  'no-tasks-in-lane': 'interDiagram.linker.emptyAgent.noTasksInLane',
+  'lane-not-agentic': 'interDiagram.linker.emptyAgent.laneNotAgentic',
+  'lane-not-found': 'interDiagram.linker.emptyAgent.laneNotFound',
+  'not-a-bpmn-diagram': 'interDiagram.linker.emptyAgent.laneNotFound',
+};
+
+/**
+ * Writes `agentDiagramRef` onto the source BPMN element in storage and, for a
+ * lane derivation, records the lineage on the new Agent diagram. The lineage
+ * hash is taken after the ref is written, so the link itself does not make the
+ * source look changed. Returns false when the source element is gone.
+ */
+function linkAgentDiagramInStorage(
+  bpmnDiagramId: string,
+  elementId: string,
+  agentDiagramId: string,
+  withLineage: boolean,
+): boolean {
+  const project = ProjectStorageRepository.getCurrentProject();
+  if (!project) return false;
+  const bpmnIndex = project.diagrams.BPMN.findIndex((d) => d.id === bpmnDiagramId);
+  const bpmn = project.diagrams.BPMN[bpmnIndex];
+  if (!bpmn || !isUMLModel(bpmn.model)) return false;
+  const element = bpmn.model.elements[elementId];
+  if (!element || (element.type !== 'BPMNSwimlane' && element.type !== 'BPMNTask')) return false;
+
+  const linkedElement = { ...element, agentDiagramRef: agentDiagramId };
+  const linkedModel: UMLModel = {
+    ...bpmn.model,
+    elements: { ...bpmn.model.elements, [elementId]: linkedElement },
+  };
+  project.diagrams.BPMN[bpmnIndex] = { ...bpmn, model: linkedModel, lastUpdate: new Date().toISOString() };
+
+  if (withLineage) {
+    const agentIndex = project.diagrams.AgentDiagram.findIndex((d) => d.id === agentDiagramId);
+    if (agentIndex >= 0) {
+      project.diagrams.AgentDiagram[agentIndex] = {
+        ...project.diagrams.AgentDiagram[agentIndex],
+        derivedFrom: {
+          sourceDiagramId: bpmnDiagramId,
+          sourceDiagramType: 'BPMN',
+          derivationKind: 'bpmn-to-agent',
+          derivedAt: new Date().toISOString(),
+          sourceModelHash: hashUmlModel(linkedModel),
+        },
+      };
+    }
+  }
+
+  ProjectStorageRepository.withoutNotify(() => {
+    ProjectStorageRepository.saveProject(project);
+  });
+  return true;
+}
+
+/**
+ * Host-side linker passed to `editor.setAgentDiagramLinker(...)`.
+ *
+ * Define (popup → `createForLane`):
+ *   1. flush the editor's in-memory BPMN model (pending debounced edits) and
+ *      derive from that model — only a lane source derives; a task source,
+ *      or a lane that refuses, gets an empty Agent diagram
+ *   2. add the Agent diagram
+ *   3. write `agentDiagramRef` (and the lineage) in storage, resync Redux
+ *   4. switch to the Agent diagram, then stamp the derived model on it
+ * Every failure is reported with a toast; after a failed switch nothing is
+ * written, because the next model update would land on the BPMN diagram.
+ *
+ * Open (popup → `openByRef`): switch to the referenced Agent diagram.
+ */
+export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor | null>): AgentDiagramLinker {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const activeDiagram = useAppSelector(selectActiveDiagram);
+  const activeDiagramType = useAppSelector(selectActiveDiagramType);
+
+  const isRefAlive = useCallback((ref: string) => {
+    // Read storage, not the Redux project: right after an addDiagramThunk the
+    // selector can lag a render behind and briefly show "Define" again.
+    const fresh = ProjectStorageRepository.getCurrentProject();
+    return fresh?.diagrams.AgentDiagram.some((d) => d.id === ref) ?? false;
+  }, []);
+
+  const createForLane = useCallback(
+    async (suggestedTitle: string, elementId: string) => {
+      const sourceDiagram = activeDiagram;
+      if (!sourceDiagram || activeDiagramType !== 'BPMN' || !isUMLModel(sourceDiagram.model)) {
+        reportError(t('interDiagram.linker.bpmnNotActive'));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'not_bpmn' });
+        return null;
+      }
+
+      const project = ProjectStorageRepository.getCurrentProject();
+      if (!project) {
+        reportError(t('interDiagram.linker.noProject'));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'no_project' });
+        return null;
+      }
+      if (project.diagrams.AgentDiagram.length >= MAX_DIAGRAMS_PER_TYPE) {
+        toast.warn(t('interDiagram.linker.limitReached', { max: MAX_DIAGRAMS_PER_TYPE }));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: 'limit_reached' });
+        return null;
+      }
+
+      // 1. Flush first: the user may have toggled the lane agentic a moment
+      //    ago and the change is still inside the 300 ms save debounce.
+      let sourceModel: UMLModel = sourceDiagram.model;
+      const editor = editorRef.current;
+      if (editor) {
+        sourceModel = editor.model;
+        try {
+          await dispatch(updateDiagramModelThunk({ model: sourceModel })).unwrap();
+        } catch (err) {
+          console.error('[agent-diagram-linker] saving the BPMN diagram failed:', err);
+          reportError(t('interDiagram.linker.flushFailed'), { error: err });
+          trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'save_source' });
+          return null;
+        }
+      }
+
+      const isLaneSource = sourceModel.elements[elementId]?.type === 'BPMNSwimlane';
+      const derivation = isLaneSource ? laneToAgentModel(sourceModel, elementId) : null;
+      if (derivation && !derivation.ok) {
+        toast.warning(t(REFUSAL_MESSAGE_KEYS[derivation.reason]));
+        track('inter_diagram_derive_failed', { kind: 'lane_agent', reason: derivation.reason });
+      }
+
+      // 2. addDiagramThunk makes the new diagram the active one but leaves the
+      //    active type on BPMN; step 3 resyncs before the switch.
+      let newDiagramId: string;
+      try {
+        // Created by the derivation when it derives the agent, else an empty diagram the user asked for.
+        const traceSource = derivation?.ok ? { generator: MODEL_GENERATORS.laneToAgent } : 'user';
+        const added = await dispatch(addDiagramThunk({ diagramType: 'AgentDiagram', title: suggestedTitle, traceSource })).unwrap();
+        newDiagramId = added.diagram.id;
+      } catch (err) {
+        console.error('[agent-diagram-linker] adding the Agent diagram failed:', err);
+        reportError(t('interDiagram.linker.createFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'create' });
+        return null;
+      }
+
+      // 3. The BPMN editor is about to be torn down, so the ref goes straight
+      //    to storage instead of through the editor model.
+      const linked = linkAgentDiagramInStorage(sourceDiagram.id, elementId, newDiagramId, !!derivation?.ok);
+      if (!linked) {
+        toast.warning(t('interDiagram.linker.linkNotSaved'));
+      }
+      try {
+        await dispatch(refreshProjectStateThunk()).unwrap();
+      } catch (err) {
+        console.error('[agent-diagram-linker] reloading the project failed:', err);
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'reload' });
+        return null;
+      }
+
+      // 4. Switch, then populate. updateDiagramModelThunk writes to the active
+      //    diagram, so a failed switch must stop here.
+      try {
+        await dispatch(switchDiagramTypeThunk({ diagramType: 'AgentDiagram' })).unwrap();
+      } catch (err) {
+        console.error('[agent-diagram-linker] switching to the Agent diagram failed:', err);
+        reportError(t('interDiagram.linker.openFailed'), { error: err });
+        trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'switch' });
+        return null;
+      }
+
+      if (derivation?.ok) {
+        try {
+          const generator = MODEL_GENERATORS.laneToAgent;
+          await dispatch(updateDiagramModelThunk({ model: derivation.model, traceSource: { generator } })).unwrap();
+          await dispatch(
+            setElementLineageThunk({
+              derivedDiagramId: newDiagramId,
+              mapping: derivation.elementMapping,
+              generator,
+              sourceDiagramId: sourceDiagram.id,
+            }),
+          ).unwrap();
+          dispatch(bumpEditorRevision());
+        } catch (err) {
+          console.error('[agent-diagram-linker] filling the Agent diagram failed:', err);
+          reportError(t('interDiagram.linker.populateFailed'), { error: err });
+          trackFailure('inter_diagram_derive_failed', err, { kind: 'lane_agent', reason: 'populate' });
+          return newDiagramId;
+        }
+        track('inter_diagram_derived', { kind: 'lane_agent', warnings_count: derivation.warnings.length });
+        reportDerivationWarnings(
+          '[agent-diagram-linker]',
+          t('interDiagram.linker.derivedWithWarnings', { count: derivation.warnings.length }),
+          derivation.warnings,
+          t,
+        );
+      }
+
+      return newDiagramId;
+    },
+    [activeDiagram, activeDiagramType, dispatch, editorRef, t],
+  );
+
+  const openByRef = useCallback(
+    (ref: string) => {
+      const fresh = ProjectStorageRepository.getCurrentProject();
+      const index = fresh?.diagrams.AgentDiagram.findIndex((d) => d.id === ref) ?? -1;
+      if (index < 0) return;
+      dispatch(openDiagramThunk({ diagramType: 'AgentDiagram', index }))
+        .unwrap()
+        .catch((err: unknown) => {
+          console.error('[agent-diagram-linker] opening the Agent diagram failed:', err);
+          reportError(t('interDiagram.linker.openExistingFailed'), { error: err });
+        });
+    },
+    [dispatch, t],
+  );
+
+  // ApollonEditorComponent re-registers the linker when this identity changes.
+  return useMemo(() => ({ isRefAlive, createForLane, openByRef }), [isRefAlive, createForLane, openByRef]);
+}

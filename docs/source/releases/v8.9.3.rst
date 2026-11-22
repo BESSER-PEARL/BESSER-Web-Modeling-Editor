@@ -1,0 +1,66 @@
+Version 8.9.3
+=============
+
+This release keeps the modeling assistant's conversation, keeps the assistant
+to modeling, asks before generating a model whose validation has warnings, and
+maps how a GUI's pages link to each other.
+It goes with BESSER v8.9.3 and Modeling Agent v8.1.1.
+
+What's new
+----------
+
+* **Your conversation stays with the project.** Every tab or window that
+  opens a project shows its assistant conversation, run cards included, and
+  continues it, also after the tab is closed; tabs open on the same project
+  show each other's turns as they happen, and a new chat in one clears the
+  others. The browser keeps the conversations of the 20 most recently used
+  projects. The latest 50 turns are also saved with the project and written to
+  the repository on a GitHub save; they are restored when this browser has no
+  conversation for the project. After a reconnect, or when another tab added
+  turns, the editor sends the latest turns with the next message, so the
+  assistant's memory includes them.
+* **Generate anyway, or fix the model first.** When validation passes with
+  warnings, generating code or deploying locally asks first and names the
+  warnings.
+* **See how your GUI's pages connect.** **Map** in the GUI editor's Pages
+  panel shows the pages and the links and navigate buttons between them, the
+  way the generated app follows them, with the navigation bar as one entry.
+  It lists the pages no link reaches and the links to a page that does not
+  exist. The map is read-only: clicking a page opens it, and clicking a
+  broken link selects it.
+* **Save a generator's result to GitHub.** When the assistant runs a
+  generator (for example SQL), its result card offers **Save to GitHub**, like
+  an application run.
+* **The welcome dialog is translated** into all six editor languages.
+
+Fixes
+-----
+
+* Changing only the model in the API key dialog can be saved without typing
+  the key again.
+* A long assistant request no longer says it failed while it is still
+  running. The auto-fix message lists the issues it fixed.
+* Extracting or promoting a class makes the new class the part of the
+  composition, with the diamond on the original class.
+* The assistant bubble welcomes with modeling suggestions, not code
+  generation.
+* The NexaCRM template marks each ``id`` attribute as the identifier, so its
+  Django code passes ``manage.py check`` and generation does not warn.
+
+Removed
+-------
+
+* **Preview Project** and **Share as Secret Gist** are no longer in the File
+  menu. Use **Export Project** or the linked GitHub repository instead. A
+  project file from an old gist still imports.
+
+Upgrade notes
+-------------
+
+Deploy with BESSER v8.9.3 (the **Save to GitHub** on a generator's result needs
+its new endpoint) and Modeling Agent v8.1.1. A GitHub save now commits the
+assistant conversation in ``buml/diagrams.json``; provider tokens are redacted.
+The assistant conversation moves from per-tab storage to per-project storage
+in the browser: the first project each open tab shows after the upgrade takes
+that tab's conversation once, if it belongs to that project; a tab closed
+before the upgrade has no conversation left to move.

@@ -7,6 +7,7 @@ import { NNElementType, NNRelationshipType } from '../index';
 import { UMLRelationship } from '../../../services/uml-relationship/uml-relationship';
 import { UMLDiagramType } from '../../diagram-type';
 import { INNAttribute } from '../nn-component-attribute';
+import { getTnsTypeAttributeNames, TNS_TYPE_SPECIFIC_ATTRIBUTES } from '../nn-attribute-widget-config';
 
 type StateProps = {
   elements: ModelState['elements'];
@@ -262,21 +263,16 @@ class NNAssociationMonitorComponent extends Component<Props> {
         }
       }
 
-      // TensorOp: each tns_type reveals a specific set of list attributes
+      // TensorOp: each tns_type reveals its own set of optional attributes.
+      // TNS_TYPE_ATTRIBUTES (nn-attribute-widget-config) is the single source of
+      // truth for that mapping, shared with the popup that offers the rows.
       if (owner.type === NNElementType.TensorOp) {
         const children = childrenOf(owner.id);
         const tnsType = attrValue(findAttr(children, 'tns_type'));
-        const allDims = ['reshape_dim', 'concatenate_dim', 'transpose_dim', 'permute_dim'];
-        let keep: string[] = [];
-        switch (tnsType) {
-          case 'reshape':     keep = ['reshape_dim']; break;
-          case 'concatenate': keep = ['concatenate_dim']; break;
-          case 'transpose':   keep = ['transpose_dim']; break;
-          case 'permute':     keep = ['permute_dim']; break;
-          default:            keep = []; break;
+        if (tnsType) {
+          const offered = new Set(getTnsTypeAttributeNames(tnsType));
+          deleteByNames(children, TNS_TYPE_SPECIFIC_ATTRIBUTES.filter((n) => !offered.has(n)));
         }
-        const toDelete = allDims.filter((n) => !keep.includes(n));
-        deleteByNames(children, toDelete);
       }
     });
   }

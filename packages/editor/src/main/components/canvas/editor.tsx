@@ -17,7 +17,7 @@ const grid: number = 10;
 const subdivisions: number = 5;
 const borderWidth: number = 1;
 
-const StyledEditor = styled.div<{ $scale: number }>`
+const StyledEditor = styled.div<{ $scale: number; $animate: boolean }>`
   display: block;
   overflow: auto;
 
@@ -42,10 +42,9 @@ const StyledEditor = styled.div<{ $scale: number }>`
     radial-gradient(circle, ${(props) => props.theme.color.gridMinor} 0.55px, transparent 0.75px);
   background-repeat: repeat;
   background-attachment: local;
-  transition:
-    transform 500ms,
-    width 500ms,
-    height 500ms;
+  @media (prefers-reduced-motion: no-preference) {
+    transition: ${(props) => (props.$animate ? 'transform 150ms ease-out' : 'none')};
+  }
   transform-origin: top left;
   transform: scale(${(props) => props.$scale ?? 1});
 `;
@@ -94,25 +93,71 @@ class EditorComponent extends Component<Props, State> {
   editor = createRef<HTMLDivElement>();
   zoomContainer = createRef<HTMLDivElement>();
 
+  /** Button zoom eases; wheel zoom follows the wheel directly, so it isn't animated. */
+  private animateZoom = true;
+  /** Canvas point (editor-local, unscaled px) that should stay under the cursor after a wheel zoom. */
+  private zoomAnchor: { clientX: number; clientY: number; x: number; y: number } | null = null;
+  private wheelTarget: HTMLElement | null = null;
+
   private wheelHandler = (event: WheelEvent) => {
     if (event.ctrlKey) {
       event.preventDefault();
       const step = 0.1;
       const direction = event.deltaY < 0 ? step : -step;
-      const newZoom = clamp(this.props.scale + direction, minScale, maxScale);
+      const { scale = 1 } = this.props;
+      const newZoom = clamp(scale + direction, minScale, maxScale);
+      if (newZoom === scale) return;
+      const editor = this.editor.current;
+      if (editor) {
+        const rect = editor.getBoundingClientRect();
+        this.zoomAnchor = {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          x: (event.clientX - rect.left) / scale + editor.scrollLeft,
+          y: (event.clientY - rect.top) / scale + editor.scrollTop,
+        };
+      }
+      this.animateZoom = false;
       this.props.setZoomFactor(newZoom);
     }
   };
 
+  private zoomFromButton = (zoomFactor: number) => {
+    this.animateZoom = true;
+    this.zoomAnchor = null;
+    this.props.setZoomFactor(zoomFactor);
+  };
+
   componentDidMount() {
-    window.addEventListener('wheel', this.wheelHandler, { passive: false });
+    this.wheelTarget = this.zoomContainer.current;
+    this.wheelTarget?.addEventListener('wheel', this.wheelHandler, { passive: false });
   }
 
   componentWillUnmount() {
-    window.removeEventListener('wheel', this.wheelHandler);
+    this.wheelTarget?.removeEventListener('wheel', this.wheelHandler);
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
+    if (prevProps.scale !== this.props.scale) {
+      // Keep the canvas point that was under the cursor there (best effort: scroll clamps at the edges).
+      const anchor = this.zoomAnchor;
+      const editor = this.editor.current;
+      this.zoomAnchor = null;
+      if (anchor && editor) {
+        const { scale = 1 } = this.props;
+        const rect = editor.getBoundingClientRect();
+        editor.scrollLeft = anchor.x - (anchor.clientX - rect.left) / scale;
+        editor.scrollTop = anchor.y - (anchor.clientY - rect.top) / scale;
+        // Above 100% the outer container scrolls too; it takes up what the editor's own scroll couldn't.
+        const container = this.zoomContainer.current;
+        if (container) {
+          const after = editor.getBoundingClientRect();
+          container.scrollLeft += after.left + (anchor.x - editor.scrollLeft) * scale - anchor.clientX;
+          container.scrollTop += after.top + (anchor.y - editor.scrollTop) * scale - anchor.clientY;
+        }
+      }
+    }
+
     if (this.state.isMobile) {
       if (this.editor.current) {
         const { moving, connecting, reconnecting } = this.props;
@@ -138,11 +183,12 @@ class EditorComponent extends Component<Props, State> {
             {...props}
             onTouchMove={this.customScrolling}
             $scale={scale}
+            $animate={this.animateZoom}
             data-editor-scroll="1"
           />
           <ZoomPane
             value={scale}
-            onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onChange={this.zoomFromButton}
             onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}
@@ -153,10 +199,10 @@ class EditorComponent extends Component<Props, State> {
     } else {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} $scale={scale} data-editor-scroll="1" />
+          <StyledEditor ref={this.editor} {...props} $scale={scale} $animate={this.animateZoom} data-editor-scroll="1" />
           <ZoomPane
             value={scale}
-            onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onChange={this.zoomFromButton}
             onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}

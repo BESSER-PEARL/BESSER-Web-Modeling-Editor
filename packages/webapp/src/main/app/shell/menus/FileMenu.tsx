@@ -1,10 +1,26 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FileText, ChevronDown } from 'lucide-react';
+import {
+  ChevronDown,
+  Download,
+  FileInput,
+  FileJson,
+  FilePlus,
+  FileSpreadsheet,
+  FileText,
+  FolderOpen,
+  Github,
+  Image,
+  LayoutTemplate,
+  Network,
+  Share2,
+  Upload,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -14,21 +30,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { getWorkspaceContext } from '../../../shared/utils/workspaceContext';
+import { HeaderTooltip } from './HeaderTooltip';
 
 interface FileMenuProps {
   outlineButtonClass: string;
   showXlLabels?: boolean;
   hasProject: boolean;
   activeDiagramType: SupportedDiagramType;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
-  onOpenProjectPreview: () => void;
+  onImportOwl: () => void;
 }
+
+/** Section header inside top-bar menus (File > Import, Help > Community). */
+export const menuGroupLabelClass = 'px-2 pb-1 pt-1.5 text-xs font-medium text-muted-foreground';
+
+/** Pulls a submenu clear of its parent's padding and border so the two never overlap. */
+export const SUBMENU_OFFSETS = { sideOffset: 6, alignOffset: -5 } as const;
 
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
@@ -42,43 +67,97 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
-  onOpenProjectPreview,
+  onImportOwl,
 }) => {
   const { t } = useTranslation();
+  const { isKgContext } = getWorkspaceContext(activeDiagramType);
+  // The diagram-specific imports below get a separator; without one the menu ends on Export.
+  const hasDiagramImport = activeDiagramType === 'BPMN' || isKgContext;
+  const title = t('menu.file.title');
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.file.title')}>
-          <FileText className="size-4" />
-          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.file.title')}</span>
-          <ChevronDown className="size-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel>{t('menu.file.projectActions')}</DropdownMenuLabel>
+      <HeaderTooltip label={title} hideFrom="lg">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
+            <FileText className="size-4" aria-hidden="true" />
+            <span className="hidden lg:inline">{title}</span>
+            <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+      </HeaderTooltip>
+      <DropdownMenuContent className="w-64" align="end">
+        <DropdownMenuItem onClick={() => onOpenProjectHub('create')}>
+          <FilePlus className="mr-2 size-4" />
+          {t('menu.file.newProject')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onOpenProjectHub('open')}>
+          <FolderOpen className="mr-2 size-4" />
+          {t('menu.file.openProject')}
+        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Upload className="mr-2 size-4" />
+            {t('menu.file.import')}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-60" {...SUBMENU_OFFSETS}>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className={menuGroupLabelClass}>
+                {t('menu.file.importGroupProject', { defaultValue: 'Project' })}
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => onOpenProjectHub('import')}>
+                <FileJson className="mr-2 size-4" />
+                {t('menu.file.importProjectFile')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onOpenProjectHub('spreadsheet')}>
+                <FileSpreadsheet className="mr-2 size-4" />
+                {t('menu.file.fromSpreadsheet')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onOpenProjectHub('github')}>
+                <Github className="mr-2 size-4" />
+                {t('menu.file.fromGithub')}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className={menuGroupLabelClass}>
+                {t('menu.file.importGroupClassDiagram', { defaultValue: 'Class Diagram from' })}
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={onOpenAssistantImportImage} disabled={!hasProject}>
+                <Image className="mr-2 size-4" />
+                {t('menu.file.importImage', { defaultValue: 'Image…' })}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenAssistantImportKg} disabled={!hasProject}>
+                <Share2 className="mr-2 size-4" />
+                {t('menu.file.importKnowledgeGraph', { defaultValue: 'Knowledge Graph…' })}
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onOpenProjectHub}>{t('menu.file.newOpenImport')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenTemplateDialog}>{t('menu.file.loadTemplate')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={onExportProject}>{t('menu.file.exportProject')}</DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onOpenTemplateDialog}>
+          <LayoutTemplate className="mr-2 size-4" />
+          {t('menu.file.loadTemplate')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onExportProject}>
+          <Download className="mr-2 size-4" />
+          {t('menu.file.exportProject')}
+        </DropdownMenuItem>
+        {hasDiagramImport && <DropdownMenuSeparator />}
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
         </DropdownMenuItem> */}
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={!hasProject}>{t('menu.file.importClassDiagramFrom')}</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={onOpenAssistantImportImage}>{t('menu.file.imageToProject')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenAssistantImportKg}>{t('menu.file.kgToProject')}</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         {activeDiagramType === 'BPMN' && (
           <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
-            Import BPMN Diagram (.bpmn / .xml)
+            <FileInput className="mr-2 size-4" />
+            {t('menu.file.importBpmnDiagram')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
-          {t('menu.file.previewProject')}
-        </DropdownMenuItem>
+        {isKgContext && (
+          <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            <Network className="mr-2 size-4" />
+            {t('menu.file.importKgOwl')}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

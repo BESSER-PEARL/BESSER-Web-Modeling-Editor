@@ -1,7 +1,7 @@
-import { UMLDiagramType } from '@besser/wme';
-import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
-import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
-import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type React from 'react';
+import type { SupportedDiagramType } from '../../shared/types/project';
+import type { GeneratorMenuMode, GeneratorType } from '../../shared/types/workspace-types';
+import type { QualityCheckResult, QualityCheckState } from '../../shared/types/quality-check';
 
 export interface AgentVariantOption {
   id: string;
@@ -17,26 +17,29 @@ export interface WorkspaceTopBarProps {
   showQualityCheck: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating: boolean;
-  locationPath: string;
-  activeUmlType: UMLDiagramType;
   isAuthenticated: boolean;
   username?: string;
   githubLoading: boolean;
   hasProject: boolean;
   isDeploymentAvailable: boolean;
-  onOpenProjectHub: () => void;
+  /** Deploy puts the linked repo online (Go live) instead of rebuilding the app. */
+  deployGoesLive?: boolean;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
-  onOpenProjectPreview: () => void;
+  onImportOwl: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onOpenPersonalizeDialog?: () => void;
   onOpenRecommendPersonalizationDialog?: () => void;
   onOpenPersonalizationOverview?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
+  /** When set, the quality check becomes a menu offering this semantic check too. */
+  onSemanticCheck?: () => Promise<void>;
   qualityCheckState?: QualityCheckState;
   showAgentVariantSelector?: boolean;
   agentVariantOptions?: AgentVariantOption[];
@@ -45,23 +48,27 @@ export interface WorkspaceTopBarProps {
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
-  onOpenGitHubSidebar: () => void;
+  /** A repository was opened from the GitHub menu: show its summary in the assistant. */
+  onRepoOpened?: (summary: string) => void;
   hasStarred: boolean;
   starLoading: boolean;
   onToggleStar: () => void;
   onOpenDeployDialog: () => void;
-  onOpenStudyDeployDialog?: () => void;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenFeedback: () => void;
   onOpenKeyboardShortcuts: () => void;
   onShowWelcomeGuide?: () => void;
   activeDiagramType: SupportedDiagramType;
-  perspectives: PerspectiveSettings | undefined;
-  onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
-  onNavigate: (path: string) => void;
+  onDeriveComponentDiagram?: () => void;
+  onDeriveDeploymentDiagram?: () => void;
+  onGenerateDockerCompose?: () => void;
   projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;
+  /** Mobile navigation drawer (below md). */
+  isMobileNavOpen: boolean;
+  onOpenMobileNav: () => void;
+  mobileNavTriggerRef: React.RefObject<HTMLButtonElement>;
 }

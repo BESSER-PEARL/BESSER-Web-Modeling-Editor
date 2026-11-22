@@ -1,4 +1,4 @@
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { NAVIGABLE_ASSOCIATION_TYPES, UMLDiagramType, UMLModel } from '@besser/wme';
 
 /**
  * Generate a deterministic Object Diagram from a Class Diagram.
@@ -9,7 +9,7 @@ import { UMLDiagramType, UMLModel } from '@besser/wme';
  * from the source attribute's `defaultValue` when set, otherwise from
  * {@link defaultForType} based on `attributeType`.
  *
- * For every class-level association (`ClassBidirectional`,
+ * For every class-level association (`ClassBidirectional`, legacy
  * `ClassUnidirectional`, `ClassAggregation`, `ClassComposition`) the
  * helper creates a single `ObjectLink` between the generated objects on
  * each side. Inheritance, realization, and dependency edges are skipped —
@@ -228,14 +228,10 @@ const HORIZONTAL_GAP = 50;
 /**
  * Class-level relationship types the helper turns into `ObjectLink`s. We
  * deliberately leave inheritance / realization / dependency out: those
- * describe static structure, not object-level relations.
+ * describe static structure, not object-level relations. Navigability is
+ * irrelevant here: an object link exists regardless of which ends are navigable.
  */
-const ASSOCIATION_TYPES = new Set([
-  'ClassBidirectional',
-  'ClassUnidirectional',
-  'ClassAggregation',
-  'ClassComposition',
-]);
+const ASSOCIATION_TYPES = new Set<string>(NAVIGABLE_ASSOCIATION_TYPES);
 
 /**
  * Result of the scaffold operation, returned so the caller can show a

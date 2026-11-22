@@ -1,4 +1,4 @@
-const colorVariableRegex = /var\(--apollon-[\S]+, #[0-9a-fA-F]+\)/g;
+const colorVariableRegex = /var\(--apollon-[\w-]+, #[0-9a-fA-F]+\)/g;
 const colorRegex = /#[0-9a-fA-F]+/;
 
 export const replaceColorVariables = (innerHTML: string): string => {

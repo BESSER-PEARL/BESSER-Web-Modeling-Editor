@@ -1,6 +1,6 @@
 import { BPMNTask, BPMNTaskType } from '../../../../../main/packages/bpmn/bpmn-task/bpmn-task';
 
-describe('BPMNTask - taskType (Phase A construct gaps)', () => {
+describe('BPMNTask - taskType (construct gaps)', () => {
   it('should accept service as a valid task type', () => {
     const task = new BPMNTask({ taskType: 'service' as BPMNTaskType });
     expect(task.taskType).toBe('service');

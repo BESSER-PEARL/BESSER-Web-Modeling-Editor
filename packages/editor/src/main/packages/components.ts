@@ -79,16 +79,11 @@ import { UMLStateObjectNodeComponent } from './uml-state-diagram/uml-state-objec
 import { UMLStateTransitionComponent } from './uml-state-diagram/uml-state-transition/uml-state-transition-component';
 import { UMLStateCodeBlockComponent } from './uml-state-diagram/uml-state-code-block/uml-state-code-block-component';
 import { UMLStateMemberComponent } from './uml-state-diagram/uml-state/uml-state-member-component';
-import { AgentIntentComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-object-component';
-import { AgentIntentMemberComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-member-component';
-import { AgentRagElementComponent } from './agent-state-diagram/agent-rag-element/agent-rag-element-component';
 import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-state-component';
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
-import { AgentToolComponent } from './agent-state-diagram/agent-tool/agent-tool-component';
-import { AgentSkillComponent } from './agent-state-diagram/agent-skill/agent-skill-component';
-import { AgentWorkspaceComponent } from './agent-state-diagram/agent-workspace/agent-workspace-component';
+import { AgentSectionTitleComponent } from './agent-state-diagram/agent-section-title-component';
 import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
@@ -101,12 +96,12 @@ import { NNReferenceComponent } from './nn-diagram/nn-reference/nn-reference-com
 import { NNComponentMemberComponent } from './nn-diagram/nn-component-member-component';
 import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-component';
 
-// AgentLLM is a data-only element managed exclusively from the agent
-// customization tab; no SVG presence on the canvas. The lookup in
-// canvas-element still happens for every element in the model, so we
-// register a no-op React component to avoid an "undefined component"
-// crash when an AgentLLM is present.
-const AgentLLMNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
+// Agent component elements (LLM, Tool, Skill, Workspace, RAG, Intent) are
+// data-only elements managed from the agent components panel; they have no
+// SVG presence on the canvas. Every editor load moves them from `elements` to
+// `model.components` (normalizeAgentComponents); the no-op components only
+// guard against "undefined component" crashes should one still reach the canvas.
+const AgentNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -217,17 +212,17 @@ export const Components: {
   [UMLRelationshipType.StateTransition]: UMLStateTransitionComponent,
   [UMLElementType.StateCodeBlock]: UMLStateCodeBlockComponent,
 
-  [UMLElementType.AgentIntent]: AgentIntentComponent,
-  [UMLElementType.AgentIntentBody]: AgentIntentMemberComponent,
-  [UMLElementType.AgentRagElement]: AgentRagElementComponent,
+  [UMLElementType.AgentIntent]: AgentNoopComponent,
+  [UMLElementType.AgentIntentBody]: AgentNoopComponent,
+  [UMLElementType.AgentRagElement]: AgentNoopComponent,
   [UMLElementType.AgentState]: AgentStateComponent,
   [UMLElementType.AgentStateBody]: AgentStateMemberComponent,
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,
-  [UMLElementType.AgentTool]: AgentToolComponent,
-  [UMLElementType.AgentSkill]: AgentSkillComponent,
-  [UMLElementType.AgentWorkspace]: AgentWorkspaceComponent,
-  [UMLElementType.AgentLLM]: AgentLLMNoopComponent,
-  [UMLElementType.AgentSectionTitle]: NNSectionTitleComponent as any,
+  [UMLElementType.AgentTool]: AgentNoopComponent,
+  [UMLElementType.AgentSkill]: AgentNoopComponent,
+  [UMLElementType.AgentWorkspace]: AgentNoopComponent,
+  [UMLElementType.AgentLLM]: AgentNoopComponent,
+  [UMLElementType.AgentSectionTitle]: AgentSectionTitleComponent,
   [UMLElementType.AgentSectionSeparator]: NNSectionSeparatorComponent as any,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,
@@ -246,6 +241,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv1D]: NNComponentMemberComponent,
 
   [NNElementType.Conv2DLayer]: NNLayerIconComponent,
   // Conv2D Attributes
@@ -261,6 +262,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv2D]: NNComponentMemberComponent,
 
   [NNElementType.Conv3DLayer]: NNLayerIconComponent,
   // Conv3D Attributes
@@ -276,6 +283,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv3D]: NNComponentMemberComponent,
 
   [NNElementType.PoolingLayer]: NNLayerIconComponent,
   // Pooling Attributes
@@ -292,6 +305,9 @@ export const Components: {
   [NNElementType.InputReusedAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributePooling]: NNComponentMemberComponent,
 
   [NNElementType.RNNLayer]: NNLayerIconComponent,
   // RNN Attributes
@@ -305,6 +321,15 @@ export const Components: {
   [NNElementType.ActvFuncAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeRNN]: NNComponentMemberComponent,
 
   [NNElementType.LSTMLayer]: NNLayerIconComponent,
   // LSTM Attributes
@@ -318,6 +343,17 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.CellStateVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.CellUnusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeLSTM]: NNComponentMemberComponent,
 
   [NNElementType.GRULayer]: NNLayerIconComponent,
   // GRU Attributes
@@ -331,6 +367,15 @@ export const Components: {
   [NNElementType.ActvFuncAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeGRU]: NNComponentMemberComponent,
 
   [NNElementType.LinearLayer]: NNLayerIconComponent,
   // Linear Attributes
@@ -340,6 +385,10 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLinear]: NNComponentMemberComponent,
 
   [NNElementType.FlattenLayer]: NNLayerIconComponent,
   // Flatten Attributes
@@ -349,6 +398,9 @@ export const Components: {
   [NNElementType.ActvFuncAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeFlatten]: NNComponentMemberComponent,
 
   [NNElementType.EmbeddingLayer]: NNLayerIconComponent,
   // Embedding Attributes
@@ -358,6 +410,12 @@ export const Components: {
   [NNElementType.ActvFuncAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.PaddingIdxAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeEmbedding]: NNComponentMemberComponent,
 
   [NNElementType.DropoutLayer]: NNLayerIconComponent,
   // Dropout Attributes
@@ -365,6 +423,12 @@ export const Components: {
   [NNElementType.RateAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.DimensionAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeDropout]: NNComponentMemberComponent,
 
   [NNElementType.LayerNormalizationLayer]: NNLayerIconComponent,
   // LayerNormalization Attributes
@@ -373,6 +437,11 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.EpsAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.AffineAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLayerNormalization]: NNComponentMemberComponent,
 
   [NNElementType.BatchNormalizationLayer]: NNLayerIconComponent,
   // BatchNormalization Attributes
@@ -382,6 +451,13 @@ export const Components: {
   [NNElementType.ActvFuncAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.EpsAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.MomentumAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.AffineAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.TrackRunningStatsAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeBatchNormalization]: NNComponentMemberComponent,
 
   [NNElementType.TensorOp]: NNLayerIconComponent,
   // TensorOp Attributes
@@ -393,6 +469,27 @@ export const Components: {
   [NNElementType.TransposeDimAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.PermuteDimAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ReduceDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ReduceKeepdimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ShapeDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ActualVarsAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SubscriptIndicesAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.RepeatDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateSizeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateScaleAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateModeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadAmountAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadModeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadValueAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.DropoutRateAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.DropoutTrainingAwareAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SplitDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SplitSizesAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.OutputVarsAttributeTensorOp]: NNComponentMemberComponent,
 
   [NNElementType.Configuration]: NNLayerIconComponent,
   // Configuration Attributes

@@ -11,6 +11,7 @@ import {
 } from '../diagram-helpers';
 import 'vanilla-colorful/hex-color-picker.js';
 import i18n from '@/main/shared/i18n';
+import { isValidEndpoint, markEndpointInput, normalizeEndpoint } from '../configs/endpoint';
 
 // Types for GrapesJS editor and component (minimal, for this file)
 type GrapesJSEditor = any;
@@ -19,15 +20,66 @@ type GrapesJSComponent = {
   addAttributes: (attrs: Record<string, any>) => void;
 };
 
-interface SeriesItem {
+export interface SeriesItem {
   name: string;
   'data-source'?: string;
   'label-field'?: string;
   'data-field'?: string;
   filter?: string;
+  // Optional backend path the series reads its records from instead of the class's CRUD list
+  'data-endpoint'?: string;
   color?: string;
   data: Array<{ name: string; value: number }>;
   _expanded?: boolean;
+}
+
+/**
+ * Parse the serialised `series` attribute into a series list, with kebab-case keys.
+ *
+ * The attribute holds a JSON array string; anything else (unset, malformed or not an
+ * array) yields an empty list. Older series used camelCase keys (`dataSource`,
+ * `labelField`, `dataField`), which are converted.
+ */
+export function parseSeries(raw: unknown): SeriesItem[] {
+  if (typeof raw !== 'string' || !raw.trim().startsWith('[')) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((s: any) => {
+      const out: any = { ...s };
+      if ('dataSource' in out && !('data-source' in out)) {
+        out['data-source'] = out.dataSource;
+        delete out.dataSource;
+      }
+      if ('labelField' in out && !('label-field' in out)) {
+        out['label-field'] = out.labelField;
+        delete out.labelField;
+      }
+      if ('dataField' in out && !('data-field' in out)) {
+        out['data-field'] = out.dataField;
+        delete out.dataField;
+      }
+      return out;
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Set a series' `data-endpoint` from what was typed: an empty value removes it, a valid
+ * one is stored normalised (a path gets its leading "/"). Returns false, leaving the
+ * series unchanged, for a value BESSER would refuse (a space, "//host").
+ */
+export function setSeriesEndpoint(item: SeriesItem, typed: string): boolean {
+  const value = normalizeEndpoint(typed);
+  if (!value) {
+    delete item['data-endpoint'];
+    return true;
+  }
+  if (!isValidEndpoint(value)) return false;
+  item['data-endpoint'] = value;
+  return true;
 }
 
 export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
@@ -55,34 +107,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
       }
 
       // Parse current series from attributes or default, with robust check
-      let series: SeriesItem[] = [];
-      const attrVal = component.getAttributes()['series'];
-      if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
-        try {
-          series = JSON.parse(attrVal).map((s: any) => {
-            // Normalize to kebab-case keys for consistency
-            const out: any = { ...s };
-            // Convert camelCase to kebab-case if present (for backward compatibility)
-            if ('dataSource' in out && !('data-source' in out)) {
-              out['data-source'] = out.dataSource;
-              delete out.dataSource;
-            }
-            if ('labelField' in out && !('label-field' in out)) {
-              out['label-field'] = out.labelField;
-              delete out.labelField;
-            }
-            if ('dataField' in out && !('data-field' in out)) {
-              out['data-field'] = out.dataField;
-              delete out.dataField;
-            }
-            return out;
-          });
-        } catch (e) {
-          series = [];
-        }
-      } else {
-        series = [];
-      }
+      let series: SeriesItem[] = parseSeries(component.getAttributes()['series']);
 
     // Track React roots created for palette dropdowns so they can be
     // properly unmounted before the next render (prevents memory leaks).
@@ -282,6 +307,18 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           filterInput.style.width = '100%';
           filterInput.style.margin = '4px 0 8px 0';
 
+          // Endpoint (text input, optional)
+          const endpointLabel = document.createElement('label');
+          endpointLabel.textContent = i18n.t('editors.gui.seriesManager.endpoint');
+          const endpointInput = document.createElement('input');
+          endpointInput.type = 'text';
+          endpointInput.value = s['data-endpoint'] || '';
+          endpointInput.placeholder = i18n.t('editors.gui.seriesManager.endpointPlaceholder');
+          endpointInput.setAttribute('data-endpoint-idx', idx.toString());
+          endpointInput.style.width = '100%';
+          endpointInput.style.margin = '4px 0 8px 0';
+          markEndpointInput(endpointInput, endpointInput.value);
+
           // Color (GrapesJS-style: text + preview + popover picker, no alpha)
 
           const colorLabel = document.createElement('label');
@@ -448,6 +485,8 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           details.appendChild(dataFieldSelect);
           details.appendChild(filterLabel);
           details.appendChild(filterInput);
+          details.appendChild(endpointLabel);
+          details.appendChild(endpointInput);
           details.appendChild(colorLabel);
           details.appendChild(colorInputContainer);
 
@@ -587,6 +626,14 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           series[idx].filter = target.value;
           // Persist without re-render to avoid chart refresh on each keystroke
           persistSeries(true);
+        }
+        // Endpoint
+        if (target.tagName === 'INPUT' && target.dataset.endpointIdx !== undefined) {
+          const idx = Number(target.dataset.endpointIdx);
+          const input = target as HTMLInputElement;
+          markEndpointInput(input, input.value);
+          // An invalid value is shown as such and not saved; the last valid one stays.
+          if (setSeriesEndpoint(series[idx], input.value)) persistSeries(true);
         }
         // Color
         if (target.type === 'color' && target.dataset.colorIdx !== undefined) {

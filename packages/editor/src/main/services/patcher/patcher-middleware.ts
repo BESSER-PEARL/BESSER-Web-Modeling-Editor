@@ -53,7 +53,8 @@ export function createPatcherMiddleware<T, A = any, U = T>(
 
       if (selectDiscrete(action)) {
         patcher.check(transform(store.getState()));
-      } else if (selectContinuous(action)) {
+      } else if (selectContinuous(action) && patcher.hasSubscribers) {
+        // Continuous actions fire on every pointer move; skip serializing the model when nobody listens.
         patcher.checkContinuous(transform(store.getState()));
       }
 

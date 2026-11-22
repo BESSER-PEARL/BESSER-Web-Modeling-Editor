@@ -17,6 +17,8 @@ export const setTheme = (theming: string) => {
   // Keep DOM theme flags in sync for CSS selectors and Tailwind dark variants.
   root.setAttribute('data-theme', theming);
   root.classList.toggle('dark', theming === 'dark');
+  // Browser chrome (mobile address bar) follows the app background.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theming === 'dark' ? '#0d1017' : '#f9f9f5');
 };
 
 export const toggleTheme = () => {

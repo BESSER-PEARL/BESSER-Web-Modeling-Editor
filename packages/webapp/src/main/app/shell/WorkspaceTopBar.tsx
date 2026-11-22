@@ -1,18 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderKanban, LayoutGrid, Users } from 'lucide-react';
+import { FolderKanban, Menu, Users, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import { GUI_PERSONALIZE_EVENT } from '../../shared/constants/gui-personalize-event';
 import { LanguageSelector } from './LanguageSelector';
-import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
 import { GuiVariantSelector } from './menus/GuiVariantSelector';
 import { HelpMenu } from './menus/HelpMenu';
-import { MobileNavigation } from './menus/MobileNavigation';
+import { MoreMenu } from './menus/MoreMenu';
 import { TopBarUtilities } from './menus/TopBarUtilities';
 import type { WorkspaceTopBarProps } from './topbar-types';
 
@@ -27,13 +25,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   showQualityCheck,
   generatorMode,
   isGenerating,
-  locationPath,
-  activeUmlType,
   isAuthenticated,
   username,
   githubLoading,
   hasProject,
   isDeploymentAvailable,
+  deployGoesLive,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
@@ -41,12 +38,13 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
-  onOpenProjectPreview,
+  onImportOwl,
   onGenerate,
   onOpenPersonalizeDialog,
   onOpenRecommendPersonalizationDialog,
   onOpenPersonalizationOverview,
   onQualityCheck,
+  onSemanticCheck,
   qualityCheckState,
   showAgentVariantSelector,
   agentVariantOptions,
@@ -55,25 +53,27 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
-  onOpenGitHubSidebar,
+  onRepoOpened,
   hasStarred,
   starLoading,
   onToggleStar,
   onOpenDeployDialog,
-  onOpenStudyDeployDialog,
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenFeedback,
   onOpenKeyboardShortcuts,
   onShowWelcomeGuide,
   activeDiagramType,
-  perspectives,
-  onSwitchUml,
   onSwitchDiagramType,
-  onNavigate,
+  onDeriveComponentDiagram,
+  onDeriveDeploymentDiagram,
+  onGenerateDockerCompose,
   projectNameDraft,
   onProjectNameDraftChange,
   onProjectRename,
+  isMobileNavOpen,
+  onOpenMobileNav,
+  mobileNavTriggerRef,
 }) => {
   const { t } = useTranslation();
 
@@ -111,24 +111,41 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
     : undefined;
 
   return (
-    <header ref={headerRef} className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+    <header ref={headerRef} className={`relative z-20 px-3 py-2 sm:px-6 ${headerBackgroundClass}`}>
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <Button
+            ref={mobileNavTriggerRef}
+            variant="ghost"
+            size="sm"
+            className={`shrink-0 px-2 md:hidden ${outlineButtonClass}`}
+            onClick={onOpenMobileNav}
+            aria-label={t('shell.nav.open')}
+            aria-haspopup="dialog"
+            aria-expanded={isMobileNavOpen}
+          >
+            <Menu className="size-5" aria-hidden="true" />
+          </Button>
           <button
             type="button"
-            onClick={onOpenProjectHub}
+            onClick={() => onOpenProjectHub()}
             aria-label={t('topbar.openProjectHub')}
-            className="group flex shrink-0 items-center p-0 text-left transition-opacity hover:opacity-85"
+            className="group flex shrink-0 items-center rounded-md p-0 text-left transition-opacity duration-150 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2"
           >
             <img
               src="/images/logo.png"
               alt="BESSER"
-              className={`h-10 w-auto ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
+              width={151}
+              height={40}
+              className={`h-8 w-auto sm:h-10 ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
             />
           </button>
-          <div className="hidden items-center gap-1.5 lg:flex">
-            <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
+          <div className="hidden min-w-0 items-center gap-1.5 lg:flex">
+            <FolderKanban className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <Input
+              aria-label={t('topbar.projectName')}
+              autoComplete="off"
+              spellCheck={false}
               value={projectNameDraft}
               onChange={(event) => onProjectNameDraftChange(event.target.value)}
               onBlur={onProjectRename}
@@ -137,13 +154,13 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
                   event.currentTarget.blur();
                 }
               }}
-              className="h-7 w-36 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
+              className="h-7 w-40 min-w-0 rounded-md border-none bg-transparent px-1.5 py-0 text-sm font-medium shadow-none transition-colors duration-150 hover:bg-foreground/[0.05] focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-0"
               placeholder={t('topbar.projectName')}
             />
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-1 xl:gap-1.5">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 xl:gap-1.5">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             showXlLabels={showXlLabels}
@@ -156,7 +173,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onImportBpmnDiagram={onImportBpmnDiagram}
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
-            onOpenProjectPreview={onOpenProjectPreview}
+            onImportOwl={onImportOwl}
           />
           <GenerateMenu
             mode={generatorMode}
@@ -166,13 +183,15 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             activeDiagramType={activeDiagramType}
             onGenerate={onGenerate}
             onSwitchDiagramType={onSwitchDiagramType}
+            onDeriveComponentDiagram={onDeriveComponentDiagram}
+            onDeriveDeploymentDiagram={onDeriveDeploymentDiagram}
+            onGenerateDockerCompose={onGenerateDockerCompose}
           />
           {activeDiagramType === 'AgentDiagram' && onOpenPersonalizeDialog && (
             <Button
               variant="outline"
               className={outlineButtonClass}
               onClick={() => {
-                getPostHog()?.capture('personalize_dialog_opened', { diagram_type: activeDiagramType });
                 onOpenPersonalizeDialog();
               }}
               title={t('personalize.title')}
@@ -186,7 +205,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               variant="outline"
               className={outlineButtonClass}
               onClick={() => {
-                getPostHog()?.capture('personalize_dialog_opened', { diagram_type: activeDiagramType });
                 window.dispatchEvent(new CustomEvent(GUI_PERSONALIZE_EVENT));
               }}
               title={t('personalize.title')}
@@ -201,7 +219,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               variant="outline"
               className={outlineButtonClass}
               onClick={() => {
-                getPostHog()?.capture('personalization_overview_opened', { diagram_type: activeDiagramType });
                 onOpenPersonalizationOverview();
               }}
               title={t('personalizationOverview.title')}
@@ -210,26 +227,26 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalizationOverview.title')}</span>
             </Button>
           )}
-          <DeployMenu
-            outlineButtonClass={outlineButtonClass}
-            showXlLabels={showXlLabels}
-            isAuthenticated={isAuthenticated}
-            githubLoading={githubLoading}
-            isDeploymentAvailable={isDeploymentAvailable}
-            onGitHubLogin={onGitHubLogin}
-            onOpenDeployDialog={onOpenDeployDialog}
-            onOpenStudyDeployDialog={onOpenStudyDeployDialog}
-          />
-          <CommunityMenu outlineButtonClass={outlineButtonClass} showXlLabels={showXlLabels} onOpenFeedback={onOpenFeedback} />
-          <HelpMenu
-            outlineButtonClass={outlineButtonClass}
-            showXlLabels={showXlLabels}
-            onOpenHelpDialog={onOpenHelpDialog}
-            onOpenAboutDialog={onOpenAboutDialog}
-            onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
-            onShowWelcomeGuide={onShowWelcomeGuide}
-            onOpenFeedback={onOpenFeedback}
-          />
+          {/* Below sm these fold into the More menu */}
+          <div className="hidden sm:contents">
+            <DeployMenu
+              outlineButtonClass={outlineButtonClass}
+              isAuthenticated={isAuthenticated}
+              githubLoading={githubLoading}
+              isDeploymentAvailable={isDeploymentAvailable}
+              deployGoesLive={deployGoesLive}
+              onGitHubLogin={onGitHubLogin}
+              onOpenDeployDialog={onOpenDeployDialog}
+            />
+            <HelpMenu
+              outlineButtonClass={outlineButtonClass}
+              onOpenHelpDialog={onOpenHelpDialog}
+              onOpenAboutDialog={onOpenAboutDialog}
+              onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
+              onShowWelcomeGuide={onShowWelcomeGuide}
+              onOpenFeedback={onOpenFeedback}
+            />
+          </div>
           <span aria-hidden="true" className="mx-0.5 hidden h-6 w-px bg-border/60 sm:block" />
           <TopBarUtilities
             showQualityCheck={showQualityCheck}
@@ -242,6 +259,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             starLoading={starLoading}
             qualityCheckState={qualityCheckState}
             onQualityCheck={onQualityCheck}
+            onSemanticCheck={onSemanticCheck}
             showAgentVariantSelector={showAgentVariantSelector}
             agentVariantOptions={agentVariantOptions}
             activeAgentVariantId={activeAgentVariantId}
@@ -251,22 +269,30 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
-            onOpenGitHubSidebar={onOpenGitHubSidebar}
             onToggleStar={onToggleStar}
+            onRepoOpened={onRepoOpened}
+            onSwitchDiagramType={onSwitchDiagramType}
           />
-          <LanguageSelector outlineButtonClass={outlineButtonClass} />
+          <div className="hidden sm:contents">
+            <LanguageSelector outlineButtonClass={outlineButtonClass} />
+          </div>
+          <MoreMenu
+            outlineButtonClass={outlineButtonClass}
+            isDarkTheme={isDarkTheme}
+            isAuthenticated={isAuthenticated}
+            githubLoading={githubLoading}
+            isDeploymentAvailable={isDeploymentAvailable || !!deployGoesLive}
+            onGitHubLogin={onGitHubLogin}
+            onGitHubLogout={onGitHubLogout}
+            onOpenDeployDialog={onOpenDeployDialog}
+            onOpenHelpDialog={onOpenHelpDialog}
+            onOpenAboutDialog={onOpenAboutDialog}
+            onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
+            onOpenFeedback={onOpenFeedback}
+            onToggleTheme={onToggleTheme}
+          />
         </div>
       </div>
-      <MobileNavigation
-        locationPath={locationPath}
-        activeUmlType={activeUmlType}
-        activeDiagramType={activeDiagramType}
-        isDarkTheme={isDarkTheme}
-        perspectives={perspectives}
-        onSwitchUml={onSwitchUml}
-        onSwitchDiagramType={onSwitchDiagramType}
-        onNavigate={onNavigate}
-      />
     </header>
   );
 };

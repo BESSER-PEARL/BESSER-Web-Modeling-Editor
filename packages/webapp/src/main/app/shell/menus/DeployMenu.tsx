@@ -1,17 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Rocket, ChevronDown } from 'lucide-react';
+import { Rocket, ChevronDown, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ENABLE_STUDY_DEPLOY } from '../../../shared/constants/constant';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { HeaderTooltip } from './HeaderTooltip';
 
 interface DeployMenuProps {
   outlineButtonClass: string;
@@ -19,9 +16,10 @@ interface DeployMenuProps {
   isAuthenticated: boolean;
   githubLoading: boolean;
   isDeploymentAvailable: boolean;
+  /** The project is linked to a repo: deploy puts that repo online (Go live). */
+  deployGoesLive?: boolean;
   onGitHubLogin: () => void;
   onOpenDeployDialog: () => void;
-  onOpenStudyDeployDialog?: () => void;
 }
 
 export const DeployMenu: React.FC<DeployMenuProps> = ({
@@ -30,35 +28,51 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   isAuthenticated,
   githubLoading,
   isDeploymentAvailable,
+  deployGoesLive = false,
   onGitHubLogin,
   onOpenDeployDialog,
-  onOpenStudyDeployDialog,
 }) => {
   const { t } = useTranslation();
+  // Publishing needs a GitHub session; disable it (with a reason) instead of a click that only toasts.
+  const publishEnabled = (isDeploymentAvailable || deployGoesLive) && isAuthenticated;
+  const publishHint = !isAuthenticated
+    ? t('menu.deploy.connectGitHubFirstHint', { defaultValue: 'Connect GitHub first' })
+    : !isDeploymentAvailable && !deployGoesLive
+      ? t('deploy.toasts.availableFor')
+      : null;
+  const title = t('menu.deploy.title');
   return (
-    <DropdownMenu onOpenChange={(open) => { if (open) getPostHog()?.capture('deploy_menu_opened'); }}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.deploy.title')}>
-          <Rocket className="size-4" />
-          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.deploy.title')}</span>
-          <ChevronDown className="size-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+    <DropdownMenu>
+      <HeaderTooltip label={title} hideFrom="lg">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
+            <Rocket className="size-4" aria-hidden="true" />
+            <span className="hidden lg:inline">{title}</span>
+            <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+      </HeaderTooltip>
       <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel>{t('menu.deploy.deployment')}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
         {!isAuthenticated && (
           <DropdownMenuItem onClick={onGitHubLogin} disabled={githubLoading}>
+            <Github className="mr-2 size-4" />
             {githubLoading ? t('common.connecting') : t('menu.deploy.connectGitHub')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onOpenDeployDialog} disabled={!isDeploymentAvailable}>
-          {t('menu.deploy.publishToRender')}
+        <DropdownMenuItem
+          onClick={publishEnabled ? onOpenDeployDialog : undefined}
+          disabled={!publishEnabled}
+          aria-describedby={publishHint ? 'deploy-publish-hint' : undefined}
+        >
+          <Rocket className="mr-2 size-4" />
+          {deployGoesLive
+            ? t('menu.deploy.goLive', { defaultValue: 'Go live from GitHub' })
+            : t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
-        {ENABLE_STUDY_DEPLOY && (
-          <DropdownMenuItem onClick={onOpenStudyDeployDialog} disabled={!isDeploymentAvailable}>
-            {t('deploy.study.menuItem')}
-          </DropdownMenuItem>
+        {publishHint && (
+          <p id="deploy-publish-hint" className="-mt-1 pb-1.5 pl-8 pr-2 text-xs text-muted-foreground">
+            {publishHint}
+          </p>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

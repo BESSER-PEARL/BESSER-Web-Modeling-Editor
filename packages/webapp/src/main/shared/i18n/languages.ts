@@ -32,9 +32,6 @@ export const DEFAULT_LANGUAGE = 'en';
 
 export const SUPPORTED_LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((l) => l.code);
 
-/** localStorage key used by the language detector to persist the user's choice. */
-export const LANGUAGE_STORAGE_KEY = 'besser_language';
-
 /**
  * Map an app language code to the editor engine's `Locale`. Codes are identical
  * today, but this keeps the coupling explicit and falls back to English for any

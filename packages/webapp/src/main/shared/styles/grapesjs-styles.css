@@ -1,0 +1,647 @@
+/* GraphicalUIEditor chrome, themed with the app tokens (styles.css) so light
+   and dark follow the app theme without per-theme overrides. The canvas frame
+   is the user's page and keeps its own styles. */
+
+.gjs-one-bg,
+.gjs-two-bg,
+.gjs-three-bg,
+.gjs-four-bg {
+  background-color: hsl(var(--card)) !important;
+}
+
+.gjs-pn-panel {
+  background-color: hsl(var(--card)) !important;
+  border-right: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-blocks-c,
+.gjs-sm-sectors,
+.gjs-clm-tags,
+.gjs-layers,
+.gjs-trt-traits {
+  background-color: hsl(var(--card)) !important;
+}
+
+.gjs-two-color,
+.gjs-four-color,
+.gjs-four-color-h:hover {
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-three-color {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-block-label {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Make blocks with SVG media smaller to match Font Awesome icon blocks */
+.gjs-block__media {
+  width: 100%;
+  height: auto;
+  max-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gjs-block__media svg {
+  width: 35px !important;
+  height: 35px !important;
+  max-width: 35px !important;
+  max-height: 35px !important;
+}
+
+.gjs-block {
+  min-height: auto !important;
+  padding: 8px !important;
+}
+
+.gjs-block-label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin-top: 4px !important;
+}
+
+/* Pages Panel Styling - Minimalistic */
+#pages-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+#pages-dropdown svg {
+  pointer-events: none;
+}
+
+#pages-dropdown:hover svg path {
+  fill: hsl(var(--foreground));
+}
+
+.pages-select-minimal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.pages-select-minimal:hover {
+  opacity: 0;
+}
+
+.pages-select-minimal option {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Old pages select styling (kept for compatibility) */
+.pages-select {
+  padding: 6px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.pages-select:hover {
+  background: hsl(var(--muted));
+}
+
+.pages-select:focus {
+  border-color: hsl(var(--ring));
+}
+
+.pages-select option {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  padding: 8px;
+}
+
+/* Fallback icons for FontAwesome (proper Unicode symbols, no emoji) */
+.fa {
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400;
+}
+
+.fa-plus:before { content: "\002B"; font-size: 1.1em; font-weight: 700; }
+.fa-file:before { content: "\25A1"; font-size: 1.1em; }
+.fa-trash:before { content: "\2715"; font-size: 0.95em; }
+.fa-arrows:before { content: "\2725"; font-size: 1.1em; }
+.fa-arrows-alt:before { content: "\21C4"; font-size: 1em; }
+.fa-copy:before { content: "\2398"; font-size: 1em; }
+.fa-clone:before { content: "\29C9"; font-size: 1em; }
+.fa-pencil:before { content: "\270E"; font-size: 1.1em; }
+.fa-pencil-alt:before { content: "\270E"; font-size: 1.1em; }
+.fa-eye:before { content: "\25C9"; font-size: 1em; }
+.fa-eye-slash:before { content: "\25CE"; font-size: 1em; }
+.fa-cog:before { content: "\2699"; font-size: 1.1em; }
+.fa-cogs:before { content: "\2699"; font-size: 1.1em; }
+.fa-undo:before { content: "\21B6"; font-size: 1.1em; }
+.fa-repeat:before { content: "\21B7"; font-size: 1.1em; }
+.fa-redo:before { content: "\21B7"; font-size: 1.1em; }
+.fa-code:before { content: "\276A\276B"; font-size: 0.85em; letter-spacing: -2px; }
+.fa-paint-brush:before { content: "\2710"; font-size: 1.1em; }
+.fa-download:before { content: "\21E9"; font-size: 1.1em; }
+.fa-upload:before { content: "\21E7"; font-size: 1.1em; }
+.fa-expand:before { content: "\2922"; font-size: 1.1em; }
+.fa-compress:before { content: "\2923"; font-size: 1.1em; }
+.fa-th-large:before { content: "\2637"; font-size: 1.1em; }
+.fa-square-o:before { content: "\25A1"; font-size: 1.1em; }
+.fa-check-square-o:before { content: "\2611"; font-size: 1.1em; }
+.fa-minus:before { content: "\2212"; font-size: 1.1em; font-weight: 700; }
+.fa-chevron-down:before { content: "\25BE"; font-size: 1.1em; }
+.fa-chevron-up:before { content: "\25B4"; font-size: 1.1em; }
+.fa-chevron-right:before { content: "\25B8"; font-size: 1.1em; }
+.fa-chevron-left:before { content: "\25C2"; font-size: 1.1em; }
+.fa-times:before { content: "\2715"; font-size: 0.95em; }
+.fa-ban:before { content: "\29B8"; font-size: 1.1em; }
+.fa-save:before { content: "\2B07"; font-size: 1em; }
+.fa-folder-o:before { content: "\2750"; font-size: 1em; }
+.fa-folder-open-o:before { content: "\2751"; font-size: 1em; }
+.fa-search:before { content: "\2315"; font-size: 1em; }
+
+/* Pages Panel Styling - Exact Studio SDK Structure */
+#pages-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.gs-studio-panel {
+  border-color: hsl(var(--border));
+}
+
+.gs-panel-pages .gs-block-manager {
+  height: 100%;
+}
+
+.gs-panel-pages .gs-block-manager__header {
+  background: transparent;
+}
+
+.gs-panel-pages .gs-block-manager__content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler {
+  cursor: pointer;
+  transition: background-color 150ms ease-out;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler:hover {
+  background-color: hsl(var(--muted));
+}
+
+.gs-page-item {
+  color: hsl(var(--foreground));
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.gs-page-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.12);
+}
+
+.gs-page-item svg path {
+  transition: fill 150ms ease-out;
+}
+
+.delete-page-btn {
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.delete-page-btn:hover {
+  background: hsl(var(--destructive)) !important;
+  color: hsl(var(--destructive-foreground)) !important;
+}
+
+#add-page-btn {
+  flex-shrink: 0;
+}
+
+/* Utility classes for consistency */
+.gs-utl-grid {
+  display: grid;
+}
+
+.gs-utl-gap-2 {
+  gap: 0.5rem;
+}
+
+.gs-utl-p-2 {
+  padding: 0.5rem;
+}
+
+.gs-utl-text-sm {
+  font-size: 0.875rem;
+}
+
+.gs-utl-grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+/* Panel borders */
+.gjs-pn-views-container,
+.gjs-pn-options,
+.gjs-pn-commands {
+  border-right: 1px solid hsl(var(--border)) !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Panel buttons */
+.gjs-pn-btn {
+  background-color: transparent !important;
+  border: none !important;
+  color: hsl(var(--muted-foreground)) !important;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.gjs-pn-btn:hover {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-pn-btn.gjs-pn-active {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--brand)) !important;
+}
+
+/* Sidebar hover labels */
+.gjs-pn-views,
+.gjs-pn-commands {
+  overflow: visible !important;
+}
+
+.gjs-pn-views .gjs-pn-btn,
+.gjs-pn-commands .gjs-pn-btn {
+  position: relative;
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip]::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 10px hsl(var(--foreground) / 0.12);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip][data-tooltip-placement="left"]::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip][data-tooltip-placement="left"]::after {
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%) translateX(4px);
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip]:hover::after,
+.gjs-pn-views .gjs-pn-btn[data-tooltip]:focus-visible::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]:hover::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* Inputs */
+.gjs-sm-property input,
+.gjs-sm-property select,
+.gjs-field input,
+.gjs-field select,
+.gjs-trt-trait input,
+.gjs-trt-trait select,
+.gjs-trt-trait textarea,
+.gjs-clm-select {
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 4px !important;
+}
+
+.gjs-sm-property input:focus,
+.gjs-sm-property select:focus,
+.gjs-field input:focus,
+.gjs-field select:focus,
+.gjs-trt-trait input:focus,
+.gjs-trt-trait select:focus,
+.gjs-trt-trait textarea:focus {
+  border-color: hsl(var(--ring)) !important;
+  outline: none !important;
+}
+
+.gjs-sm-property input::placeholder,
+.gjs-field input::placeholder,
+.gjs-trt-trait input::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-field {
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-field-arrows {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-field-color-picker {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* Blocks */
+.gjs-block {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 4px !important;
+  color: hsl(var(--foreground)) !important;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out !important;
+}
+
+.gjs-block:hover {
+  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--brand)) !important;
+  box-shadow: 0 2px 8px hsl(var(--brand) / 0.15) !important;
+}
+
+.gjs-block__media svg {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-block:hover .gjs-block__media svg {
+  fill: hsl(var(--foreground)) !important;
+}
+
+/* Category / sector headers */
+.gjs-block-category .gjs-title,
+.gjs-sm-sector .gjs-sm-sector-title,
+.gjs-clm-tags .gjs-sm-sector-title,
+.gjs-layer-title {
+  background-color: hsl(var(--muted)) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Style manager */
+.gjs-sm-sector {
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-sm-label,
+.gjs-trt-trait .gjs-label {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-sm-property,
+.gjs-trt-trait {
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trt-trait {
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-sm-composite .gjs-sm-property {
+  border-left: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-sm-btn {
+  background-color: hsl(var(--background)) !important;
+  border: 1px solid hsl(var(--input)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-sm-btn:hover {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-sm-btn.gjs-sm-active {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--brand)) !important;
+  border-color: hsl(var(--brand)) !important;
+}
+
+/* Selector manager / class tags */
+.gjs-clm-tag {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-clm-tag-close {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-clm-tag-close:hover {
+  color: hsl(var(--destructive)) !important;
+}
+
+.gjs-clm-tags .gjs-clm-sels-ctn,
+.gjs-clm-tags .gjs-clm-header {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Layers */
+.gjs-layer {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.gjs-layer-title-inn {
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-layer.gjs-selected .gjs-layer-title {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.gjs-layer-vis {
+  color: hsl(var(--muted-foreground)) !important;
+  border-left: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-layer-caret {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.gjs-layer-count {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Canvas and frame */
+.gjs-cv-canvas,
+.gjs-cv-canvas__frames {
+  background-color: hsl(var(--background)) !important;
+}
+
+/* The frame is the user's page: it stays white in both themes. */
+.gjs-frame {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 1px hsl(var(--border)) !important;
+}
+
+/* Modal */
+.gjs-mdl-dialog {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px hsl(var(--foreground) / 0.15) !important;
+}
+
+.gjs-mdl-header {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  padding: 16px 20px !important;
+  font-weight: 600 !important;
+}
+
+.gjs-mdl-content {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  padding: 20px !important;
+}
+
+.gjs-mdl-btn-close {
+  color: hsl(var(--muted-foreground)) !important;
+  transition: color 150ms ease-out !important;
+}
+
+.gjs-mdl-btn-close:hover {
+  color: hsl(var(--destructive)) !important;
+}
+
+/* Selected / hovered component outlines */
+.gjs-selected {
+  outline: 2px solid hsl(var(--brand)) !important;
+  outline-offset: 2px !important;
+}
+
+.gjs-hovered {
+  outline: 2px dashed hsl(var(--brand)) !important;
+  outline-offset: 2px !important;
+  opacity: 0.8 !important;
+}
+
+/* Floating toolbar on the selected component */
+.gjs-toolbar {
+  background: hsl(var(--popover)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.12) !important;
+  padding: 4px !important;
+}
+
+.gjs-toolbar-item {
+  color: hsl(var(--muted-foreground)) !important;
+  border-radius: 2px !important;
+  transition: background-color 150ms ease-out, color 150ms ease-out !important;
+}
+
+.gjs-toolbar-item:hover {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Component type badge and resize handles */
+.gjs-badge {
+  background-color: hsl(var(--brand)) !important;
+  color: hsl(var(--brand-foreground)) !important;
+}
+
+.gjs-resizer-h {
+  border: 2px solid hsl(var(--brand)) !important;
+}
+
+/* Rich text editor toolbar */
+.gjs-rte-toolbar {
+  background-color: hsl(var(--popover)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.12) !important;
+}
+
+.gjs-rte-actionbar {
+  background-color: hsl(var(--popover)) !important;
+}
+
+.gjs-rte-action {
+  color: hsl(var(--muted-foreground)) !important;
+  border-right: 1px solid hsl(var(--border)) !important;
+}
+
+.gjs-rte-action:hover {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-rte-action.gjs-rte-active {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--brand)) !important;
+}
+
+/* Color picker */
+.gjs-sm-colorp-c {
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.sp-container {
+  background-color: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.sp-input {
+  background-color: hsl(var(--background)) !important;
+  border-color: hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.gjs-trt-trait__wrp-series .gjs-label-wrp {
+  display: none !important;
+}
+
+/* Code viewer: GrapesJS ships a dark CodeMirror theme; only align its
+   background with the app in dark mode. */
+.dark .gjs-cm-editor,
+.dark .gjs-cm-editor#gjs-cm-htmlmixed .CodeMirror,
+.dark .gjs-cm-editor#gjs-cm-css .CodeMirror {
+  background-color: hsl(var(--background)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-page-item:hover {
+    transform: none;
+  }
+}

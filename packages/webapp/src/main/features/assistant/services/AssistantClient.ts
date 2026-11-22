@@ -16,6 +16,19 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
+import { track } from '../../../shared/services/analytics/events';
+import {
+  isAssistantKeyProvider,
+  LLM_KEY_ARM_EVENT,
+  readLlmKey,
+  type LlmKeyArmRequest,
+} from '../../../shared/services/llmKeyStorage';
+import { getOrCreateAssistantSessionId, getPilotParticipant } from '../../../shared/services/telemetry/pilotTelemetry';
+import {
+  clearAssistantSessionId,
+  readAssistantUserId,
+  writeAssistantUserId,
+} from '../../../shared/services/storage/assistantStorage';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -31,6 +44,7 @@ type QueuedMessage =
     diagramType: string;
     context?: Partial<AssistantWorkspaceContext>;
     attachments?: FileAttachmentPayload[];
+    clientMode?: AssistantClientMode;
   }
   | {
     kind: 'voice';
@@ -39,35 +53,89 @@ type QueuedMessage =
     mimeType: string;
     diagramType: string;
     context?: Partial<AssistantWorkspaceContext>;
+    clientMode?: AssistantClientMode;
   };
 
-const SESSION_STORAGE_KEY = 'besser-assistant-session-id';
-
-const createSessionId = (): string => {
-  // Reuse the session ID within the same browser tab so that closing
-  // and reopening the assistant drawer reconnects to the same backend
-  // session (preserving conversation memory and context).
+const getStableUserId = (): string => {
+  // BAF's websocket platform keys backend sessions on the `user_id`
+  // query param; without a stable id every reconnect creates a brand-new
+  // backend session, wiping conversation memory and pending flow state
+  // (and re-running the greeting). Persisted in localStorage so the id
+  // survives tab and browser restarts (create once, reuse forever).
   try {
-    const existing = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    const existing = readAssistantUserId();
     if (existing) return existing;
   } catch {
-    // sessionStorage unavailable (e.g. iframe sandbox) — fall through
+    // localStorage unavailable (e.g. iframe sandbox) — fall through
   }
 
   const id =
     typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
-      : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      : `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+    writeAssistantUserId(id);
   } catch {
     // best-effort
   }
   return id;
 };
 
+const withStableUserParam = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.has('user_id')) {
+      parsed.searchParams.set('user_id', getStableUserId());
+    }
+    return parsed.toString();
+  } catch {
+    // Non-absolute/invalid URL — append conservatively
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}user_id=${encodeURIComponent(getStableUserId())}`;
+  }
+};
+
+// Reuse the session ID within the same browser tab so that closing and
+// reopening the assistant drawer reconnects to the same backend session
+// (preserving conversation memory and context). Delegates to the shared
+// helper so telemetry reuses the exact same per-tab id.
+const createSessionId = (): string => getOrCreateAssistantSessionId();
+
 const createMessageId = (): string => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+// Unique across page loads: the agent's per-user outbox can outlive a page.
+const createTurnId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `turn_${crypto.randomUUID()}`
+    : `turn_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+// How many recent turns keep their applied reply seqs (older turns are superseded).
+const MAX_TRACKED_TURNS = 20;
+
+/** One earlier turn of the conversation, as sent in `recentHistory`. */
+export interface HistoryTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Caps on `recentHistory` (the agent enforces the same ones): enough recent
+ * turns to rebuild the agent's memory without sending the whole chat. */
+export const MAX_RECENT_HISTORY_TURNS = 20;
+export const MAX_RECENT_HISTORY_CHARS = 4000;
+
+/** The newest turns, oldest first, each cut to the character cap. */
+export const clampRecentHistory = (turns: readonly HistoryTurn[]): HistoryTurn[] =>
+  turns
+    .filter((t) => (t.role === 'user' || t.role === 'assistant') && t.content.trim().length > 0)
+    .slice(-MAX_RECENT_HISTORY_TURNS)
+    .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_RECENT_HISTORY_CHARS) }));
+
+/** Shown when no reply arrived within the hard timeout. The request keeps
+ * running, so this must not tell the user it failed or to try again. */
+export const RESPONSE_STILL_RUNNING_MESSAGE =
+  'This is taking much longer than usual. The request is still running: its result will appear here when it arrives, ' +
+  'so there is no need to send it again.';
 
 const isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -80,6 +148,8 @@ const KNOWN_ACTIONS = new Set([
   'switch_diagram',
   'create_diagram_tab',
   'trigger_generator',
+  'trigger_smart_generator',
+  'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',
@@ -88,6 +158,28 @@ const KNOWN_ACTIONS = new Set([
   'stream_start',
   'stream_chunk',
   'stream_done',
+  // A button that opens the Traceability page; never a side effect (the user clicks it).
+  'show_trace',
+]);
+
+// Actions with real side effects: they mutate the user's model or start a
+// (possibly paid, BYOK-billed) backend run. They must only be honoured when
+// they arrive as the WHOLE structured reply — never when scraped out of prose.
+// Otherwise a prompt-injected JSON blob inside an otherwise-normal assistant
+// message could silently mutate the model or kick off a paid generation.
+const SIDE_EFFECT_ACTIONS = new Set([
+  'inject_element',
+  'inject_complete_system',
+  'modify_model',
+  'trigger_generator',
+  'trigger_smart_generator',
+  // Imports a GitHub repo and REPLACES the loaded project — never honour it
+  // when scraped out of prose (prompt-injection surface), only as the whole
+  // structured reply.
+  'trigger_github_import',
+  'trigger_export',
+  'trigger_deploy',
+  'auto_generate_gui',
 ]);
 
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {
@@ -99,6 +191,9 @@ const isActionPayload = (payload: unknown): payload is AssistantActionPayload =>
   }
   return KNOWN_ACTIONS.has(payload.action);
 };
+
+const isSideEffectAction = (payload: unknown): boolean =>
+  isObject(payload) && typeof payload.action === 'string' && SIDE_EFFECT_ACTIONS.has(payload.action);
 
 const isInjectionCommand = (payload: unknown): payload is InjectionCommand => {
   if (!isObject(payload) || typeof payload.action !== 'string') {
@@ -121,6 +216,11 @@ const mergeContexts = (
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
+    githubRepo: override?.githubRepo || base?.githubRepo,
+    traceDigest: override?.traceDigest || base?.traceDigest,
+    traceabilityEnabled: override?.traceabilityEnabled ?? base?.traceabilityEnabled,
+    generationKey: override?.generationKey || base?.generationKey,
+    lastGeneration: override?.lastGeneration || base?.lastGeneration,
   };
 };
 
@@ -263,14 +363,20 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
   return compacted;
 };
 
+/** What an injection says when the agent sent no message with it (written by the client, not the agent). */
+export const INJECTION_FALLBACK_MESSAGE = 'Applied assistant update.';
+
 export class AssistantClient {
   private ws: WebSocket | null = null;
   private isConnected = false;
   private connectingPromise: Promise<void> | null = null;
   private reconnectAttempts = 0;
   private readonly baseReconnectDelay = 2000;
+  /** The backoff's cap, and the retry interval after it: the client never stops
+   *  retrying, so a tab recovers from an agent restart (about 4 min) of any length. */
   private readonly maxReconnectDelay = 30000;
-  private readonly maxReconnectAttempts = 8;
+  /** Failed reconnects reported to analytics; later ones repeat the same fact. */
+  private readonly trackedReconnectFailures = 8;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private _drainAborted = false;
@@ -278,22 +384,105 @@ export class AssistantClient {
   private _nextClientMessageId = 1;
   private shouldReconnect = true;
   private responseTimeout: ReturnType<typeof setTimeout> | null = null;
-  private readonly responseTimeoutMs = 45000;
+  // Better (slower) models can take a while on a full-system generation, and
+  // the modeling agent may be silent (no progress frame) for the whole run.
+  // After this much SILENCE we show a gentle "still working" reassurance but
+  // KEEP the loading indicator on and keep waiting — the request is still in
+  // flight. We only give up (real error) after the hard cap. Progress/keep-
+  // alive frames reset the clock via startResponseTimer().
+  private readonly responseSoftNoticeMs = 60000;
+  private readonly responseHardTimeoutMs = 240000;
+  private responseStartedAt = 0;
+  private responseSoftNoticeShown = false;
+  // True while a user message is awaiting its terminal reply. If the socket
+  // reconnects mid-generation (long runs outlive a connection), the reply can be
+  // routed to the dead socket and lost — leaving the UI stuck on "still working".
+  // On reconnect-while-waiting we ask the agent to replay its last completed
+  // reply (see requestReplayIfPending / the agent's replay_last_response handler).
+  private awaitingResponse = false;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  // 8s (was 15s): each heartbeat re-claims the server's reply slot for the live
+  // socket AND flushes any reply the server buffered during a reconnect gap, so
+  // a fast (~4s) reply lost to a stale slot is recovered within one beat. A
+  // shorter beat shrinks that recovery window.
+  private readonly heartbeatMs = 8000;
+  // Turn tracking. Each user_message carries a fresh `turnId`; the agent echoes
+  // it with a per-turn `replySeq` on every frame, so each (turnId, replySeq) is
+  // applied at most once — a reconnect's outbox flush and replay can both deliver
+  // the same reply. Frames for a turn this client never sent, or older than the
+  // newest turn that has replied (the agent answers turns in order), are stale.
+  // Frames without a turnId (older agent, voice turns) take the legacy path.
+  private currentTurnId: string | null = null;
+  private turnCounter = 0;
+  private newestRepliedTurnOrder = 0;
+  private readonly turns = new Map<string, { order: number; applied: Set<number> }>();
 
   private readonly clientMode: AssistantClientMode;
-  private readonly sessionId: string;
-  private readonly contextProvider?: () => AssistantWorkspaceContext | undefined;
+  private sessionId: string;
+  // Mutable so a shared (singleton) client can be re-pointed at the live
+  // workspace context by whichever surface is currently mounted, instead of
+  // going stale when the creating surface unmounts.
+  private contextProvider?: (message?: string) => AssistantWorkspaceContext | undefined;
+  // The conversation before the message being sent. The agent keeps its memory
+  // in its own process, so a restart or an idle expiry loses it; the first
+  // message on each new socket carries the recent turns so the agent can
+  // rebuild it (it ignores them when its memory is intact). BESSER#745.
+  private historyProvider?: (currentMessage: string) => HistoryTurn[];
+  private sendHistoryOnNextMessage = false;
+  // Another tab added turns this session's agent memory lacks (the agent seeds
+  // only an empty memory), so the next message starts a new session with them.
+  private restartOnNextMessage = false;
 
-  private onMessageHandler: MessageHandler | null = null;
-  private onConnectionHandler: ConnectionHandler | null = null;
-  private onTypingHandler: TypingHandler | null = null;
-  private onInjectionHandler: InjectionHandler | null = null;
-  private onActionHandler: ActionHandler | null = null;
+  // Multi-subscriber handlers so a SINGLE shared client can feed BOTH the
+  // floating widget and the workspace drawer (one socket, one session id).
+  // Previously each surface created its own client → two sockets sharing one
+  // session id, which collided in BAF's reply routing.
+  private readonly messageHandlers = new Set<MessageHandler>();
+  private readonly connectionHandlers = new Set<ConnectionHandler>();
+  private readonly typingHandlers = new Set<TypingHandler>();
+  private readonly injectionHandlers = new Set<InjectionHandler>();
+  private readonly actionHandlers = new Set<ActionHandler>();
+
+  private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  /** Count an unexpected drop of a live socket once (a failed connection attempt was never live). */
+  private trackUnexpectedDrop(): void {
+    if (this.isConnected && this.shouldReconnect) {
+      track('assistant_connection', { state: 'disconnected', attempt: this.reconnectAttempts });
+    }
+  }
+  private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
+  private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
+  private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
+  private emitAction(a: AssistantActionPayload): void { this.actionHandlers.forEach((h) => h(a)); }
 
   constructor(private readonly url: string = 'ws://localhost:8765', options: AssistantClientOptions = {}) {
     this.clientMode = options.clientMode || 'widget';
     this.sessionId = options.sessionId || createSessionId();
     this.contextProvider = options.contextProvider;
+  }
+
+  /** Set the source of the conversation history sent after a (re)connect. */
+  setHistoryProvider(provider: (currentMessage: string) => HistoryTurn[]): void {
+    this.historyProvider = provider;
+  }
+
+  /** Send the recent history with the next message: a conversation restored
+   * from the project is unknown to the agent's new session. */
+  sendHistoryWithNextMessage(): void {
+    this.sendHistoryOnNextMessage = true;
+  }
+
+  /** Another tab changed the conversation: the next text message starts a new
+   * agent session that carries the history. A reply in flight is unaffected.
+   * A voice message leaves it pending: its wire format cannot carry the history,
+   * so a new session would start with an empty memory. */
+  restartWithHistoryOnNextMessage(): void {
+    this.restartOnNextMessage = true;
+  }
+
+  /** Re-point the (possibly shared) client at the live workspace-context source. */
+  setContextProvider(provider: (message?: string) => AssistantWorkspaceContext | undefined): void {
+    this.contextProvider = provider;
   }
 
   connect(): Promise<void> {
@@ -311,25 +500,43 @@ export class AssistantClient {
     this.shouldReconnect = true;
     this.connectingPromise = new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url);
+        // Stable per-browser user id → BAF reuses the same backend
+        // session across reconnects (memory and pending flows survive).
+        this.ws = new WebSocket(withStableUserParam(this.url));
         this.ws.onopen = () => {
           this.isConnected = true;
+          track('assistant_connection', {
+            state: this.reconnectAttempts > 0 ? 'reconnected' : 'connected',
+            attempt: this.reconnectAttempts,
+          });
           this.reconnectAttempts = 0;
           if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
           }
-          this.onConnectionHandler?.(true);
+          this.emitConnection(true);
+          this.startHeartbeat();
+          // Re-arm the user's BYOK key on a fresh socket so the agent's
+          // session variable is restored after a reconnect / reclaimed slot.
+          // Sent BEFORE draining the queue so any queued user message is
+          // processed with the key already in place.
+          this.rearmUserApiKey();
+          this.sendHistoryOnNextMessage = true;
+          // If a reply was in flight when the socket dropped, ask the agent to
+          // replay its last completed reply — the reconnect may have lost it.
+          this.requestReplayIfPending();
           this.processMessageQueue();
           this.connectingPromise = null;
           resolve();
         };
 
         this.ws.onclose = () => {
+          this.trackUnexpectedDrop();
           this.isConnected = false;
+          this.stopHeartbeat();
           this.connectingPromise = null;
-          this.onTypingHandler?.(false);
-          this.onConnectionHandler?.(false);
+          this.emitTyping(false);
+          this.emitConnection(false);
           if (this.shouldReconnect) {
             this.attemptReconnect();
           } else {
@@ -339,10 +546,12 @@ export class AssistantClient {
 
         this.ws.onerror = (error) => {
           console.error('Assistant WebSocket error:', error);
+          // An abnormal drop fires `error` before `close`, so it is counted here.
+          this.trackUnexpectedDrop();
           this.isConnected = false;
           this.connectingPromise = null;
-          this.onTypingHandler?.(false);
-          this.onConnectionHandler?.(false);
+          this.emitTyping(false);
+          this.emitConnection(false);
           if (this.shouldReconnect) {
             this.attemptReconnect();
           }
@@ -363,7 +572,9 @@ export class AssistantClient {
     this.shouldReconnect = options.allowReconnect ?? false;
     // Abort any in-flight async drain loop immediately.
     this._drainAborted = true;
+    this.awaitingResponse = false;
     this.clearResponseTimer();
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onclose = null;
@@ -386,8 +597,8 @@ export class AssistantClient {
     if (options.clearQueue) {
       this.messageQueue = [];
     }
-    this.onTypingHandler?.(false);
-    this.onConnectionHandler?.(false);
+    this.emitTyping(false);
+    this.emitConnection(false);
   }
 
   sendMessage(
@@ -395,14 +606,15 @@ export class AssistantClient {
     diagramType?: string,
     context?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
+    clientMode?: AssistantClientMode,
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.enqueueMessage({ kind: 'text', clientMessageId: '', message, diagramType: type, context, attachments });
+      this.enqueueMessage({ kind: 'text', clientMessageId: '', message, diagramType: type, context, attachments, clientMode });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildUserPayload(message, type, context, attachments));
+      this.sendPayload(this.buildUserPayload(message, type, context, attachments, clientMode));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant message', error);
@@ -415,14 +627,15 @@ export class AssistantClient {
     mimeType: string = 'audio/wav',
     diagramType?: string,
     context?: Partial<AssistantWorkspaceContext>,
+    clientMode?: AssistantClientMode,
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.enqueueMessage({ kind: 'voice', clientMessageId: '', audioBase64, mimeType, diagramType: type, context });
+      this.enqueueMessage({ kind: 'voice', clientMessageId: '', audioBase64, mimeType, diagramType: type, context, clientMode });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, context));
+      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, context, clientMode));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant voice message', error);
@@ -456,32 +669,176 @@ export class AssistantClient {
     }
   }
 
-  onMessage(handler: MessageHandler): void {
-    this.onMessageHandler = handler;
+  /**
+   * Send the user's bring-your-own-key (BYOK) API key to the agent as a
+   * `user_set_variable` message — the same lightweight channel the heartbeat
+   * and voice-context use (an action the agent already handles, no LLM
+   * trigger). The agent reads session variables `user_api_key`,
+   * `user_api_provider`, and `user_api_model` to route the conversation
+   * through the user's own key.
+   *
+   * Pass an empty `apiKey` to CLEAR it on the agent side (sends just
+   * `{ user_api_key: '' }`).
+   *
+   * Returns 'sent' when delivered, 'error' when the socket is down — in which
+   * case the key still lives in sessionStorage, so the next (re)connect
+   * re-arms it automatically via `rearmUserApiKey()`. The key is NEVER logged.
+   */
+  setUserApiKey(params: {
+    apiKey: string;
+    provider?: string;
+    model?: string;
+    baseUrl?: string;
+  }): SendStatus {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return 'error';
+    }
+    try {
+      const message: Record<string, string> = { user_api_key: params.apiKey };
+      // Only attach provider/model when actually setting a key — a clear
+      // sends the bare `{ user_api_key: '' }`.
+      if (params.apiKey) {
+        // 'local' is the user's OpenAI-compatible server: sent to the agent as
+        // provider='openai' + a base URL (user_api_base). 'pia' travels as
+        // itself; the agent resolves its endpoint from its model catalog.
+        const isLocal = params.provider === 'local';
+        const wireProvider = isLocal ? 'openai' : params.provider;
+        if (wireProvider) message.user_api_provider = wireProvider;
+        if (params.model) message.user_api_model = params.model;
+        if (isLocal && params.baseUrl) message.user_api_base = params.baseUrl;
+      }
+      this.ws.send(
+        JSON.stringify({
+          action: 'user_set_variable',
+          user_id: this.sessionId,
+          message,
+        }),
+      );
+      return 'sent';
+    } catch {
+      // Never log the key — even on failure.
+      return 'error';
+    }
   }
 
-  onConnection(handler: ConnectionHandler): void {
-    this.onConnectionHandler = handler;
+  /**
+   * Re-send the stored BYOK key (if any) right after a (re)connect so the
+   * agent's session variable survives a fresh socket / reclaimed reply slot.
+   * Also run when a key is saved where no client is at hand
+   * (`LLM_KEY_ARM_EVENT`). Best-effort and silent — never logs the key.
+   */
+  rearmUserApiKey(): SendStatus {
+    try {
+      const stored = readLlmKey();
+      if (!stored || !isAssistantKeyProvider(stored.provider)) {
+        // The agent session outlives the tab (keyed by the persistent user
+        // id): clear a key the user removed, that died with an old tab, or
+        // whose provider the assistant does not take.
+        return this.setUserApiKey({ apiKey: '' });
+      }
+      return this.setUserApiKey({
+        apiKey: stored.apiKey,
+        provider: stored.provider,
+        model: stored.model,
+        baseUrl: stored.baseUrl,
+      });
+    } catch {
+      // best-effort — a failed re-arm just means the user re-saves the key
+      return 'error';
+    }
   }
 
-  onTyping(handler: TypingHandler): void {
-    this.onTypingHandler = handler;
+  /**
+   * After a reconnect, if a user message is still awaiting its terminal reply,
+   * ask the agent to re-send its last completed reply for this session. The
+   * agent buffers the last reply per stable session id, so a reply lost when the
+   * socket dropped mid-generation is recovered instead of leaving the UI stuck
+   * on "still working…". No-op when nothing is pending; the reply flows back
+   * through the normal handleMessage path (which clears the loading indicator).
+   */
+  private requestReplayIfPending(): void {
+    if (!this.awaitingResponse) return;
+    const turn = this.currentTurnId ? this.turns.get(this.currentTurnId) : undefined;
+    try {
+      this.sendPayload({
+        action: 'replay_last_response',
+        protocolVersion: '2.0',
+        clientMode: this.clientMode,
+        sessionId: this.sessionId,
+        // Scope the replay to the awaited turn, minus what already arrived.
+        ...(turn
+          ? { turnId: this.currentTurnId, appliedSeqs: [...turn.applied].sort((a, b) => a - b) }
+          : {}),
+      });
+    } catch {
+      // best-effort — the next heartbeat/reconnect will retry
+    }
   }
 
-  onInjection(handler: InjectionHandler): void {
-    this.onInjectionHandler = handler;
+  // Each onX adds a subscriber and returns an unsubscribe fn, so one surface
+  // unmounting removes only ITS handlers (not the other surface's).
+  onMessage(handler: MessageHandler): () => void {
+    this.messageHandlers.add(handler);
+    return () => this.messageHandlers.delete(handler);
   }
 
-  onAction(handler: ActionHandler): void {
-    this.onActionHandler = handler;
+  onConnection(handler: ConnectionHandler): () => void {
+    this.connectionHandlers.add(handler);
+    return () => this.connectionHandlers.delete(handler);
   }
 
+  onTyping(handler: TypingHandler): () => void {
+    this.typingHandlers.add(handler);
+    return () => this.typingHandlers.delete(handler);
+  }
+
+  onInjection(handler: InjectionHandler): () => void {
+    this.injectionHandlers.add(handler);
+    return () => this.injectionHandlers.delete(handler);
+  }
+
+  onAction(handler: ActionHandler): () => void {
+    this.actionHandlers.add(handler);
+    return () => this.actionHandlers.delete(handler);
+  }
+
+  /** Remove ALL subscribers — full teardown only, never per-surface. */
   clearHandlers(): void {
-    this.onMessageHandler = null;
-    this.onConnectionHandler = null;
-    this.onTypingHandler = null;
-    this.onInjectionHandler = null;
-    this.onActionHandler = null;
+    this.messageHandlers.clear();
+    this.connectionHandlers.clear();
+    this.typingHandlers.clear();
+    this.injectionHandlers.clear();
+    this.actionHandlers.clear();
+  }
+
+  /**
+   * Start a fresh conversation session. The backend keys conversation memory
+   * on the payload `sessionId`, so reusing it across projects/chats leaks
+   * memory (the agent "remembers" a previous project). Regenerating the id
+   * here means subsequent messages start a clean agent memory. The WebSocket
+   * itself (keyed on the stable per-browser `user_id`) is left intact — only
+   * the sessionId carried in future payloads changes. Call on project switch
+   * and on "new chat".
+   */
+  resetSession(): void {
+    try {
+      clearAssistantSessionId();
+    } catch {
+      // sessionStorage unavailable — fall through to a fresh in-memory id
+    }
+    this.sessionId = createSessionId();
+    // A new conversation has no history to restore.
+    this.sendHistoryOnNextMessage = false;
+    this.restartOnNextMessage = false;
+    // Replies to the old conversation's turns must not land in the new one.
+    this.turns.clear();
+    this.currentTurnId = null;
+    this.awaitingResponse = false;
+  }
+
+  /** The turnId of the last user_message sent, which the agent echoes on its replies. */
+  get turnId(): string | null {
+    return this.currentTurnId;
   }
 
   get connected(): boolean {
@@ -509,21 +866,44 @@ export class AssistantClient {
     diagramType: string,
     contextOverride?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
+    clientMode?: AssistantClientMode,
   ): Record<string, any> {
-    const baseContext = this.contextProvider?.();
+    const baseContext = this.contextProvider?.(message);
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
+    // Opt-in research telemetry: carry the `?pilot=<label>` participant label
+    // so the modeling agent can tag its own events. Absent otherwise.
+    const pilotParticipant = getPilotParticipant();
+    if (pilotParticipant) {
+      context.pilotParticipant = pilotParticipant;
+    }
+    if (this.restartOnNextMessage) {
+      this.restartOnNextMessage = false;
+      try {
+        clearAssistantSessionId();
+      } catch {
+        // sessionStorage unavailable — fall through to a fresh in-memory id
+      }
+      this.sessionId = createSessionId();
+      this.sendHistoryOnNextMessage = true;
+    }
     const payload: Record<string, any> = {
       action: 'user_message',
       protocolVersion: '2.0',
-      clientMode: this.clientMode,
+      // The surface that sent this message: the agent offers generation first only in the drawer.
+      clientMode: clientMode ?? this.clientMode,
       sessionId: this.sessionId,
       message,
       context,
     };
     if (attachments && attachments.length > 0) {
       payload.attachments = attachments;
+    }
+    if (this.sendHistoryOnNextMessage) {
+      this.sendHistoryOnNextMessage = false;
+      const history = clampRecentHistory(this.historyProvider?.(message) ?? []);
+      if (history.length > 0) payload.recentHistory = history;
     }
     return payload;
   }
@@ -556,6 +936,12 @@ export class AssistantClient {
     if (!this.isConnected || !this.ws) {
       throw new Error('WebSocket is not connected');
     }
+    if (payload.action === 'user_message') {
+      payload.turnId = this.beginTurn();
+    } else if (payload.action === 'user_voice') {
+      // The voice wire format carries no v2 payload, so no turnId reaches the agent.
+      this.currentTurnId = null;
+    }
     const wire = this.buildWirePayload(payload);
 
     // For voice messages, send the workspace context as a USER_SET_VARIABLE
@@ -573,8 +959,14 @@ export class AssistantClient {
     }
 
     this.ws.send(JSON.stringify(wire));
-    this.onTypingHandler?.(true);
+    this.emitTyping(true);
     this.startResponseTimer();
+    // Only a real user message expects a terminal reply — mark it pending so a
+    // mid-flight reconnect can request a replay. Control frames (frontend_event,
+    // user_set_variable, replay_last_response) don't set this.
+    if (payload.action === 'user_message' || payload.action === 'user_voice') {
+      this.awaitingResponse = true;
+    }
   }
 
   private buildVoicePayload(
@@ -582,15 +974,20 @@ export class AssistantClient {
     mimeType: string,
     diagramType: string,
     contextOverride?: Partial<AssistantWorkspaceContext>,
+    clientMode?: AssistantClientMode,
   ): Record<string, any> {
     const baseContext = this.contextProvider?.();
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
+    const pilotParticipant = getPilotParticipant();
+    if (pilotParticipant) {
+      context.pilotParticipant = pilotParticipant;
+    }
     return {
       action: 'user_voice',
       protocolVersion: '2.0',
-      clientMode: this.clientMode,
+      clientMode: clientMode ?? this.clientMode,
       sessionId: this.sessionId,
       message: audioBase64,
       mimeType,
@@ -598,28 +995,86 @@ export class AssistantClient {
     };
   }
 
+  private beginTurn(): string {
+    const turnId = createTurnId();
+    this.turns.set(turnId, { order: ++this.turnCounter, applied: new Set() });
+    if (this.turns.size > MAX_TRACKED_TURNS) {
+      this.turns.delete(this.turns.keys().next().value as string);
+    }
+    this.currentTurnId = turnId;
+    return turnId;
+  }
+
+  /** False for a duplicate or stale turn-stamped frame; records the frame otherwise. */
+  private acceptTurnFrame(frame: AssistantActionPayload): boolean {
+    const { turnId, replySeq } = frame;
+    if (typeof turnId !== 'string') return true;
+    const turn = this.turns.get(turnId);
+    if (!turn || turn.order < this.newestRepliedTurnOrder) return false;
+    if (typeof replySeq === 'number') {
+      if (turn.applied.has(replySeq)) return false;
+      turn.applied.add(replySeq);
+    }
+    this.newestRepliedTurnOrder = turn.order;
+    return true;
+  }
+
   private handleMessage(event: MessageEvent): void {
-    this.clearResponseTimer();
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
-      this.onTypingHandler?.(false);
       const directAction = this.extractActionPayload(payload);
+      // Dropped before touching the timer or typing state: the awaited turn is
+      // still in flight.
+      if (directAction && !this.acceptTurnFrame(directAction)) {
+        return;
+      }
+      // A late frame for an earlier turn is still delivered, but must not touch
+      // the awaited turn's timeout net or thinking indicator.
+      const forCurrentTurn =
+        typeof directAction?.turnId !== 'string' || directAction.turnId === this.currentTurnId;
+      if (forCurrentTurn) this.clearResponseTimer();
+
+      // A 'progress' frame is an intermediate keep-alive emitted DURING a
+      // long generation — it is NOT the reply. Keep the "thinking…"
+      // indicator on for the whole run and re-arm the response-timeout
+      // safety net for the actual reply. Clearing typing on every frame hid
+      // the loading indicator after the first progress update and made the
+      // socket look idle. Keeping isGenerating true also blocks a concurrent send
+      // while a generation is still in flight.
+      if (directAction && directAction.action === 'progress') {
+        if (forCurrentTurn) this.startResponseTimer();
+        this.emitAction(directAction);
+        return;
+      }
+
+      if (forCurrentTurn) this.emitTyping(false);
       if (directAction) {
+        // A terminal reply (anything but a 'progress' keep-alive, handled above)
+        // concludes the turn — stop awaiting so we don't request a replay. A
+        // stamped reply concludes only its own turn, and a stamped stream only at
+        // stream_done (the agent replays a stream's stream_done). Unstamped
+        // stream_start still concludes it: an older agent's replay would re-send
+        // the previous turn's reply.
+        const stamped = typeof directAction.turnId === 'string';
+        const midStream = directAction.action === 'stream_start' || directAction.action === 'stream_chunk';
+        if (!stamped || (directAction.turnId === this.currentTurnId && !midStream)) {
+          this.awaitingResponse = false;
+        }
         if (isInjectionCommand(directAction)) {
-          this.onInjectionHandler?.({
+          this.emitInjection({
             ...directAction,
             message:
               typeof directAction.message === 'string'
                 ? directAction.message
                 : payload.message && typeof payload.message === 'string'
                   ? payload.message
-                  : 'Applied assistant update.',
+                  : INJECTION_FALLBACK_MESSAGE,
           });
           // Don't fire the action handler for injection commands —
           // they are fully processed by the injection handler above.
           // Firing both would enqueue duplicate tasks in the drawer.
         } else {
-          this.onActionHandler?.(directAction);
+          this.emitAction(directAction);
         }
 
         if (directAction.action === 'assistant_message' && typeof directAction.message === 'string') {
@@ -631,7 +1086,7 @@ export class AssistantClient {
             timestamp: new Date(),
             diagramType: typeof directAction.diagramType === 'string' ? directAction.diagramType : payload.diagramType,
           };
-          this.onMessageHandler?.(chatMessage);        
+          this.emitMessage(chatMessage);        
         }
         return;
       }
@@ -645,8 +1100,9 @@ export class AssistantClient {
         timestamp: new Date(),
         diagramType: payload.diagramType,
       };
-      this.onMessageHandler?.(chatMessage);
+      this.emitMessage(chatMessage);
     } catch (error) {
+      this.clearResponseTimer();
       const rawData = typeof event.data === 'string' ? event.data : '';
       const protocolError = new ProtocolError(
         'Failed to parse assistant WebSocket message',
@@ -655,6 +1111,7 @@ export class AssistantClient {
         { cause: error instanceof Error ? error : undefined },
       );
       console.error('Error parsing assistant websocket message', protocolError);
+      track('assistant_client_error', { kind: 'protocol' });
       // Surface parse failures as a chat message so the user knows something went wrong
       const chatMessage: ChatMessage = {
         id: createMessageId(),
@@ -663,7 +1120,7 @@ export class AssistantClient {
         isUser: false,
         timestamp: new Date(),
       };
-      this.onMessageHandler?.(chatMessage);
+      this.emitMessage(chatMessage);
     }
   }
 
@@ -681,19 +1138,23 @@ export class AssistantClient {
     }
 
     const message = payload.message.trim();
-    const candidates: string[] = [];
 
-    const strategies: Array<{ label: string; value: string }> = [];
+    // ``trusted`` = the WHOLE reply is the action envelope (the legitimate
+    // delivery channel). ``fenced-code-block`` / ``embedded-json-search``
+    // scrape an action object out of surrounding prose — that is the
+    // prompt-injection surface, so side-effect actions found that way are
+    // rejected below.
+    const strategies: Array<{ label: string; value: string; trusted: boolean }> = [];
 
     const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
     let match: RegExpExecArray | null;
     while ((match = fenceRegex.exec(message)) !== null) {
       if (match[1]) {
-        strategies.push({ label: 'fenced-code-block', value: match[1].trim() });
+        strategies.push({ label: 'fenced-code-block', value: match[1].trim(), trusted: false });
       }
     }
     if (message.startsWith('{') && message.endsWith('}')) {
-      strategies.push({ label: 'raw-json-object', value: message });
+      strategies.push({ label: 'raw-json-object', value: message, trusted: true });
     }
 
     // Also try to find a JSON object anywhere in the message (handles
@@ -701,16 +1162,27 @@ export class AssistantClient {
     if (strategies.length === 0) {
       const jsonMatch = message.match(/\{[\s\S]*"action"\s*:\s*"[^"]+[\s\S]*\}/);
       if (jsonMatch) {
-        strategies.push({ label: 'embedded-json-search', value: jsonMatch[0] });
+        strategies.push({ label: 'embedded-json-search', value: jsonMatch[0], trusted: false });
       }
     }
 
-    for (const { label, value } of strategies) {
+    for (const { label, value, trusted } of strategies) {
       try {
         const parsed = JSON.parse(value);
-        if (isActionPayload(parsed)) {
-          return parsed;
+        if (!isActionPayload(parsed)) {
+          continue;
         }
+        // A side-effect action (model mutation / paid run) mined from prose
+        // is not honoured — only benign actions (assistant_message, etc.)
+        // may come from a scraped strategy. Blocks prompt-injected commands.
+        if (!trusted && isSideEffectAction(parsed)) {
+          console.warn(
+            `[AssistantClient] Ignoring side-effect action "${(parsed as { action: string }).action}" ` +
+              `scraped from prose via "${label}". Side-effect actions must be the whole structured reply.`,
+          );
+          continue;
+        }
+        return parsed;
       } catch (parseError) {
         console.debug(`[AssistantClient] extractActionPayload: strategy "${label}" failed to parse`, parseError);
         // Keep searching remaining strategies.
@@ -721,35 +1193,114 @@ export class AssistantClient {
   }
 
   private attemptReconnect(): void {
-    if (!this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts || this.reconnectTimeout) {
+    if (!this.shouldReconnect || this.reconnectTimeout) {
       return;
     }
     this.reconnectAttempts += 1;
-    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+    // The socket's error handler schedules the next attempt before this one's
+    // catch runs, so the counter has moved on by then.
+    const attempt = this.reconnectAttempts;
+    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, attempt - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
-      this.connect().catch((error) => console.error('Assistant reconnect failed', error));
+      this.connect().catch((error) => {
+        console.error('Assistant reconnect failed', error);
+        if (attempt <= this.trackedReconnectFailures) {
+          track('assistant_connection', { state: 'reconnect_failed', attempt });
+        }
+      });
     }, delay);
   }
 
-  private startResponseTimer(): void {
+  private startResponseTimer(fresh = true): void {
     this.clearResponseTimer();
-    this.responseTimeout = setTimeout(() => {
-      this.onTypingHandler?.(false);
-      this.onMessageHandler?.({
+    if (fresh) {
+      this.responseStartedAt = Date.now();
+      this.responseSoftNoticeShown = false;
+    }
+    this.responseTimeout = setTimeout(() => this.onResponseTick(), this.responseSoftNoticeMs);
+  }
+
+  private onResponseTick(): void {
+    const elapsed = Date.now() - this.responseStartedAt;
+    if (elapsed >= this.responseHardTimeoutMs) {
+      // Stop the loading indicator so the user can carry on, but don't call it
+      // a failure: the request is not cancelled (the socket has no cancel), so
+      // its reply can still arrive and be applied (BESSER#744).
+      track('assistant_client_error', { kind: 'timeout' });
+      this.emitTyping(false);
+      this.emitMessage({
         id: createMessageId(),
         action: 'agent_error',
-        message: 'The assistant is taking too long to respond. Please try again.',
+        message: RESPONSE_STILL_RUNNING_MESSAGE,
         isUser: false,
         timestamp: new Date(),
       });
-    }, this.responseTimeoutMs);
+      return;
+    }
+    // Still within tolerance: the request is in flight, just slow (a full
+    // system on a stronger model takes longer). Reassure ONCE, keep the
+    // loading indicator on, and keep waiting — do NOT surface a failure.
+    if (!this.responseSoftNoticeShown) {
+      this.responseSoftNoticeShown = true;
+      this.emitMessage({
+        id: createMessageId(),
+        action: 'assistant_message',
+        message:
+          'Still working on this — generating a full system can take a couple of minutes with the current model. Hang tight…',
+        isUser: false,
+        timestamp: new Date(),
+      });
+    }
+    this.startResponseTimer(false); // re-arm without resetting the clock
   }
 
   private clearResponseTimer(): void {
     if (this.responseTimeout) {
       clearTimeout(this.responseTimeout);
       this.responseTimeout = null;
+    }
+  }
+
+  /**
+   * Application-level keep-alive. Browsers don't expose WebSocket ping frames,
+   * so a silent socket gets reaped by proxy idle timeouts (and the server's
+   * ping_timeout) within ~20s. When that happens mid-generation the agent's
+   * reply slot goes stale and the result is silently dropped -- the user sees
+   * "thinking... generating..." then nothing.
+   *
+   * We send a lightweight `user_set_variable` heartbeat (an action the agent
+   * already handles, no LLM trigger) every 15s. It keeps the socket warm AND
+   * lets the agent re-claim its reply slot for this live connection, so a
+   * result produced 40s+ later still routes back here. Fires once immediately
+   * on (re)connect so the slot is claimed without waiting a full interval.
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    const beat = (): void => {
+      if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      try {
+        this.ws.send(
+          JSON.stringify({
+            action: 'user_set_variable',
+            user_id: this.sessionId,
+            message: { __heartbeat: Date.now() },
+          }),
+        );
+      } catch {
+        // best-effort -- a failed beat just means the socket is already gone
+      }
+    };
+    beat();
+    this.heartbeatTimer = setInterval(beat, this.heartbeatMs);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 
@@ -801,9 +1352,9 @@ export class AssistantClient {
 
       try {
         if (item.kind === 'voice') {
-          this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.context));
+          this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.context, item.clientMode));
         } else {
-          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.context, item.attachments));
+          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.context, item.attachments, item.clientMode));
         }
       } catch {
         // Re-queue on failure (with dedup) so it's retried on next reconnect.
@@ -819,6 +1370,40 @@ export class AssistantClient {
 
     drainNext();
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared singleton                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One AssistantClient per browser tab, shared by the floating widget AND the
+ * workspace drawer. Each surface used to create its own client → two
+ * WebSockets carrying the SAME session id, which collided in BAF's reply
+ * routing. A single shared client = one socket, one (unique) session id, and
+ * both surfaces render the same conversation via the multi-subscriber handlers
+ * above. Each mounted surface should call setContextProvider() to keep the
+ * workspace context pointed at its live state, and register handlers with the
+ * returned unsubscribe (removed on its own unmount).
+ */
+let _sharedAssistantClient: AssistantClient | null = null;
+
+export function getSharedAssistantClient(
+  url?: string,
+  options?: AssistantClientOptions,
+): AssistantClient {
+  if (!_sharedAssistantClient) {
+    const client = new AssistantClient(url, options);
+    _sharedAssistantClient = client;
+    // A key saved in a dialog that has no client (the chat link, Settings)
+    // reaches the open connection at once instead of on the next reconnect.
+    window.addEventListener(LLM_KEY_ARM_EVENT, (event) => {
+      const request = (event as CustomEvent<LlmKeyArmRequest>).detail;
+      const status = client.rearmUserApiKey();
+      if (request) request.result = status === 'sent' ? 'sent' : 'error';
+    });
+  }
+  return _sharedAssistantClient;
 }
 
 export type {

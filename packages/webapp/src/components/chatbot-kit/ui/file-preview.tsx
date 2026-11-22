@@ -3,6 +3,8 @@ import { motion } from "framer-motion"
 import { FileIcon, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
+import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
+
 interface FilePreviewProps {
   file: File
   onRemove?: () => void
@@ -30,6 +32,7 @@ FilePreview.displayName = "FilePreview"
 const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   ({ file, onRemove }, ref) => {
     const { t } = useTranslation()
+    const objectUrl = useObjectUrl(file)
     return (
       <motion.div
         ref={ref}
@@ -43,7 +46,7 @@ const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
           <img
             alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
             className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted object-cover"
-            src={URL.createObjectURL(file)}
+            src={objectUrl ?? undefined}
           />
           <span className="w-full truncate text-muted-foreground">
             {file.name}

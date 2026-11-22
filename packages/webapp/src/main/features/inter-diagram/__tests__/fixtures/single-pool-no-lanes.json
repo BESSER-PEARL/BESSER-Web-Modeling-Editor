@@ -1,0 +1,17 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 800, "height": 600 },
+  "elements": {
+    "pool-1": {
+      "id": "pool-1",
+      "name": "Empty Pool",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 600, "height": 200 }
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {},
+  "assessments": {}
+}

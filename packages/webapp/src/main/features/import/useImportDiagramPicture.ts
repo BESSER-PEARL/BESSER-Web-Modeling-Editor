@@ -1,13 +1,15 @@
 // Import diagram from image using backend API
-import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { getJsonModelFromImage } from '../../shared/api/conversion';
+import { ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
+import { MODEL_GENERATORS, recordDiagramCreated, recordDiagramDeleted } from '../../shared/traceability/traceStore';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
 
 // Hook to import diagram from image file and API key
@@ -17,10 +19,6 @@ export const useImportDiagramPictureFromImage = () => {
 
   const importDiagramFromImage = useCallback(async (file: File, apiKey: string) => {
     try {
-      const formData = new FormData();
-      formData.append('image_file', file);
-      formData.append('api_key', apiKey);
-
       // If the active ClassDiagram already has elements, send it so the backend
       // merges the image into it instead of replacing.
       const currentForMerge = ProjectStorageRepository.getCurrentProject();
@@ -30,27 +28,21 @@ export const useImportDiagramPictureFromImage = () => {
         Math.min(classActiveIndex, Math.max(classDiagramsForMerge.length - 1, 0))
       ];
       const activeClassElements = (activeClassDiagram as any)?.model?.elements;
-      if (activeClassElements && Object.keys(activeClassElements).length > 0) {
-        formData.append('existing_model', JSON.stringify({
-          title: activeClassDiagram.title,
-          model: (activeClassDiagram as any).model,
-        }));
-      }
+      const existingModel =
+        activeClassElements && Object.keys(activeClassElements).length > 0
+          ? { title: activeClassDiagram.title, model: (activeClassDiagram as any).model }
+          : undefined;
 
-      const response = await fetch(`${BACKEND_URL}/get-json-model-from-image`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
-        const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
+      let data;
+      try {
+        data = await getJsonModelFromImage(file, apiKey, existingModel);
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        const errorMsg = error.detail || `HTTP error! status: ${error.status}`;
+        reportError(errorMsg);
         throw new Error(errorMsg);
       }
-
-      const data = await response.json();
-      if (!data || !data.model || !data.model.type) {
+      if (!isUMLModel(data.model)) {
         throw new Error(t('import.errors.invalidFromBackend'));
       }
 
@@ -66,7 +58,7 @@ export const useImportDiagramPictureFromImage = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || t('import.descriptions.importedFromImage', { diagramType }),
+        description: t('import.descriptions.importedFromImage', { diagramType }),
       };
 
       // Update the active diagram in the array (preserving the array structure)
@@ -76,7 +68,7 @@ export const useImportDiagramPictureFromImage = () => {
       const newDiagram = {
         id: newId,
         title: importedDiagram.title,
-        model: importedDiagram.model,
+        model: data.model,
         lastUpdate: importedDiagram.lastUpdate,
         description: importedDiagram.description,
       };
@@ -97,6 +89,10 @@ export const useImportDiagramPictureFromImage = () => {
 
       // Save to localStorage and reload the project into Redux to keep them in sync
       ProjectStorageRepository.saveProject(updatedProject);
+      // The picture's diagram replaces the active one: the import created it (an LLM read the picture server-side).
+      const replaced = existingDiagrams[Math.min(activeIndex, existingDiagrams.length - 1)];
+      if (replaced) recordDiagramDeleted(updatedProject, replaced.id, replaced.title);
+      recordDiagramCreated(updatedProject, diagramType, newDiagram, { generator: MODEL_GENERATORS.pictureImport });
       await dispatch(loadProjectThunk(currentProject.id));
 
       return {

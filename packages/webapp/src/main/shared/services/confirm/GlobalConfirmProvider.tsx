@@ -14,6 +14,7 @@ const defaultState: DialogState = {
   confirmLabel: 'Confirm',
   cancelLabel: 'Cancel',
   variant: 'default',
+  alert: false,
 };
 
 /**
@@ -28,14 +29,28 @@ export const GlobalConfirmProvider: React.FC = () => {
 
   const handleRequest = useCallback((options: GlobalConfirmOptions): Promise<boolean> => {
     return new Promise<boolean>((resolve) => {
+      // One dialog at a time: a newer request cancels the open one instead of
+      // leaving its caller waiting forever.
+      resolveRef.current?.(false);
       resolveRef.current = resolve;
+      if (options.signal) {
+        const cancel = () => {
+          if (resolveRef.current !== resolve) return;
+          resolveRef.current = null;
+          setState(defaultState);
+          resolve(false);
+        };
+        if (options.signal.aborted) return cancel();
+        options.signal.addEventListener('abort', cancel, { once: true });
+      }
       setState({
         open: true,
         title: options.title,
         description: options.description,
-        confirmLabel: options.confirmLabel ?? t('common.confirm'),
+        confirmLabel: options.confirmLabel ?? t(options.alert ? 'common.ok' : 'common.confirm'),
         cancelLabel: options.cancelLabel ?? t('common.cancel'),
         variant: options.variant ?? 'default',
+        alert: options.alert ?? false,
       });
     });
   }, [t]);
@@ -65,6 +80,7 @@ export const GlobalConfirmProvider: React.FC = () => {
       confirmLabel={state.confirmLabel}
       cancelLabel={state.cancelLabel}
       variant={state.variant}
+      hideCancel={state.alert}
       onConfirm={handleConfirm}
       onCancel={handleCancel}
     />

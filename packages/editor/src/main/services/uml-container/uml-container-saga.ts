@@ -1,6 +1,7 @@
 import { SagaIterator } from 'redux-saga';
 import { call, delay, getContext, put, race, select, take } from 'redux-saga/effects';
 import { ModelState } from '../../components/store/model-state';
+import { UMLDiagramType } from '../../packages/diagram-type';
 import { UMLElementType } from '../../packages/uml-element-type';
 import { UMLElements } from '../../packages/uml-elements';
 import { run } from '../../utils/actions/sagas';
@@ -90,6 +91,11 @@ function* revertOnSiblingOverlap(): SagaIterator {
   yield delay(16);
 
   const { elements, diagram }: ModelState = yield select();
+  // Only BPMN snaps a moved element back off its siblings; other diagrams allow overlaps.
+  if (diagram.type !== UMLDiagramType.BPMN) {
+    endAction.payload.ids.forEach((id) => delete moveBoundsCache[id]);
+    return;
+  }
   const ownersToRerender: string[] = [];
   const revertedIds: string[] = [];
 

@@ -82,7 +82,7 @@ export abstract class LSTMAttribute extends NNComponentAttribute implements ILST
 export class NameAttributeLSTM extends LSTMAttribute {
   type: UMLElementType = NNElementType.NameAttributeLSTM;
   constructor(values?: DeepPartial<ILSTMAttribute>) {
-    super({ attributeName: 'name', value: 'LSTM_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'lstm_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -162,6 +162,98 @@ export class InputReusedAttributeLSTM extends LSTMAttribute {
   constructor(values?: DeepPartial<ILSTMAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class BiasAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.BiasAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'bias', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HxSourceAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.HxSourceAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'hx_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenStateVarAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.HiddenStateVarAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'hidden_state_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class CellStateVarAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.CellStateVarAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'cell_state_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenUnusedAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.HiddenUnusedAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'hidden_unused', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class CellUnusedAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.CellUnusedAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'cell_unused', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptSourceAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptSourceAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'hidden_subscript_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptTargetAttributeLSTM extends LSTMAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptTargetAttributeLSTM;
+  constructor(values?: DeepPartial<ILSTMAttribute>) {
+    super({ attributeName: 'hidden_subscript_target', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

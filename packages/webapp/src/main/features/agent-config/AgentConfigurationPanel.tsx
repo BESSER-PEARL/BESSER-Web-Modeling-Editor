@@ -1,32 +1,399 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import {
+  UMLDiagramType,
+  UMLModel,
+  diagramBridge,
+  AGENT_LLM_PROVIDERS,
+  canonicalizeAgentLLMProvider,
+} from '@besser/wme';
+import type { AgentLLMProviderType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { reportError } from '../../shared/services/errors/reportError';
+import { elapsedMs, track, trackFailure } from '../../shared/services/analytics/events';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ApiError } from '../../shared/api/api-client';
+import { transformAgentModelJson } from '../../shared/api/conversion';
+import { keepRuntimeConfig, normalizeStoredPlatform } from './runtimeConfigKeys';
+import { recommendAgentConfigLlm, recommendAgentConfigMapping } from '../../shared/api/generation';
 import { useAppDispatch } from '../../app/store/hooks';
-import { bumpEditorRevision, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
+import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import {
   LocalStorageRepository,
   AgentRuntimeConfig,
   DEFAULT_AGENT_RUNTIME_CONFIG,
 } from '../../shared/services/storage/local-storage-repository';
 import type {
+  StoredAgentConfiguration,
+  StoredUserProfile,
+} from '../../shared/services/storage/local-storage-types';
+import type {
+  AgentConfigurationPayload,
+  AgentLLMConfiguration,
+  AgentLLMNameConfiguration,
+  AgentLLMProvider,
+  AgentLanguageComplexity,
+  AgentSentenceLength,
   IntentRecognitionTechnology,
+  InterfaceStyleSetting,
+  VoiceStyleSetting,
 } from '../../shared/types/agent-config';
 import { isUMLModel, getActiveDiagram } from '../../shared/types/project';
+import type { ProjectDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
+import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import { useGitHubAuth } from '../../shared/hooks/useGitHubAuth';
+import {
+  type AgentModelVariantSnapshot,
+  getActiveAgentVariantId,
+  readAgentVariants,
+  removeConfigurationVariantsFromProject,
+  upsertVariantForProfile,
+} from '../../shared/services/agent-variants/agent-variants-service';
+import { AgentRuntimePanel } from './AgentRuntimePanel';
+import { OptionSelect } from './runtime/runtimeFields';
+
+type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
+
+type MappingMatchedRule = {
+  id?: string;
+  label?: string;
+  summary?: string;
+  priority?: number;
+  evidence?: string[];
+};
+
+type MappingRecommendationSignals = {
+  age: number | null;
+  detectedLanguages: string[];
+  isMultilingual: boolean;
+};
+
+
+// Feature flag — hides agent configuration fields whose runtime support
+// isn't fully wired up yet (voice gender/speed, avatar upload, response
+// timing). Flip to ``true`` to re-expose them in the UI; the underlying
+// state + serialization are intentionally kept so turning this back on is
+// a one-line change.
+const SHOW_WIP_AGENT_CONFIG_FIELDS = false;
+
+const baseTextModality = ['text'];
+const speechEnabledModality = ['text', 'speech'];
+
+const defaultInterfaceStyle: InterfaceStyleSetting = {
+  size: 16,
+  font: 'sans',
+  lineSpacing: 1.5,
+  alignment: 'left',
+  color: 'var(--apollon-primary-contrast)',
+  contrast: 'medium',
+};
+
+const defaultVoiceStyle: VoiceStyleSetting = {
+  gender: 'male',
+  speed: 1,
+};
+
+const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'];
+
+const INTERFACE_SIZE_MIN = 10;
+const INTERFACE_SIZE_MAX = 32;
+const INTERFACE_LINE_SPACING_MIN = 1;
+const INTERFACE_LINE_SPACING_MAX = 3;
+
+type InterfaceColorOption = {
+  value: string;
+  key: string;
+  swatch: string;
+};
+
+const interfaceColorOptions: InterfaceColorOption[] = [
+  {
+    value: 'var(--apollon-primary-contrast)',
+    key: 'default',
+    swatch: 'var(--apollon-primary-contrast)',
+  },
+  {
+    value: '#000000',
+    key: 'black',
+    swatch: '#000000',
+  },
+  {
+    value: '#1f2937',
+    key: 'darkSlate',
+    swatch: '#1f2937',
+  },
+  {
+    value: '#475569',
+    key: 'slate',
+    swatch: '#475569',
+  },
+  {
+    value: '#1d4ed8',
+    key: 'blue',
+    swatch: '#1d4ed8',
+  },
+  {
+    value: '#0f766e',
+    key: 'teal',
+    swatch: '#0f766e',
+  },
+  {
+    value: '#ffffff',
+    key: 'white',
+    swatch: '#ffffff',
+  },
+];
+
+/**
+ * The configuration's enum choices for analytics; never its names, profile or model. A loaded
+ * or uploaded config holds whatever its file says, so only known option values are sent.
+ */
+const AGENT_PLATFORMS = new Set(['streamlit', 'websocket', 'telegram']);
+const INTENT_TECHNOLOGIES = new Set<string>(['classical', 'llm-based']);
+const LANGUAGE_NAME = /^[a-z]{2,20}$/;
+const AGENT_PROVIDERS = new Set<string>(AGENT_LLM_PROVIDERS);
+const knownOnly = (value: unknown, allowed: ReadonlySet<string> | RegExp): string | undefined =>
+  typeof value === 'string' && (allowed instanceof RegExp ? allowed.test(value) : allowed.has(value)) ? value : undefined;
+
+const agentConfigProperties = (config: {
+  agentPlatform?: string;
+  agentLanguage?: string;
+  intentRecognitionTechnology?: string;
+  llm?: object;
+}) => ({
+  agent_platform: knownOnly(config.agentPlatform, AGENT_PLATFORMS),
+  agent_language: knownOnly(config.agentLanguage, LANGUAGE_NAME),
+  intent_recognition: knownOnly(config.intentRecognitionTechnology, INTENT_TECHNOLOGIES),
+  llm_provider: knownOnly(config.llm && 'provider' in config.llm ? config.llm.provider : undefined, AGENT_PROVIDERS),
+});
+
+const createDefaultConfig = (): AgentConfigurationPayload => ({
+  agentLanguage: 'original',
+  inputModalities: [...baseTextModality],
+  outputModalities: [...baseTextModality],
+  agentPlatform: 'streamlit',
+  responseTiming: 'instant',
+  agentStyle: 'original',
+  llm: {'provider': 'openai', 'model': 'gpt-5'},
+  languageComplexity: 'original',
+  sentenceLength: 'original',
+  interfaceStyle: { ...defaultInterfaceStyle },
+  voiceStyle: { ...defaultVoiceStyle },
+  avatar: null,
+  useAbbreviations: false,
+  adaptContentToUserProfile: false,
+  userProfileName: null,
+  intentRecognitionTechnology: 'llm-based',
+});
+
+const normalizeAgentLanguage = (value?: string): string => {
+  if (!value || value === 'none') {
+    return 'original';
+  }
+  return value;
+};
+
+const normalizeModalityList = (value?: string[]): string[] =>
+  Array.isArray(value) && value.includes('speech') ? [...speechEnabledModality] : [...baseTextModality];
+
+const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => ({
+  ...defaultInterfaceStyle,
+  ...(value || {}),
+});
+
+const normalizeVoiceStyle = (value?: VoiceStyleSetting): VoiceStyleSetting => ({
+  ...defaultVoiceStyle,
+  ...(value || {}),
+});
+
+const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & Record<string, any>): AgentConfigurationPayload => {
+  if (!raw) {
+    return createDefaultConfig();
+  }
+
+  let llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never> = {};
+  if (raw.llm && typeof raw.llm === 'object') {
+    const llmRaw = raw.llm as Partial<AgentLLMNameConfiguration & AgentLLMConfiguration>;
+    const name = typeof llmRaw.name === 'string' ? llmRaw.name : '';
+    if (name) {
+      llm = { name };
+    } else {
+      const provider = (llmRaw.provider ?? '') as AgentLLMProvider;
+      const model = (llmRaw.model ?? '') as string;
+      if (provider) {
+        llm = { provider, model };
+      }
+    }
+  }
+
+  const intentRecognitionTechnology: IntentRecognitionTechnology = raw.intentRecognitionTechnology === 'llm-based'
+    ? 'llm-based'
+    : 'classical';
+
+  const normalizedProfileName = typeof raw.userProfileName === 'string' ? raw.userProfileName.trim() : '';
+
+  return {
+    agentLanguage: normalizeAgentLanguage(raw.agentLanguage),
+    inputModalities: normalizeModalityList(raw.inputModalities),
+    outputModalities: normalizeModalityList(raw.outputModalities),
+    agentPlatform: raw.agentPlatform || 'streamlit',
+    responseTiming: raw.responseTiming || 'instant',
+    agentStyle: raw.agentStyle || 'original',
+    llm,
+    languageComplexity: (raw.languageComplexity as AgentLanguageComplexity) || 'original',
+    sentenceLength: (raw.sentenceLength as AgentSentenceLength) || 'original',
+    interfaceStyle: normalizeInterfaceStyle(raw.interfaceStyle),
+    voiceStyle: normalizeVoiceStyle(raw.voiceStyle),
+    avatar: raw.avatar || null,
+    useAbbreviations: raw.useAbbreviations ?? false,
+    adaptContentToUserProfile: Boolean(raw.adaptContentToUserProfile),
+    userProfileName: normalizedProfileName || null,
+    intentRecognitionTechnology,
+  };
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const areArraysEqual = (left: unknown[], right: unknown[]): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((value, index) => deepEqual(value, right[index]));
+};
+
+const deepEqual = (left: unknown, right: unknown): boolean => {
+  if (left === right) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return areArraysEqual(left, right);
+  }
+
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+
+    if (leftKeys.length !== rightKeys.length) {
+      return false;
+    }
+
+    return leftKeys.every((key) => deepEqual(left[key], right[key]));
+  }
+
+  return false;
+};
+
+const hasLLMConfiguration = (
+  value: AgentConfigurationPayload['llm'],
+): value is AgentLLMNameConfiguration | AgentLLMConfiguration =>
+  ('name' in value && Boolean((value as AgentLLMNameConfiguration).name)) ||
+  ('provider' in value && Boolean((value as AgentLLMConfiguration).provider));
+
+const buildSparseGenerationConfig = (config: AgentConfigurationPayload): Partial<AgentConfigurationPayload> => {
+  const defaults = createDefaultConfig();
+  const normalizedConfig: AgentConfigurationPayload = {
+    ...config,
+    agentLanguage: normalizeAgentLanguage(config.agentLanguage),
+    inputModalities: normalizeModalityList(config.inputModalities),
+    outputModalities: normalizeModalityList(config.outputModalities),
+    llm: hasLLMConfiguration(config.llm) ? config.llm : {},
+  };
+
+  const sparseConfig: Partial<AgentConfigurationPayload> = {};
+  const configKeys = Object.keys(normalizedConfig) as Array<keyof AgentConfigurationPayload>;
+
+  configKeys.forEach(<K extends keyof AgentConfigurationPayload>(key: K) => {
+    if (!deepEqual(normalizedConfig[key], defaults[key])) {
+      sparseConfig[key] = normalizedConfig[key];
+    }
+  });
+
+  return sparseConfig;
+};
+
+const buildStructuredExport = (config: AgentConfigurationPayload) => ({
+  presentation: {
+    agentLanguage: config.agentLanguage,
+    agentStyle: config.agentStyle,
+    languageComplexity: config.languageComplexity,
+    sentenceLength: config.sentenceLength,
+    interfaceStyle: config.interfaceStyle,
+    voiceStyle: config.voiceStyle,
+    avatar: config.avatar,
+    useAbbreviations: config.useAbbreviations,
+  },
+  modality: {
+    inputModalities: config.inputModalities,
+    outputModalities: config.outputModalities,
+  },
+  behavior: {
+    responseTiming: config.responseTiming,
+  },
+  content: {
+    adaptContentToUserProfile: config.adaptContentToUserProfile,
+    userProfileName: config.userProfileName,
+  },
+  system: {
+    agentPlatform: config.agentPlatform,
+    intentRecognitionTechnology: config.intentRecognitionTechnology,
+    llm: config.llm,
+  },
+});
+
+const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> => {
+  if (!raw || typeof raw !== 'object') {
+    return raw || {};
+  }
+
+  const structuredKeys = ['presentation', 'modality', 'behavior', 'content', 'system'];
+  const isStructured = structuredKeys.some((key) => key in raw);
+  if (!isStructured) {
+    return raw;
+  }
+
+  const presentation = raw.presentation || {};
+  const modality = raw.modality || {};
+  const behavior = raw.behavior || {};
+  const content = raw.content || {};
+  const system = raw.system || {};
+
+  return {
+    agentLanguage: presentation.agentLanguage,
+    agentStyle: presentation.agentStyle,
+    languageComplexity: presentation.languageComplexity,
+    sentenceLength: presentation.sentenceLength,
+    interfaceStyle: presentation.interfaceStyle,
+    voiceStyle: presentation.voiceStyle,
+    avatar: presentation.avatar,
+    useAbbreviations: presentation.useAbbreviations,
+    inputModalities: modality.inputModalities,
+    outputModalities: modality.outputModalities,
+    responseTiming: behavior.responseTiming,
+    adaptContentToUserProfile: content.adaptContentToUserProfile,
+    userProfileName: content.userProfileName,
+    agentPlatform: system.agentPlatform,
+    intentRecognitionTechnology: system.intentRecognitionTechnology,
+    llm: system.llm,
+  };
+};
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
+/** Provider on a diagram AgentLLM element. Canonical keys only — see canonicalizeAgentLLMProvider. */
+export type AgentLLMElementProvider = AgentLLMProviderType;
 
-type AgentLLMElement = {
+export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
@@ -38,13 +405,35 @@ type AgentLLMElement = {
   global_context: string | null;
 };
 
-const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'Hugging Face' },
-  { value: 'huggingface_api', label: 'Hugging Face API' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'ollama', label: 'Ollama (local)' },
+// Display order is deliberately different from AGENT_LLM_PROVIDERS (hosted families
+// first, local/self-hosted last). The Record type below is the completeness guard:
+// adding a provider to the canonical list without a label here fails the build.
+const AGENT_LLM_PROVIDER_LABELS: Record<AgentLLMProviderType, string> = {
+  openai: 'OpenAI',
+  mistral: 'Mistral AI',
+  deepseek: 'DeepSeek',
+  google: 'Google (Gemini)',
+  meta: 'Meta (Llama)',
+  anthropic: 'Anthropic (Claude)',
+  qwen: 'Alibaba Qwen',
+  xai: 'xAI (Grok)',
+  groq: 'Groq',
+  together: 'Together AI',
+  openrouter: 'OpenRouter',
+  huggingface: 'Hugging Face (local)',
+  huggingface_api: 'Hugging Face API',
+  replicate: 'Replicate',
+  ollama: 'Ollama (local)',
+};
+
+const AGENT_LLM_PROVIDER_DISPLAY_ORDER: readonly AgentLLMProviderType[] = [
+  'openai', 'mistral', 'deepseek', 'google', 'meta', 'anthropic', 'qwen',
+  'xai', 'groq', 'together', 'openrouter', 'huggingface', 'huggingface_api',
+  'replicate', 'ollama',
 ];
+
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> =
+  AGENT_LLM_PROVIDER_DISPLAY_ORDER.map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
 
 const generateAgentLLMId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -59,10 +448,10 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
   return candidate.type === 'AgentLLM';
 };
 
-const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
-    ? raw.provider
-    : 'openai') as AgentLLMElementProvider;
+export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  // Accepts legacy spellings and maps them onto the canonical key, so a config
+  // saved before 'huggingface_api' existed is migrated rather than reset.
+  const provider = canonicalizeAgentLLMProvider(raw?.provider);
   const parameters =
     raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
       ? (raw.parameters as Record<string, unknown>)
@@ -130,6 +519,55 @@ const remapLlmReferences = (
   }
 };
 
+const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object'))
+    .map((entry) => ({
+      id: typeof entry.id === 'string' ? entry.id : undefined,
+      label: typeof entry.label === 'string' ? entry.label : undefined,
+      summary: typeof entry.summary === 'string' ? entry.summary : undefined,
+      priority: typeof entry.priority === 'number' ? entry.priority : undefined,
+      evidence: Array.isArray(entry.evidence)
+        ? entry.evidence.filter((value): value is string => typeof value === 'string')
+        : undefined,
+    }));
+};
+
+const toMappingRecommendationSignals = (raw: unknown): MappingRecommendationSignals | null => {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const value = raw as Record<string, unknown>;
+
+  return {
+    age: typeof value.age === 'number' ? value.age : null,
+    detectedLanguages: Array.isArray(value.detectedLanguages)
+      ? value.detectedLanguages.filter((language): language is string => typeof language === 'string')
+      : [],
+    isMultilingual: Boolean(value.isMultilingual),
+  };
+};
+
+const buildUserProfilesFromProjectTabs = (project: ReturnType<typeof useProject>['currentProject']): StoredUserProfile[] => {
+  if (!project) {
+    return [];
+  }
+
+  return project.diagrams.UserDiagram
+    .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+    .map((diagram) => ({
+      id: diagram.id,
+      name: diagram.title,
+      savedAt: diagram.lastUpdate,
+      model: cloneModel(diagram.model as UMLModel),
+    }));
+};
+
 const updateActiveAgentDiagramConfig = (
   project: NonNullable<ReturnType<typeof useProject>['currentProject']>,
   nextConfig: Record<string, unknown>,
@@ -153,6 +591,93 @@ const updateActiveAgentDiagramConfig = (
     ...latestAgentDiagram,
     config: mergedConfig,
   });
+};
+
+const resolveProfileNameFromVariant = (
+  agentDiagram: ProjectDiagram | null | undefined,
+  availableProfiles: StoredUserProfile[],
+): string => {
+  const activeVariantId = getActiveAgentVariantId(agentDiagram);
+  if (!activeVariantId) {
+    return '';
+  }
+
+  const activeVariant = readAgentVariants(agentDiagram).find((entry) => entry.id === activeVariantId);
+  if (!activeVariant) {
+    return '';
+  }
+
+  return availableProfiles.some((profile) => profile.name === activeVariant.profileName)
+    ? activeVariant.profileName
+    : '';
+};
+
+const resolveProfileNameFromMapping = (
+  configurationId: string,
+  availableProfiles: StoredUserProfile[],
+): string => {
+  if (!configurationId) {
+    return '';
+  }
+
+  const mapping = LocalStorageRepository.getAgentProfileConfigurationMappings()
+    .find((entry) => entry.agentConfigurationId === configurationId);
+
+  if (!mapping) {
+    return '';
+  }
+
+  return availableProfiles.some((profile) => profile.name === mapping.userProfileName)
+    ? mapping.userProfileName
+    : '';
+};
+
+
+const loadInitialState = () => {
+  const savedConfigurations = LocalStorageRepository.getAgentConfigurations();
+
+  if (savedConfigurations.length > 0) {
+    const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
+    const active = activeId ? savedConfigurations.find((entry) => entry.id === activeId) : null;
+
+    if (active) {
+      return {
+        config: normalizeAgentConfiguration(active.config),
+        activeId: active.id,
+        activeName: active.name,
+        savedConfigs: savedConfigurations,
+      };
+    }
+
+    return {
+      config: createDefaultConfig(),
+      activeId: null,
+      activeName: '',
+      savedConfigs: savedConfigurations,
+    };
+  }
+
+  try {
+    const stored = LocalStorageRepository.getLegacyAgentConfig();
+    if (stored) {
+      const legacyConfig = JSON.parse(stored) as Partial<AgentConfigurationPayload>;
+      return {
+        config: normalizeAgentConfiguration(legacyConfig),
+        activeId: null,
+        activeName: '',
+        savedConfigs: [],
+      };
+    }
+  } catch {
+    // Ignore corrupted legacy data
+  }
+
+  return {
+    config: createDefaultConfig(),
+    activeId: null,
+    activeName: '',
+    savedConfigs: [],
+  };
 };
 
 type AgentLLMRowProps = {
@@ -222,7 +747,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-medium">{displayName}</span>
           {isDefault && (
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+            <Badge variant="secondary" size="sm">
               {t('agentConfig.row.default')}
             </Badge>
           )}
@@ -243,12 +768,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-provider-${element.id}`}>{t('agentConfig.row.provider')}</Label>
-              <select
+              <OptionSelect
                 id={`agent-llm-provider-${element.id}`}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="transition-colors hover:border-brand/30"
                 value={element.provider}
-                onChange={(event) => {
-                  const newProvider = event.target.value as AgentLLMElementProvider;
+                options={AGENT_LLM_PROVIDER_OPTIONS}
+                onValueChange={(value) => {
+                  const newProvider = value as AgentLLMElementProvider;
                   const updates: Partial<AgentLLMElement> = { provider: newProvider };
                   if (newProvider === 'ollama') {
                     const seeded = {
@@ -262,13 +788,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                   }
                   onChange(element.id, updates);
                 }}
-              >
-                {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-num-prev-${element.id}`}>{t('agentConfig.row.numPrevMessages')}</Label>
@@ -290,7 +810,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
           {element.provider === 'ollama' && (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>{t('agentConfig.row.ollamaBaseUrl')}</Label>
                 <Input
                   id={`agent-llm-ollama-url-${element.id}`}
                   value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
@@ -299,11 +819,11 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>{t('agentConfig.row.ollamaModel')}</Label>
                 <Input
                   id={`agent-llm-ollama-model-${element.id}`}
                   value={(element.parameters.model as string) ?? ''}
-                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  placeholder={t('agentConfig.row.ollamaModelPlaceholder')}
                   onChange={(event) => updateOllamaParam('model', event.target.value)}
                 />
               </div>
@@ -338,7 +858,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-default-${element.id}`}
                 type="radio"
                 name="agent-llm-default-radio"
-                className="h-4 w-4"
+                className="h-4 w-4 cursor-pointer accent-brand"
                 checked={isDefault}
                 onChange={() => onSetDefault(element.id)}
               />
@@ -347,7 +867,16 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemove(element.id)}
+              onClick={async () => {
+                const confirmed = await globalConfirm({
+                  title: t('agentConfig.confirm.removeLlm.title'),
+                  description: t('agentConfig.confirm.removeLlm.description', { name: displayName }),
+                  confirmLabel: t('agentConfig.row.remove'),
+                  cancelLabel: t('common.cancel'),
+                  variant: 'danger',
+                });
+                if (confirmed) onRemove(element.id);
+              }}
               className="text-destructive hover:text-destructive"
             >
               {t('agentConfig.row.remove')}
@@ -362,11 +891,81 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
 export const AgentConfigurationPanel: React.FC = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { currentProject } = useProject();
+  const { githubSession } = useGitHubAuth();
 
-  const [activeTab] = useState<'runtime'>('runtime');
+  const [initialLoad] = useState(loadInitialState);
+  const initialConfig = initialLoad.config;
+  const initialSavedConfigs = initialLoad.savedConfigs;
+  const initialLLMProvider: AgentLLMProvider = 'provider' in initialConfig.llm ? initialConfig.llm.provider : '';
+  const initialLLMModelValue = 'provider' in initialConfig.llm ? initialConfig.llm.model : '';
+  const useCustomModelInitially = Boolean(
+    initialLLMProvider &&
+    initialLLMModelValue &&
+    !knownLLMModels.includes(initialLLMModelValue),
+  );
+
+  const [savedConfigs, setSavedConfigs] = useState<StoredAgentConfiguration[]>(initialSavedConfigs);
+  const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
+  const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
+  const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
+  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || t('agentConfig.save.defaultName'));
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(() => t('agentConfig.loading.preparing'));
+  const [mappingMatchedRules, setMappingMatchedRules] = useState<MappingMatchedRule[]>([]);
+  const [mappingSignals, setMappingSignals] = useState<MappingRecommendationSignals | null>(null);
+
+  const [userProfiles, setUserProfiles] = useState<StoredUserProfile[]>([]);
+  const [selectedUserProfileName, setSelectedUserProfileName] = useState<string>(initialConfig.userProfileName || '');
+
+  const [agentLanguage, setAgentLanguage] = useState(initialConfig.agentLanguage);
+  const [inputModalities, setInputModalities] = useState<string[]>([...initialConfig.inputModalities]);
+  const [outputModalities, setOutputModalities] = useState<string[]>([...initialConfig.outputModalities]);
+  const [agentPlatform, setAgentPlatform] = useState(initialConfig.agentPlatform);
+  const [responseTiming, setResponseTiming] = useState(initialConfig.responseTiming);
+  const [agentStyle, setAgentStyle] = useState(initialConfig.agentStyle);
+  const [llmProvider, setLlmProvider] = useState<AgentLLMProvider>(initialLLMProvider);
+  const [llmModel, setLlmModel] = useState(useCustomModelInitially ? 'other' : initialLLMModelValue);
+  const [customModel, setCustomModel] = useState(useCustomModelInitially ? initialLLMModelValue : '');
+  const [languageComplexity, setLanguageComplexity] = useState<AgentLanguageComplexity>(initialConfig.languageComplexity);
+  const [sentenceLength, setSentenceLength] = useState<AgentSentenceLength>(initialConfig.sentenceLength);
+  const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyleSetting>({ ...initialConfig.interfaceStyle });
+  const [sizeText, setSizeText] = useState<string>(() => String(initialConfig.interfaceStyle.size));
+  const [lineSpacingText, setLineSpacingText] = useState<string>(() => String(initialConfig.interfaceStyle.lineSpacing));
+  const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>({ ...initialConfig.voiceStyle });
+  const [avatarData, setAvatarData] = useState<string | null>(initialConfig.avatar || null);
+  const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
+  const [adaptContentToUserProfile, setAdaptContentToUserProfile] = useState<boolean>(initialConfig.adaptContentToUserProfile);
+  const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(
+    initialConfig.intentRecognitionTechnology,
+  );
+  const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'runtime' | 'personalization'>('runtime');
+
+  // Keep the size text mirror in sync when interfaceStyle.size is changed by something
+  // other than user typing (config load, reset, propose). Only overwrite the user's in-progress
+  // text when the canonical numeric value diverges from what they typed — otherwise typing
+  // "0" or clearing the field would snap back and prevent further editing.
+  useEffect(() => {
+    const parsed = Number(sizeText);
+    if (sizeText !== '' && !Number.isNaN(parsed) && parsed === interfaceStyle.size) return;
+    setSizeText(String(interfaceStyle.size));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interfaceStyle.size]);
+
+  useEffect(() => {
+    const parsed = Number(lineSpacingText);
+    if (lineSpacingText !== '' && !Number.isNaN(parsed) && parsed === interfaceStyle.lineSpacing) return;
+    setLineSpacingText(String(interfaceStyle.lineSpacing));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interfaceStyle.lineSpacing]);
+
+  const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
   const currentAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+  const currentUserDiagram = currentProject ? getActiveDiagram(currentProject, 'UserDiagram') : undefined;
 
   // Agent Runtime config — bound to the active agent diagram's `config` block
   // (`AgentDiagram.config`), NOT to a global localStorage key. Single source of
@@ -378,8 +977,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       ? cfg.agentLlmName
       : (cfg.llm && typeof cfg.llm === 'object' && typeof cfg.llm.name === 'string' ? cfg.llm.name : '');
     return {
-      agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
-      agentPlatformUseStreamlit: cfg.agentPlatformUseStreamlit ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatformUseStreamlit,
+      ...normalizeStoredPlatform(cfg.agentPlatform, cfg.agentPlatformUseStreamlit, DEFAULT_AGENT_RUNTIME_CONFIG),
       intentRecognitionTechnology:
         cfg.intentRecognitionTechnology || DEFAULT_AGENT_RUNTIME_CONFIG.intentRecognitionTechnology,
       agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
@@ -524,6 +1122,14 @@ export const AgentConfigurationPanel: React.FC = () => {
     return null;
   }, [currentAgentDiagram?.model]);
 
+  const currentUserModel = useMemo(() => {
+    const model = currentUserDiagram?.model;
+    if (isUMLModel(model) && model.type === UMLDiagramType.UserDiagram) {
+      return model;
+    }
+    return null;
+  }, [currentUserDiagram?.model]);
+
   const agentLLMElements = useMemo<AgentLLMElement[]>(() => {
     if (!currentAgentModel) return [];
     const elements = currentAgentModel.elements || {};
@@ -539,7 +1145,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         dispatch(bumpEditorRevision());
       } catch (err) {
         console.error('Failed to persist agent diagram update', err);
-        toast.error(t('agentConfig.toasts.persistFailed'));
+        reportError(t('agentConfig.toasts.persistFailed'), { error: err });
       }
     },
     [dispatch, t],
@@ -547,7 +1153,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const handleAddAgentLLM = useCallback(() => {
     if (!currentAgentModel) {
-      toast.error(t('agentConfig.toasts.noActiveDiagram'));
+      reportError(t('agentConfig.toasts.noActiveDiagram'));
       return;
     }
     const nextModel = cloneModel(currentAgentModel);
@@ -555,7 +1161,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     const existingEntries = Object.values(nextModel.elements || {}).filter((entry) => isAgentLLMElement(entry));
     const existingCount = existingEntries.length;
     const offsetY = 40 + existingCount * 110;
-    const newName = 'gpt-6-luna';
+    const newName = 'gpt-4o-mini';
     const newLLM: AgentLLMElement = {
       id,
       type: 'AgentLLM',
@@ -658,7 +1264,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       if (!target || !isAgentLLMElement(target)) return;
       const name = (target as AgentLLMElement).name;
       if (!name) {
-        toast.error(t('agentConfig.toasts.nameBeforeDefault'));
+        reportError(t('agentConfig.toasts.nameBeforeDefault'));
         return;
       }
       updateDefaultLlmName(name);
@@ -666,9 +1272,945 @@ export const AgentConfigurationPanel: React.FC = () => {
     [currentAgentModel, updateDefaultLlmName, t],
   );
 
+  const tabUserProfiles = useMemo(
+    () => buildUserProfilesFromProjectTabs(currentProject),
+    [currentProject],
+  );
+
+  const refreshUserProfiles = useCallback(() => {
+    setUserProfiles(tabUserProfiles);
+    setSelectedUserProfileName((currentName) => {
+      if (!currentName) {
+        return '';
+      }
+      return tabUserProfiles.some((profile) => profile.name === currentName) ? currentName : '';
+    });
+  }, [tabUserProfiles]);
+
+  const refreshSavedConfigurations = useCallback((preferredId?: string) => {
+    const configs = LocalStorageRepository.getAgentConfigurations();
+    setSavedConfigs(configs);
+
+    if (configs.length === 0) {
+      setSelectedConfigId('');
+      setActiveConfigId(null);
+      setActiveConfigName('');
+      return configs;
+    }
+
+    const hasPreferred = Boolean(preferredId && configs.some((entry) => entry.id === preferredId));
+    const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
+    const hasActive = Boolean(activeId && configs.some((entry) => entry.id === activeId));
+
+    if (hasPreferred) {
+      const next = configs.find((entry) => entry.id === preferredId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
+
+    if (hasActive) {
+      const next = configs.find((entry) => entry.id === activeId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
+
+    setSelectedConfigId('');
+    setActiveConfigId(null);
+    setActiveConfigName('');
+    return configs;
+  }, []);
+
+  const applyConfiguration = useCallback((
+    incomingConfig: AgentConfigurationPayload,
+    source?: { id?: string | null; name?: string },
+    options?: { preferredUserProfileName?: string },
+  ) => {
+    const normalized = normalizeAgentConfiguration(incomingConfig);
+    setAgentLanguage(normalized.agentLanguage);
+    setInputModalities([...normalized.inputModalities]);
+    setOutputModalities([...normalized.outputModalities]);
+    setAgentPlatform(normalized.agentPlatform);
+    setResponseTiming(normalized.responseTiming);
+    setAgentStyle(normalized.agentStyle);
+
+    const llmConfig = normalized.llm as Partial<AgentLLMConfiguration & AgentLLMNameConfiguration>;
+    const providerValue = (llmConfig.provider ?? '') as AgentLLMProvider;
+    const modelValue = llmConfig.model ?? '';
+
+    setLlmProvider(providerValue);
+    if (!providerValue || !modelValue) {
+      setLlmModel('');
+      setCustomModel('');
+    } else if (knownLLMModels.includes(modelValue)) {
+      setLlmModel(modelValue);
+      setCustomModel('');
+    } else {
+      setLlmModel('other');
+      setCustomModel(modelValue);
+    }
+
+    setLanguageComplexity(normalized.languageComplexity);
+    setSentenceLength(normalized.sentenceLength);
+    setInterfaceStyle({ ...normalized.interfaceStyle });
+    setVoiceStyle({ ...normalized.voiceStyle });
+    setAvatarData(normalized.avatar || null);
+    setUseAbbreviations(normalized.useAbbreviations);
+    setAdaptContentToUserProfile(normalized.adaptContentToUserProfile);
+    setSelectedUserProfileName(normalized.userProfileName || options?.preferredUserProfileName || '');
+    setIntentRecognitionTechnology(normalized.intentRecognitionTechnology);
+
+    if (source) {
+      const nextId = source.id ?? null;
+      const nextName = source.name ?? '';
+      setActiveConfigId(nextId);
+      setSelectedConfigId(nextId ?? '');
+      setActiveConfigName(nextName);
+      setConfigurationName(nextName || t('agentConfig.save.defaultName'));
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSavedConfigurations();
+    refreshUserProfiles();
+  }, [currentProject, refreshSavedConfigurations, refreshUserProfiles]);
+
+  // The hydration effect below reads these via refs: keying it on the project
+  // object re-applied the stored config on every project write and wiped
+  // unsaved personalization edits.
+  const currentProjectRef = useRef(currentProject);
+  currentProjectRef.current = currentProject;
+  const tabUserProfilesRef = useRef(tabUserProfiles);
+  tabUserProfilesRef.current = tabUserProfiles;
+  const currentAgentDiagramId = currentAgentDiagram?.id;
+
+  useEffect(() => {
+    const currentProject = currentProjectRef.current;
+    const tabUserProfiles = tabUserProfilesRef.current;
+    if (!currentProject) {
+      return;
+    }
+
+    const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
+    const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
+
+    if (diagramConfig && Object.keys(diagramConfig).length > 0) {
+      // Only auto-populate the form from the diagram's stored config when
+      // a saved configuration is currently active. After Save and Apply or
+      // Reset the active id is cleared, and the form intentionally starts
+      // at defaults — the diagram still holds its applied config (and the
+      // personalization variant), but the form is for editing/loading and
+      // should stay blank until the user explicitly loads something.
+      const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
+      if (!activeId) {
+        return;
+      }
+
+      const preferredProfileName = resolveProfileNameFromVariant(agentDiagram, tabUserProfiles)
+        || resolveProfileNameFromMapping(activeId, tabUserProfiles);
+
+      applyConfiguration(normalizeAgentConfiguration(diagramConfig), undefined, {
+        preferredUserProfileName: preferredProfileName,
+      });
+      return;
+    }
+
+    try {
+      const stored = LocalStorageRepository.getLegacyAgentConfig();
+      if (stored) {
+        const legacyConfig = normalizeAgentConfiguration(JSON.parse(stored) as Partial<AgentConfigurationPayload>);
+        applyConfiguration(legacyConfig);
+
+        if (agentDiagram) {
+          ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+            ...agentDiagram,
+            config: legacyConfig as unknown as Record<string, unknown>,
+          });
+        }
+
+        LocalStorageRepository.clearLegacyAgentConfig();
+      }
+    } catch (err) {
+      // Swallow only legacy-payload parse errors; let real failures
+      // (e.g. updateDiagram) propagate.
+      if (!(err instanceof SyntaxError)) {
+        throw err;
+      }
+    }
+  }, [currentProject?.id, currentAgentDiagramId, applyConfiguration]);
+
+  const getConfigObject = useCallback((): AgentConfigurationPayload => {
+    // The runtime tab now drives the LLM choice via `agentLlmName` (a
+    // reference to a defined AgentLLM element). The legacy provider/model
+    // state from the personalization tab is no longer surfaced in the UI but
+    // we keep it around so old loaded configs round-trip until their next
+    // save. Prefer the new `{name}` shape.
+    const resolvedModel = llmModel === 'other' ? customModel.trim() : llmModel;
+    let llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never> = {};
+    if (agentRuntimeConfig.agentLlmName) {
+      llm = { name: agentRuntimeConfig.agentLlmName };
+    } else if (llmProvider && resolvedModel) {
+      llm = { provider: llmProvider, model: resolvedModel };
+    }
+
+    return {
+      agentLanguage: normalizeAgentLanguage(agentLanguage),
+      inputModalities: normalizeModalityList(inputModalities),
+      outputModalities: normalizeModalityList(outputModalities),
+      agentPlatform,
+      responseTiming,
+      agentStyle,
+      llm,
+      languageComplexity,
+      sentenceLength,
+      interfaceStyle: { ...interfaceStyle },
+      voiceStyle: { ...voiceStyle },
+      avatar: avatarData,
+      useAbbreviations,
+      adaptContentToUserProfile,
+      userProfileName: adaptContentToUserProfile ? (selectedUserProfileName.trim() || null) : null,
+      intentRecognitionTechnology,
+    };
+  }, [
+    adaptContentToUserProfile,
+    agentLanguage,
+    agentPlatform,
+    agentRuntimeConfig.agentLlmName,
+    agentStyle,
+    avatarData,
+    customModel,
+    inputModalities,
+    interfaceStyle,
+    intentRecognitionTechnology,
+    languageComplexity,
+    llmModel,
+    llmProvider,
+    outputModalities,
+    responseTiming,
+    selectedUserProfileName,
+    sentenceLength,
+    useAbbreviations,
+    voiceStyle,
+  ]);
+
+  const captureBaseAgentModel = useCallback(() => {
+    if (!currentAgentModel) {
+      return null;
+    }
+    return cloneModel(currentAgentModel);
+  }, [currentAgentModel]);
+
+  const saveConfiguration = useCallback((
+    options?: {
+      captureSnapshot?: boolean;
+      markActive?: boolean;
+      snapshotOverride?: UMLModel | null;
+      originalAgentModel?: UMLModel | null;
+    },
+  ) => {
+    const trimmedName = configurationName.trim();
+    if (!trimmedName) {
+      reportError(t('agentConfig.toasts.nameBeforeSave'));
+      return { ok: false, snapshotCaptured: false } as const;
+    }
+
+    const config = getConfigObject();
+
+    let snapshot: UMLModel | null = null;
+    if (options && 'snapshotOverride' in options && options.snapshotOverride !== undefined) {
+      snapshot = options.snapshotOverride ?? null;
+    } else if (options?.captureSnapshot) {
+      snapshot = captureBaseAgentModel();
+    }
+
+    const personalizedClone = snapshot ? cloneModel(snapshot) : null;
+    const originalClone = options?.originalAgentModel ? cloneModel(options.originalAgentModel) : null;
+
+    try {
+      const savedEntry = LocalStorageRepository.saveAgentConfiguration(trimmedName, config, {
+        personalizedAgentModel: personalizedClone,
+        originalAgentModel: originalClone,
+      });
+
+      if (currentProject) {
+        const diagramConfig: Record<string, unknown> = {
+          ...(config as unknown as Record<string, unknown>),
+        };
+        if (defaultLlmName) {
+          diagramConfig.default_llm_name = defaultLlmName;
+        }
+        // The Runtime tab owns the runtime settings; the form only holds a stale copy.
+        const latestDiagram = getActiveDiagram(
+          ProjectStorageRepository.loadProject(currentProject.id) || currentProject,
+          'AgentDiagram',
+        );
+        updateActiveAgentDiagramConfig(
+          currentProject,
+          keepRuntimeConfig(diagramConfig, (latestDiagram?.config ?? {}) as Record<string, unknown>),
+        );
+      }
+
+      if (options?.markActive) {
+        LocalStorageRepository.setActiveAgentConfigurationId(savedEntry.id);
+      }
+
+      refreshSavedConfigurations(savedEntry.id);
+      setActiveConfigId(savedEntry.id);
+      setActiveConfigName(savedEntry.name);
+      setConfigurationName(savedEntry.name);
+
+      return { ok: true, savedEntry, snapshotCaptured: Boolean(personalizedClone) } as const;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('agentConfig.save.errors.generic');
+      reportError(message, { error });
+      return { ok: false, snapshotCaptured: Boolean(personalizedClone) } as const;
+    }
+  }, [
+    captureBaseAgentModel,
+    configurationName,
+    currentAgentDiagram,
+    currentProject,
+    defaultLlmName,
+    getConfigObject,
+    refreshSavedConfigurations,
+    t,
+  ]);
+
+  // Warn before overwriting an existing configuration that shares this name
+  // with a *different* entry. Editing the currently active config is allowed
+  // silently since the user is updating their own record. Returns false when
+  // the user cancels — callers must abort the save in that case.
+  const confirmOverwriteIfNameCollides = useCallback(async (name: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return true;
+    const lowered = trimmed.toLowerCase();
+    const existing = LocalStorageRepository.getAgentConfigurations()
+      .find((entry) => entry.name.toLowerCase() === lowered);
+    if (!existing || existing.id === activeConfigId) {
+      return true;
+    }
+    return globalConfirm({
+      title: t('agentConfig.confirm.overwrite.title'),
+      description: t('agentConfig.confirm.overwrite.description', { name: existing.name }),
+      confirmLabel: t('agentConfig.confirm.replace'),
+      cancelLabel: t('common.cancel'),
+      variant: 'danger',
+    });
+  }, [activeConfigId, t]);
+
+  // Warn before silently replacing an existing user-profile -> agent-config
+  // mapping. A user profile may only be mapped to a single agent configuration
+  // at a time, so saving a *different*-named config against an already-mapped
+  // profile will discard the prior mapping. Returns false when the user
+  // cancels — callers must abort the save in that case.
+  const confirmOverwriteIfProfileCollides = useCallback(async (
+    profile: { id: string; name: string },
+    newConfigName: string,
+  ): Promise<boolean> => {
+    const trimmed = newConfigName.trim();
+    if (!profile.id || !trimmed) return true;
+    const existingMapping = LocalStorageRepository.getAgentProfileConfigurationMappings()
+      .find((entry) => entry.userProfileId === profile.id);
+    if (!existingMapping) {
+      return true;
+    }
+    if (existingMapping.agentConfigurationName.toLowerCase() === trimmed.toLowerCase()) {
+      return true;
+    }
+    return globalConfirm({
+      title: t('agentConfig.confirm.profile.title'),
+      description: t('agentConfig.confirm.profile.description', {
+        profile: profile.name,
+        existing: existingMapping.agentConfigurationName,
+        next: trimmed,
+      }),
+      confirmLabel: t('agentConfig.confirm.replace'),
+      cancelLabel: t('common.cancel'),
+      variant: 'danger',
+    });
+  }, [t]);
+
+
+  const handleLoadSavedConfiguration = useCallback((configId?: string) => {
+    const targetId = configId ?? selectedConfigId;
+    if (!targetId) {
+      reportError(t('agentConfig.toasts.selectToLoad'));
+      track('agent_config_action_failed', { action: 'load', reason: 'invalid_input' });
+      return;
+    }
+
+    const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
+    if (!stored) {
+      reportError(t('agentConfig.toasts.notFound'));
+      track('agent_config_action_failed', { action: 'load', reason: 'not_found' });
+      refreshSavedConfigurations();
+      return;
+    }
+
+    const preferredProfileName = resolveProfileNameFromMapping(stored.id, tabUserProfiles);
+    applyConfiguration(stored.config, { id: stored.id, name: stored.name }, {
+      preferredUserProfileName: preferredProfileName,
+    });
+
+    if (currentProject) {
+      const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+      const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
+      const previousConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+      const merged: Record<string, unknown> = {
+        ...(stored.config as unknown as Record<string, unknown>),
+      };
+      if (typeof previousConfig.default_llm_name === 'string' && previousConfig.default_llm_name) {
+        merged.default_llm_name = previousConfig.default_llm_name;
+      }
+      updateActiveAgentDiagramConfig(currentProject, merged);
+    }
+
+    LocalStorageRepository.setActiveAgentConfigurationId(stored.id);
+    toast.success(t('agentConfig.toasts.loaded', { name: stored.name }));
+    track('agent_config_action', { action: 'load', ...agentConfigProperties(stored.config) });
+  }, [
+    applyConfiguration,
+    currentAgentDiagram,
+    currentProject,
+    refreshSavedConfigurations,
+    selectedConfigId,
+    tabUserProfiles,
+    t,
+  ]);
+
+  const handleDeleteSavedConfiguration = useCallback(async (configId?: string) => {
+    const targetId = configId ?? selectedConfigId;
+    if (!targetId) {
+      reportError(t('agentConfig.toasts.selectToDelete'));
+      track('agent_config_action_failed', { action: 'delete', reason: 'invalid_input' });
+      return;
+    }
+
+    const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
+    if (!stored) {
+      reportError(t('agentConfig.toasts.notFound'));
+      track('agent_config_action_failed', { action: 'delete', reason: 'not_found' });
+      refreshSavedConfigurations();
+      return;
+    }
+
+    const confirmed = window.confirm(t('agentConfig.confirm.deleteConfig', { name: stored.name }));
+    if (!confirmed) {
+      return;
+    }
+
+    LocalStorageRepository.deleteAgentConfiguration(targetId);
+    if (activeConfigId === targetId) {
+      LocalStorageRepository.clearActiveAgentConfigurationId();
+      setActiveConfigId(null);
+      setActiveConfigName('');
+    }
+
+    const variantsChanged = currentProject
+      ? removeConfigurationVariantsFromProject(currentProject.id, targetId)
+      : false;
+
+    refreshSavedConfigurations();
+
+    if (variantsChanged) {
+      try {
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+      } catch (error) {
+        console.error('Failed to refresh project after variant cleanup:', error);
+      }
+    }
+
+    toast.success(t('agentConfig.toasts.deleted'));
+    track('agent_config_action', { action: 'delete' });
+  }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId, t]);
+
+  const handleInputSpeechToggle = (checked: boolean) => {
+    setInputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
+  };
+
+  const handleOutputSpeechToggle = (checked: boolean) => {
+    setOutputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
+  };
+
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setAvatarData(result);
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleAvatarRemove = () => setAvatarData(null);
+
+  const updateInterfaceStyle = <K extends keyof InterfaceStyleSetting>(field: K, value: InterfaceStyleSetting[K]) => {
+    setInterfaceStyle((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const resolveSelectedUserProfile = useCallback((): StoredUserProfile | null => {
+    const availableProfiles = userProfiles.length > 0
+      ? userProfiles
+      : buildUserProfilesFromProjectTabs(currentProject);
+
+    const selectedProfile = availableProfiles.find((profile) => profile.name === selectedUserProfileName);
+    if (!selectedProfile || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+      return null;
+    }
+
+    return selectedProfile;
+  }, [currentProject, selectedUserProfileName, userProfiles]);
+
+  const handleAutoProposeConfigurationRules = async () => {
+    if (!selectedUserProfileName.trim()) {
+      reportError(t('agentConfig.toasts.selectProfileFirst'));
+      track('agent_config_action_failed', { action: 'recommend_rules', reason: 'invalid_input' });
+      return;
+    }
+
+    const selectedProfile = resolveSelectedUserProfile();
+    if (!selectedProfile) {
+      reportError(t('agentConfig.toasts.profileUnavailable'));
+      track('agent_config_action_failed', { action: 'recommend_rules', reason: 'invalid_input' });
+      return;
+    }
+
+    if (!githubSession) {
+      reportError(t('agentConfig.toasts.signInGitHub'));
+      track('agent_config_action_failed', { action: 'recommend_rules', reason: 'not_signed_in' });
+      return;
+    }
+    const startedAt = performance.now();
+
+    try {
+      setLoadingMessage(t('agentConfig.loading.rules'));
+      setIsLoading(true);
+
+      const payload = {
+        userProfileName: selectedProfile.name,
+        userProfileModel: cloneModel(selectedProfile.model),
+        currentConfig: buildStructuredExport(getConfigObject()),
+      };
+
+      try {
+        const recommendation = await recommendAgentConfigMapping(payload, githubSession);
+
+        if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
+          reportError(t('agentConfig.toasts.invalidMappingResponse'));
+          track('agent_config_action_failed', { action: 'recommend_rules', reason: 'invalid_response' });
+          return;
+        }
+
+        const prepared = flattenStructuredConfig(recommendation.config);
+        const normalized = normalizeAgentConfiguration({
+          ...prepared,
+          adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+          userProfileName: selectedProfile.name,
+        });
+
+        const matchedRules = toMappingMatchedRules((recommendation as Record<string, unknown>).matchedRules);
+        const detectedSignals = toMappingRecommendationSignals((recommendation as Record<string, unknown>).signals);
+
+        applyConfiguration(normalized);
+        setMappingMatchedRules(matchedRules);
+        setMappingSignals(detectedSignals);
+
+        if (matchedRules.length > 0) {
+          toast.success(t('agentConfig.toasts.ruleRecApplied', { count: matchedRules.length }));
+        } else {
+          toast.success(t('agentConfig.toasts.ruleRecAppliedNone'));
+        }
+        track('agent_config_action', {
+          action: 'recommend_rules',
+          matched_rules: matchedRules.length,
+          duration_ms: elapsedMs(startedAt),
+        });
+      } catch (err) {
+        if (err instanceof ApiError) {
+          reportError(t('agentConfig.toasts.mappingRecFailed', { message: err.message }), { error: err });
+          trackFailure('agent_config_action_failed', err, { action: 'recommend_rules', reason: 'request' });
+          return;
+        }
+        throw err;
+      }
+    } catch (error) {
+      console.error('Failed to fetch mapping-based recommendation:', error);
+      reportError(t('agentConfig.toasts.mappingRecUnexpected'), { error });
+      trackFailure('agent_config_action_failed', error, { action: 'recommend_rules', reason: 'exception' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAutoProposeConfigurationRAG = () => {
+    if (!selectedUserProfileName.trim()) {
+      reportError(t('agentConfig.toasts.selectProfileFirst'));
+      return;
+    }
+
+    toast.info(t('agentConfig.toasts.ragSoon'));
+  };
+
+  const handleAutoProposeConfigurationLLM = async () => {
+    if (!selectedUserProfileName.trim()) {
+      reportError(t('agentConfig.toasts.selectProfileFirst'));
+      track('agent_config_action_failed', { action: 'recommend_llm', reason: 'invalid_input' });
+      return;
+    }
+
+    const selectedProfile = resolveSelectedUserProfile();
+    if (!selectedProfile) {
+      reportError(t('agentConfig.toasts.profileUnavailable'));
+      track('agent_config_action_failed', { action: 'recommend_llm', reason: 'invalid_input' });
+      return;
+    }
+
+    if (!githubSession) {
+      reportError(t('agentConfig.toasts.signInGitHub'));
+      track('agent_config_action_failed', { action: 'recommend_llm', reason: 'not_signed_in' });
+      return;
+    }
+    const startedAt = performance.now();
+
+    try {
+      setLoadingMessage(t('agentConfig.loading.llm'));
+      setIsLoading(true);
+
+      const payload = {
+        userProfileName: selectedProfile.name,
+        userProfileModel: cloneModel(selectedProfile.model),
+        currentConfig: buildStructuredExport(getConfigObject()),
+        model: 'gpt-5',
+      };
+
+      try {
+        const recommendation = await recommendAgentConfigLlm(payload, githubSession);
+
+        if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
+          reportError(t('agentConfig.toasts.invalidRecResponse'));
+          track('agent_config_action_failed', { action: 'recommend_llm', reason: 'invalid_response' });
+          return;
+        }
+
+        const prepared = flattenStructuredConfig(recommendation.config);
+        const normalized = normalizeAgentConfiguration({
+          ...prepared,
+          adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+          userProfileName: selectedProfile.name,
+        });
+
+        applyConfiguration(normalized);
+        setMappingMatchedRules([]);
+        setMappingSignals(null);
+        toast.success(t('agentConfig.toasts.llmRecApplied'));
+        track('agent_config_action', { action: 'recommend_llm', duration_ms: elapsedMs(startedAt) });
+      } catch (err) {
+        if (err instanceof ApiError) {
+          reportError(t('agentConfig.toasts.llmRecFailed', { message: err.message }), { error: err });
+          trackFailure('agent_config_action_failed', err, { action: 'recommend_llm', reason: 'request' });
+          return;
+        }
+        throw err;
+      }
+    } catch (error) {
+      console.error('Failed to fetch LLM recommendation:', error);
+      reportError(t('agentConfig.toasts.llmRecUnexpected'), { error });
+      trackFailure('agent_config_action_failed', error, { action: 'recommend_llm', reason: 'exception' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetFormToDefaults = useCallback(() => {
+    applyConfiguration(createDefaultConfig());
+    setActiveCustomizationSection(null);
+    setConfigurationName(t('agentConfig.save.defaultName'));
+    setActiveConfigId(null);
+    setActiveConfigName('');
+    setSelectedConfigId('');
+    LocalStorageRepository.clearActiveAgentConfigurationId();
+  }, [applyConfiguration]);
+
+  const handleResetToDefaults = async () => {
+    const confirmed = await globalConfirm({
+      title: t('agentConfig.confirm.reset.title'),
+      description: t('agentConfig.confirm.reset.description'),
+      confirmLabel: t('agentConfig.save.resetDefaults'),
+      cancelLabel: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    resetFormToDefaults();
+    toast.info(t('agentConfig.toasts.resetToDefaults'));
+    track('agent_config_action', { action: 'reset' });
+  };
+
+  const handleSaveAndApply = async () => {
+    const trimmedName = configurationName.trim();
+    if (!trimmedName) {
+      reportError(t('agentConfig.toasts.nameBeforeSave'));
+      track('agent_config_action_failed', { action: 'save', reason: 'invalid_input' });
+      return;
+    }
+
+    const proceed = await confirmOverwriteIfNameCollides(trimmedName);
+    if (!proceed) return;
+
+    const storedBaseModel = currentAgentDiagram?.id
+      ? LocalStorageRepository.getAgentBaseModel(currentAgentDiagram.id)
+      : null;
+
+    // Re-personalize from the stored un-personalized base when one exists,
+    // otherwise the live diagram is itself the base. The stored snapshot is
+    // guaranteed to be in the canonical nested transition shape (normalized at
+    // the storage boundary), so it round-trips through the backend cleanly.
+    const agentModel = storedBaseModel
+      ? cloneModel(storedBaseModel)
+      : currentAgentModel
+        ? cloneModel(currentAgentModel)
+        : null;
+
+    if (!agentModel) {
+      reportError(t('agentConfig.toasts.openDiagramFirst'));
+      track('agent_config_action_failed', { action: 'save', reason: 'no_diagram' });
+      return;
+    }
+
+    if (!storedBaseModel && currentAgentDiagram?.id) {
+      LocalStorageRepository.saveAgentBaseModel(currentAgentDiagram.id, agentModel);
+    }
+
+    if (!selectedUserProfileName.trim()) {
+      reportError(t('agentConfig.toasts.selectProfileBeforeApply'));
+      track('agent_config_action_failed', { action: 'save', reason: 'invalid_input' });
+      return;
+    }
+
+    const selectedProfile = (userProfiles.length > 0 ? userProfiles : buildUserProfilesFromProjectTabs(currentProject))
+      .find((profile) => profile.name === selectedUserProfileName);
+
+    if (!selectedProfile || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+      reportError(t('agentConfig.toasts.profileUnavailable'));
+      track('agent_config_action_failed', { action: 'save', reason: 'invalid_input' });
+      return;
+    }
+
+    const proceedProfileMapping = await confirmOverwriteIfProfileCollides(
+      { id: selectedProfile.id, name: selectedProfile.name },
+      trimmedName,
+    );
+    if (!proceedProfileMapping) return;
+
+    const config = getConfigObject();
+    const requestConfig: AgentTransformationConfig = buildSparseGenerationConfig(config);
+
+    if (config.adaptContentToUserProfile && config.userProfileName) {
+      requestConfig.userProfileModel = cloneModel(selectedProfile.model);
+    }
+
+    const startedAt = performance.now();
+    try {
+      setLoadingMessage(t('agentConfig.loading.transform'));
+      setIsLoading(true);
+
+      const payload = {
+        id: currentAgentDiagram?.id,
+        title: currentAgentDiagram?.title || trimmedName,
+        model: agentModel,
+        lastUpdate: currentAgentDiagram?.lastUpdate,
+        generator: 'agent',
+        config: requestConfig,
+      };
+
+      let transformedModel: unknown;
+      try {
+        transformedModel = await transformAgentModelJson(payload);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          reportError(t('agentConfig.toasts.transformFailed', { message: err.message }), { error: err });
+          trackFailure('agent_config_action_failed', err, { action: 'save', reason: 'request' });
+          return;
+        }
+        if (err instanceof DOMException && err.name === 'TimeoutError') {
+          reportError(t('agentConfig.toasts.transformTimeout'), { error: err });
+          trackFailure('agent_config_action_failed', err, { action: 'save', reason: 'timeout' });
+          return;
+        }
+        throw err;
+      }
+
+      const snapshotModel: UMLModel | undefined =
+        transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel
+          ? ((transformedModel as { model: UMLModel }).model)
+          : (transformedModel as UMLModel | undefined);
+
+      if (snapshotModel) {
+        await dispatch(updateDiagramModelThunk({ model: snapshotModel })).unwrap();
+        dispatch(bumpEditorRevision());
+      }
+
+      const result = saveConfiguration({
+        snapshotOverride: snapshotModel,
+        markActive: true,
+        originalAgentModel: agentModel,
+      });
+
+      if (result.ok && result.savedEntry) {
+        if (
+          currentProject &&
+          currentAgentDiagram &&
+          snapshotModel &&
+          isUMLModel(snapshotModel) &&
+          snapshotModel.type === UMLDiagramType.AgentDiagram
+        ) {
+          const variantId = `${selectedProfile.id}:${result.savedEntry.id}`;
+          const nextVariant: AgentModelVariantSnapshot = {
+            id: variantId,
+            profileId: selectedProfile.id,
+            profileName: selectedProfile.name,
+            configurationId: result.savedEntry.id,
+            configurationName: result.savedEntry.name,
+            createdAt: new Date().toISOString(),
+            model: cloneModel(snapshotModel),
+          };
+
+          const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+          const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram') || currentAgentDiagram;
+          const latestConfigRecord = (latestAgentDiagram.config ?? {}) as Record<string, unknown>;
+
+          updateActiveAgentDiagramConfig(currentProject, {
+            ...keepRuntimeConfig(
+              { ...latestConfigRecord, ...(config as unknown as Record<string, unknown>) },
+              latestConfigRecord,
+            ),
+            personalizedVariants: upsertVariantForProfile(readAgentVariants(latestAgentDiagram), nextVariant),
+            activePersonalizedVariantId: variantId,
+          });
+
+          await dispatch(refreshProjectStateThunk()).unwrap();
+        }
+
+        LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
+        toast.success(t('agentConfig.toasts.transformApplied'));
+        track('agent_config_action', { action: 'save', ...agentConfigProperties(config), duration_ms: elapsedMs(startedAt) });
+        resetFormToDefaults();
+        navigate('/');
+      } else {
+        reportError(t('agentConfig.toasts.saveLocalFailed'));
+        track('agent_config_action_failed', { action: 'save', reason: 'storage' });
+      }
+    } catch (error) {
+      console.error('Error transforming agent model:', error);
+      reportError(t('agentConfig.toasts.transformUnexpected'), { error });
+      trackFailure('agent_config_action_failed', error, { action: 'save', reason: 'exception' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    const config = getConfigObject();
+    const structuredExport = buildStructuredExport(config);
+    const slug = configurationName.trim().toLowerCase().replace(/[^a-z0-9-_]+/g, '-');
+    const filename = slug ? `${slug}.json` : 'agent_config.json';
+    const blob = new Blob([JSON.stringify(structuredExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    track('agent_config_action', { action: 'download', ...agentConfigProperties(config) });
+  };
+
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (loadEvent) => {
+      let normalized: ReturnType<typeof normalizeAgentConfiguration>;
+      try {
+        const parsed = JSON.parse(loadEvent.target?.result as string);
+        normalized = normalizeAgentConfiguration(flattenStructuredConfig(parsed));
+      } catch (error) {
+        reportError(t('agentConfig.toasts.invalidFile'));
+        trackFailure('agent_config_action_failed', error, { action: 'upload', reason: 'invalid' });
+        return;
+      }
+      const confirmed = await globalConfirm({
+        title: t('agentConfig.confirm.upload.title'),
+        description: t('agentConfig.confirm.upload.description', { name: file.name }),
+        confirmLabel: t('agentConfig.confirm.replace'),
+        cancelLabel: t('common.cancel'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+      applyConfiguration(normalized);
+      toast.success(t('agentConfig.toasts.uploadLoaded'));
+      track('agent_config_action', { action: 'upload', ...agentConfigProperties(normalized) });
+    };
+
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const toggleCustomizationSection = (section: string) => {
+    setActiveCustomizationSection((previous) => (previous === section ? null : section));
+  };
+
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const configurationNameMissing = !configurationName.trim();
+
+  // When a customization section opens, scroll it into view. Otherwise the
+  // previously open (taller) section collapsing above this one can push the
+  // newly opened section off the top of the viewport.
+  const customizationSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    if (!activeCustomizationSection) return;
+    const el = customizationSectionRefs.current[activeCustomizationSection];
+    if (!el) return;
+    // Defer one frame so the expanded panel is in the DOM before we scroll.
+    const handle = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [activeCustomizationSection]);
+
+  const showVoiceControls = outputModalities.includes('speech');
+
+  // The root clips (overflow-clip) rather than hides: a hidden box can still be scrolled by focus or
+  // scrollIntoView, which pushed the header out of view and left a blank gap. The scrollers below are
+  // `relative` so the absolutely positioned hidden <select> of every Radix Select stays inside them.
   return (
-    <div className="relative h-full overflow-auto px-4 py-6 sm:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="relative flex h-full flex-col overflow-clip">
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-elevation-3">
+            <div className="mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-border border-t-brand" />
+            <h3 className="text-lg font-semibold">{t('agentConfig.loadingTitle')}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">{loadingMessage}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="shrink-0 border-b border-border/50 px-4 pt-6 pb-4 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('agentConfig.title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -685,6 +2227,7 @@ export const AgentConfigurationPanel: React.FC = () => {
             type="button"
             role="tab"
             aria-selected={activeTab === 'runtime'}
+            onClick={() => setActiveTab('runtime')}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
               activeTab === 'runtime'
                 ? 'bg-background text-foreground shadow-sm'
@@ -693,154 +2236,718 @@ export const AgentConfigurationPanel: React.FC = () => {
           >
             {t('agentConfig.tab.runtime')}
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'personalization'}
+            onClick={() => setActiveTab('personalization')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'personalization'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t('agentConfig.tab.personalization')}
+          </button>
         </div>
 
+        {activeTab === 'personalization' && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
+            <span className="px-1 text-xs font-medium text-muted-foreground">
+              {t('agentConfig.loadSavedLabel')}
+            </span>
+            {activeConfigId && (
+              <Badge variant="secondary" title={activeConfigName || t('agentConfig.activeBadgeTitleFallback')}>
+                <span className="block max-w-[180px] truncate">
+                  {t('agentConfig.activeLabel', { name: activeConfigName || t('agentConfig.unnamedShort') })}
+                </span>
+              </Badge>
+            )}
+            <OptionSelect
+              aria-label={t('agentConfig.selectAriaLabel')}
+              className="h-9 w-auto min-w-[12rem] gap-2 px-2 py-1 transition-colors hover:border-brand/30"
+              value={selectedConfigId}
+              onValueChange={setSelectedConfigId}
+              disabled={savedConfigs.length === 0}
+              options={[
+                { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.selectSaved') },
+                ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+              ]}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => handleLoadSavedConfiguration()}
+              disabled={!selectedConfigId}
+            >
+              {t('agentConfig.load')}
+            </Button>
+          </div>
+        )}
+      </div>
+      </div>
+
+      {activeTab === 'runtime' && !currentAgentModel && (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          {t('agentConfig.noActiveDiagram')}
+        </div>
+      )}
+      {activeTab === 'runtime' && currentAgentModel && (
+        <AgentRuntimePanel
+          currentProject={currentProject}
+          agentRuntimeConfig={agentRuntimeConfig}
+          updateAgentRuntimeConfig={updateAgentRuntimeConfig}
+          agentLLMElements={agentLLMElements}
+        />
+      )}
+      <div className={activeTab === 'personalization' ? 'relative flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
         >
-          {activeTab === 'runtime' && currentAgentModel && (
-          <>
+          {activeTab === 'personalization' && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('agentConfig.runtime.title')}</CardTitle>
+              <CardTitle>{t('agentConfig.profileMapping.title')}</CardTitle>
               <CardDescription>
-                {t('agentConfig.runtime.description')}
+                {t('agentConfig.profileMapping.description')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-platform">{t('agentConfig.runtime.platform')}</Label>
-                  <select
-                    id="agent-runtime-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({
-                      agentPlatform: event.target.value,
-                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
-                    })}
-                  >
-                    <option value="websocket">WebSocket</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
-                      />
-                      Use Streamlit UI
-                    </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="user-profile-mapping">{t('agentConfig.profileMapping.label')}</Label>
+                <OptionSelect
+                  id="user-profile-mapping"
+                  className="transition-colors hover:border-brand/30"
+                  value={selectedUserProfileName}
+                  onValueChange={setSelectedUserProfileName}
+                  disabled={userProfiles.length === 0}
+                  options={[
+                    { value: '', label: userProfiles.length === 0 ? t('agentConfig.profileMapping.noTabs') : t('agentConfig.profileMapping.selectProfile') },
+                    ...userProfiles.map((profile) => ({ value: profile.name, label: profile.name })),
+                  ]}
+                />
+                {userProfiles.length === 0 && (
+                  <p className="text-xs text-muted-foreground">{t('agentConfig.profileMapping.createFirst')}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {t('agentConfig.profileMapping.statusLine', {
+                    status: currentUserModel
+                      ? t('agentConfig.profileMapping.statusAvailable')
+                      : t('agentConfig.profileMapping.statusMissing'),
+                  })}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={handleAutoProposeConfigurationRules} disabled={isLoading || !selectedUserProfileName.trim()}>
+                  {t('agentConfig.propose.rules')}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleAutoProposeConfigurationLLM} disabled={isLoading || !selectedUserProfileName.trim()}>
+                  {t('agentConfig.propose.llm')}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleAutoProposeConfigurationRAG} disabled={isLoading || !selectedUserProfileName.trim()}>
+                  {t('agentConfig.propose.rag')}
+                </Button>
+              </div>
+
+              {(mappingMatchedRules.length > 0 || mappingSignals) && (
+                <div className="rounded-lg border border-brand/20 bg-brand/5 p-3">
+                  <p className="text-sm font-medium">{t('agentConfig.recommendation.title')}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {mappingMatchedRules.length > 0
+                      ? t('agentConfig.recommendation.matched', { count: mappingMatchedRules.length })
+                      : t('agentConfig.recommendation.none')}
+                  </p>
+
+                  {mappingSignals && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {t('agentConfig.recommendation.signals', {
+                        age: mappingSignals.age ?? t('agentConfig.recommendation.na'),
+                        languages: mappingSignals.detectedLanguages.length > 0
+                          ? mappingSignals.detectedLanguages.join(', ')
+                          : t('agentConfig.recommendation.na'),
+                        multilingual: mappingSignals.isMultilingual ? t('common.yes') : t('common.no'),
+                      })}
+                    </p>
+                  )}
+
+                  {mappingMatchedRules.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {mappingMatchedRules.map((rule, index) => (
+                        <div
+                          key={`${rule.id || rule.label || 'rule'}-${index}`}
+                          className="rounded-md border border-border bg-background px-3 py-2"
+                        >
+                          <p className="text-xs font-medium">{rule.label || rule.id || t('agentConfig.recommendation.matchedRuleFallback')}</p>
+                          {rule.summary && <p className="text-xs text-muted-foreground">{rule.summary}</p>}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
+              )}
+            </CardContent>
+          </Card>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-intent">{t('agentConfig.runtime.intent')}</Label>
-                  <select
-                    id="agent-runtime-intent"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
-                    <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
-                  </select>
-                </div>
+          )}
 
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-name">{t('agentConfig.runtime.llm')}</Label>
-                    <select
-                      id="agent-runtime-llm-name"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmName}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
-                      }
-                    >
-                      <option value="">{t('agentConfig.runtime.useDefault')}</option>
-                      {agentLLMElements.map((entry) => (
-                        <option key={entry.id} value={entry.name}>
-                          {entry.name || t('agentConfig.row.unnamedLlm')}
-                        </option>
-                      ))}
-                    </select>
-                    {agentLLMElements.length === 0 && (
+          {activeTab === 'personalization' && (
+          <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('agentConfig.overview.title')}</CardTitle>
+              <CardDescription>
+                {t('agentConfig.overview.description')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div
+                ref={(el) => { customizationSectionRefs.current.presentation = el; }}
+                className="rounded-xl border border-border"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
+                  onClick={() => toggleCustomizationSection('presentation')}
+                  aria-expanded={activeCustomizationSection === 'presentation'}
+                >
+                  <div>
+                    <p className="font-medium">{t('agentConfig.presentation.title')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.presentation.subtitle')}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'presentation' ? t('agentConfig.section.hide') : t('agentConfig.section.show')}</span>
+                </button>
+                {activeCustomizationSection === 'presentation' && (
+                  <div className="space-y-4 border-t border-border px-4 py-4">
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="agent-language">{t('agentConfig.field.language')}</Label>
+                        <OptionSelect
+                          id="agent-language"
+                          value={agentLanguage}
+                          onValueChange={(value) => setAgentLanguage(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.language.original') },
+                            { value: 'english', label: t('agentConfig.language.english') },
+                            { value: 'spanish', label: t('agentConfig.language.spanish') },
+                            { value: 'french', label: t('agentConfig.language.french') },
+                            { value: 'german', label: t('agentConfig.language.german') },
+                            { value: 'portuguese', label: t('agentConfig.language.portuguese') },
+                            { value: 'luxembourgish', label: t('agentConfig.language.luxembourgish') },
+                            { value: 'italian', label: t('agentConfig.language.italian') },
+                          ]}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="agent-style">{t('agentConfig.field.style')}</Label>
+                        <OptionSelect
+                          id="agent-style"
+                          value={agentStyle}
+                          onValueChange={(value) => setAgentStyle(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.style.original') },
+                            { value: 'formal', label: t('agentConfig.style.formal') },
+                            { value: 'informal', label: t('agentConfig.style.informal') },
+                          ]}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="language-complexity">{t('agentConfig.field.languageComplexity')}</Label>
+                        <OptionSelect
+                          id="language-complexity"
+                          value={languageComplexity}
+                          onValueChange={(value) => setLanguageComplexity(value as AgentLanguageComplexity)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.complexity.original') },
+                            { value: 'simple', label: t('agentConfig.complexity.simple') },
+                            { value: 'medium', label: t('agentConfig.complexity.medium') },
+                            { value: 'complex', label: t('agentConfig.complexity.complex') },
+                          ]}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sentence-length">{t('agentConfig.field.sentenceLength')}</Label>
+                        <OptionSelect
+                          id="sentence-length"
+                          value={sentenceLength}
+                          onValueChange={(value) => setSentenceLength(value as AgentSentenceLength)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.sentence.original') },
+                            { value: 'concise', label: t('agentConfig.sentence.concise') },
+                            { value: 'verbose', label: t('agentConfig.sentence.verbose') },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={useAbbreviations}
+                        onCheckedChange={setUseAbbreviations}
+                      />
+                      {t('agentConfig.useAbbreviations')}
+                    </label>
+
+                    <Separator />
+
+                    <p className="text-sm font-medium">{t('agentConfig.interface.heading')}</p>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="interface-size">{t('agentConfig.interface.size')}</Label>
+                        <Input
+                          id="interface-size"
+                          type="number"
+                          min={INTERFACE_SIZE_MIN}
+                          max={INTERFACE_SIZE_MAX}
+                          value={sizeText}
+                          onChange={(event) => {
+                            const next = event.target.value;
+                            setSizeText(next);
+                            if (next === '') return;
+                            const parsed = Number(next);
+                            if (!Number.isNaN(parsed)) {
+                              updateInterfaceStyle('size', parsed);
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsed = Number(sizeText);
+                            const fallback = Number.isFinite(interfaceStyle.size)
+                              ? interfaceStyle.size
+                              : defaultInterfaceStyle.size;
+                            const base = sizeText === '' || Number.isNaN(parsed) ? fallback : parsed;
+                            const clamped = Math.max(
+                              INTERFACE_SIZE_MIN,
+                              Math.min(INTERFACE_SIZE_MAX, Math.round(base)),
+                            );
+                            setSizeText(String(clamped));
+                            if (clamped !== interfaceStyle.size) {
+                              updateInterfaceStyle('size', clamped);
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="interface-font">{t('agentConfig.interface.font')}</Label>
+                        <OptionSelect
+                          id="interface-font"
+                          value={interfaceStyle.font}
+                          onValueChange={(value) => updateInterfaceStyle('font', value as InterfaceStyleSetting['font'])}
+                          options={[
+                            { value: 'sans', label: t('agentConfig.font.sans') },
+                            { value: 'serif', label: t('agentConfig.font.serif') },
+                            { value: 'monospace', label: t('agentConfig.font.monospace') },
+                            { value: 'neutral', label: t('agentConfig.font.neutral') },
+                            { value: 'grotesque', label: t('agentConfig.font.grotesque') },
+                            { value: 'condensed', label: t('agentConfig.font.condensed') },
+                          ]}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="interface-line-spacing">{t('agentConfig.interface.lineSpacing')}</Label>
+                        <Input
+                          id="interface-line-spacing"
+                          type="number"
+                          min={INTERFACE_LINE_SPACING_MIN}
+                          max={INTERFACE_LINE_SPACING_MAX}
+                          step={0.1}
+                          value={lineSpacingText}
+                          onChange={(event) => {
+                            const next = event.target.value;
+                            setLineSpacingText(next);
+                            if (next === '') return;
+                            const parsed = Number(next);
+                            if (!Number.isNaN(parsed)) {
+                              updateInterfaceStyle('lineSpacing', parsed);
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsed = Number(lineSpacingText);
+                            const fallback = Number.isFinite(interfaceStyle.lineSpacing)
+                              ? interfaceStyle.lineSpacing
+                              : defaultInterfaceStyle.lineSpacing;
+                            const base = lineSpacingText === '' || Number.isNaN(parsed) ? fallback : parsed;
+                            const clamped = Math.max(
+                              INTERFACE_LINE_SPACING_MIN,
+                              Math.min(INTERFACE_LINE_SPACING_MAX, Math.round(base * 10) / 10),
+                            );
+                            setLineSpacingText(String(clamped));
+                            if (clamped !== interfaceStyle.lineSpacing) {
+                              updateInterfaceStyle('lineSpacing', clamped);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="interface-alignment">{t('agentConfig.interface.alignment')}</Label>
+                        <OptionSelect
+                          id="interface-alignment"
+                          value={interfaceStyle.alignment}
+                          onValueChange={(value) => updateInterfaceStyle('alignment', value as InterfaceStyleSetting['alignment'])}
+                          options={[
+                            { value: 'left', label: t('agentConfig.alignment.left') },
+                            { value: 'center', label: t('agentConfig.alignment.center') },
+                            { value: 'justify', label: t('agentConfig.alignment.justify') },
+                          ]}
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="interface-contrast">{t('agentConfig.interface.contrast')}</Label>
+                        <OptionSelect
+                          id="interface-contrast"
+                          value={interfaceStyle.contrast}
+                          onValueChange={(value) => updateInterfaceStyle('contrast', value as InterfaceStyleSetting['contrast'])}
+                          options={[
+                            { value: 'low', label: t('agentConfig.contrast.low') },
+                            { value: 'medium', label: t('agentConfig.contrast.medium') },
+                            { value: 'high', label: t('agentConfig.contrast.high') },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{t('agentConfig.color.label')}</Label>
                       <p className="text-xs text-muted-foreground">
-                        {t('agentConfig.runtime.defineLlmHint')}
+                        {t('agentConfig.color.help')}
                       </p>
+                      <div role="radiogroup" aria-label={t('agentConfig.color.radiogroupAria')} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {interfaceColorOptions.map((option) => {
+                          const isSelected = interfaceStyle.color === option.value;
+                          const optionLabel = t(`agentConfig.color.options.${option.key}.label`);
+                          const optionDescription = t(`agentConfig.color.options.${option.key}.description`);
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => updateInterfaceStyle('color', option.value)}
+                              title={optionDescription}
+                              className={`flex items-start gap-3 rounded-md border p-2.5 text-left transition-colors ${
+                                isSelected
+                                  ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
+                                  : 'border-input hover:border-brand/30'
+                              }`}
+                            >
+                              <span
+                                aria-hidden
+                                className="mt-0.5 size-6 shrink-0 rounded-full border border-border shadow-inner"
+                                style={{ background: option.swatch }}
+                              />
+                              <span className="flex-1 leading-tight">
+                                <span className="block text-sm font-medium text-foreground">{optionLabel}</span>
+                                <span className="block text-xs text-muted-foreground">{optionDescription}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {interfaceStyle.color &&
+                        !interfaceColorOptions.some((option) => option.value === interfaceStyle.color) && (
+                          <p className="text-xs text-muted-foreground">
+                            {t('agentConfig.color.customPrefix')}{' '}
+                            <code className="rounded bg-muted px-1 py-0.5 font-mono">{interfaceStyle.color}</code>{' '}
+                            {t('agentConfig.color.customSuffix')}
+                          </p>
+                        )}
+                    </div>
+
+                    {SHOW_WIP_AGENT_CONFIG_FIELDS && showVoiceControls && (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="voice-gender">{t('agentConfig.voice.gender')}</Label>
+                          <OptionSelect
+                            id="voice-gender"
+                            value={voiceStyle.gender}
+                            onValueChange={(value) => setVoiceStyle((previous) => ({
+                              ...previous,
+                              gender: value as VoiceStyleSetting['gender'],
+                            }))}
+                            options={[
+                              { value: 'male', label: t('agentConfig.voice.male') },
+                              { value: 'female', label: t('agentConfig.voice.female') },
+                              { value: 'ambiguous', label: t('agentConfig.voice.ambiguous') },
+                            ]}
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="voice-speed">{t('agentConfig.voice.speed')}</Label>
+                          <Input
+                            id="voice-speed"
+                            type="number"
+                            min={0.5}
+                            max={2}
+                            step={0.1}
+                            value={voiceStyle.speed}
+                            onChange={(event) => setVoiceStyle((previous) => ({ ...previous, speed: Number(event.target.value) }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {SHOW_WIP_AGENT_CONFIG_FIELDS && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="avatar-upload">{t('agentConfig.avatar.label')}</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} />
+                          {avatarData && (
+                            <Button type="button" variant="outline" onClick={handleAvatarRemove}>
+                              {t('agentConfig.avatar.remove')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.llms.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.llms.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agentLLMElements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('agentConfig.llms.empty')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {agentLLMElements.map((llm) => (
-                    <AgentLLMRow
-                      key={llm.id}
-                      element={llm}
-                      expanded={expandedLlmId === llm.id}
-                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
-                      onToggleExpanded={handleToggleExpandedLlm}
-                      onChange={handleUpdateAgentLLM}
-                      onRemove={handleRemoveAgentLLM}
-                      onSetDefault={handleSetDefaultLlm}
-                    />
-                  ))}
+              <div
+                ref={(el) => { customizationSectionRefs.current.modality = el; }}
+                className="rounded-xl border border-border"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
+                  onClick={() => toggleCustomizationSection('modality')}
+                  aria-expanded={activeCustomizationSection === 'modality'}
+                >
+                  <div>
+                    <p className="font-medium">{t('agentConfig.modality.title')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.modality.subtitle')}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'modality' ? t('agentConfig.section.hide') : t('agentConfig.section.show')}</span>
+                </button>
+                {activeCustomizationSection === 'modality' && (
+                  <div className="grid gap-4 border-t border-border px-4 py-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">{t('agentConfig.modality.input')}</p>
+                      <p className="text-xs text-muted-foreground">{t('agentConfig.modality.inputAlways')}</p>
+                      <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                        <Checkbox
+                          checked={inputModalities.includes('speech')}
+                          onCheckedChange={handleInputSpeechToggle}
+                        />
+                        {t('agentConfig.modality.enableSpeechInput')}
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">{t('agentConfig.modality.output')}</p>
+                      <p className="text-xs text-muted-foreground">{t('agentConfig.modality.outputAlways')}</p>
+                      <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                        <Checkbox
+                          checked={outputModalities.includes('speech')}
+                          onCheckedChange={handleOutputSpeechToggle}
+                        />
+                        {t('agentConfig.modality.enableSpeechOutput')}
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                ref={(el) => { customizationSectionRefs.current.content = el; }}
+                className="rounded-xl border border-border"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
+                  onClick={() => toggleCustomizationSection('content')}
+                  aria-expanded={activeCustomizationSection === 'content'}
+                >
+                  <div>
+                    <p className="font-medium">{t('agentConfig.content.title')}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.content.subtitle')}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'content' ? t('agentConfig.section.hide') : t('agentConfig.section.show')}</span>
+                </button>
+                {activeCustomizationSection === 'content' && (
+                  <div className="space-y-3 border-t border-border px-4 py-4">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={adaptContentToUserProfile}
+                        onCheckedChange={setAdaptContentToUserProfile}
+                      />
+                      {t('agentConfig.content.adapt')}
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.content.profileNote')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.content.enableNote')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {SHOW_WIP_AGENT_CONFIG_FIELDS && (
+                <div
+                  ref={(el) => { customizationSectionRefs.current.behavior = el; }}
+                  className="rounded-xl border border-border"
+                >
+                  <button
+                    type="button"
+                    className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
+                    onClick={() => toggleCustomizationSection('behavior')}
+                    aria-expanded={activeCustomizationSection === 'behavior'}
+                  >
+                    <div>
+                      <p className="font-medium">{t('agentConfig.behavior.title')}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('agentConfig.behavior.subtitle')}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'behavior' ? t('agentConfig.section.hide') : t('agentConfig.section.show')}</span>
+                  </button>
+                  {activeCustomizationSection === 'behavior' && (
+                    <div className="space-y-1.5 border-t border-border px-4 py-4 md:max-w-sm">
+                      <Label htmlFor="response-timing">{t('agentConfig.behavior.responseTiming')}</Label>
+                      <OptionSelect
+                        id="response-timing"
+                        value={responseTiming}
+                        onValueChange={setResponseTiming}
+                        options={[
+                          { value: 'instant', label: t('agentConfig.timing.instant') },
+                          { value: 'delayed', label: t('agentConfig.timing.delayed') },
+                        ]}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
-              <div>
-                <Button type="button" onClick={handleAddAgentLLM}>
-                  {t('agentConfig.llms.add')}
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
-              <CardDescription>
-                Edit the <code>config.yaml</code> file that will be included when generating the agent.
-                {' '}
-                <a
-                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand underline underline-offset-2 hover:text-brand/80"
-                >
-                  Configuration properties reference ↗
-                </a>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentConfigYamlEditor currentProject={currentProject} />
-            </CardContent>
-          </Card>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('agentConfig.save.title')}</CardTitle>
+                <CardDescription>
+                  {t('agentConfig.save.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="configuration-name">{t('agentConfig.save.nameLabel')}</Label>
+                  <Input
+                    id="configuration-name"
+                    name="configuration-name"
+                    autoComplete="off"
+                    value={configurationName}
+                    placeholder={t('agentConfig.save.namePlaceholder')}
+                    onChange={(event) => setConfigurationName(event.target.value)}
+                    aria-invalid={configurationNameMissing || undefined}
+                    aria-describedby={configurationNameMissing ? 'configuration-name-error' : undefined}
+                  />
+                  {configurationNameMissing && (
+                    <p id="configuration-name-error" className="text-xs text-destructive">
+                      {t('agentConfig.toasts.nameBeforeSave')}
+                    </p>
+                  )}
+                  {activeConfigId ? (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="secondary">{t('agentConfig.save.activeBadge')}</Badge>
+                      <span>{activeConfigName || t('agentConfig.save.unnamed')}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{t('agentConfig.save.notLinked')}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="saved-configurations">{t('agentConfig.save.savedLabel')}</Label>
+                  <OptionSelect
+                    id="saved-configurations"
+                    value={selectedConfigId}
+                    onValueChange={setSelectedConfigId}
+                    disabled={savedConfigs.length === 0}
+                    options={[
+                      { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.save.selectCustomization') },
+                      ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
+                  {selectedConfig && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('agentConfig.save.lastUpdated', { date: new Date(selectedConfig.savedAt).toLocaleString() })}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => handleLoadSavedConfiguration()} disabled={!selectedConfigId}>
+                    {t('agentConfig.save.loadSelected')}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => handleDeleteSavedConfiguration()} disabled={!selectedConfigId}>
+                    {t('common.delete')}
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" onClick={handleSaveAndApply} disabled={isLoading || configurationNameMissing}>
+                    {isLoading ? t('agentConfig.save.applying') : t('agentConfig.save.saveAndApply')}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleResetToDefaults} disabled={isLoading}>
+                    {t('agentConfig.save.resetDefaults')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('agentConfig.importExport.title')}</CardTitle>
+                <CardDescription>
+                  {t('agentConfig.importExport.description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={handleDownload}>
+                    {t('agentConfig.importExport.downloadJson')}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => uploadInputRef.current?.click()}>
+                    {t('agentConfig.importExport.uploadJson')}
+                  </Button>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    tabIndex={-1}
+                    aria-hidden
+                    onChange={handleUpload}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('agentConfig.importExport.uploadNote')}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
           </>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

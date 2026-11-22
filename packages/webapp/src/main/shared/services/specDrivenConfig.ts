@@ -1,0 +1,337 @@
+/**
+ * Spec-Driven Agent backend configuration.
+ *
+ * Fetches `GET /besser_api/spec-driven/config` ONCE per page load (the
+ * promise is cached at module level) and falls back to hardcoded
+ * defaults — mirroring the backend's current literals — when the
+ * request fails or returns an unexpected shape. The BYOK dialogs use
+ * this to prefill and clamp the user's budget inputs and to offer the
+ * free-tier model choice.
+ *
+ * Lives in `shared/` (not the spec-driven feature) because the unified
+ * key dialog (`shared/components/byok/LlmKeyDialog`) needs the free-tier
+ * advertisement too, and shared code must not import from features.
+ */
+
+import { fetchSpecDrivenConfig } from '../api/specDriven';
+import type { components } from '../api/generated/besser-openapi';
+
+type Schemas = components['schemas'];
+
+/** The caps the budget inputs use: ceilings and defaults for cost (USD) and runtime (seconds). */
+export type SpecDrivenConfigCaps = Pick<
+  Schemas['SpecDrivenCapsResponse'],
+  'max_cost_usd_hard_cap' | 'max_runtime_seconds_hard_cap' | 'default_max_cost_usd' | 'default_max_runtime_seconds'
+>;
+
+/** One model a free-tier request may explicitly choose (`id` exactly as `llm_model` takes it). */
+export type SpecDrivenFreeModel = Schemas['FreeTierModelResponse'];
+
+/**
+ * Keyless server-hosted "Free" tier advertisement. `models` is the server's
+ * allowlist in its preference order, rendered verbatim; a single entry (or an
+ * old backend without the list) means there is no choice to offer.
+ * `pilot_model` is what a research-telemetry (`?pilot=`) session pre-selects.
+ */
+export type SpecDrivenFreeTier = Omit<Schemas['FreeTierResponse'], 'pilot_model'> &
+  Partial<Pick<Schemas['FreeTierResponse'], 'pilot_model'>>;
+
+/** One model a provider offers in the key dialog. */
+export type SpecDrivenCatalogModel = Schemas['CatalogModelResponse'];
+
+/**
+ * One provider of the server's model catalog (BESSER_MODEL_CATALOG). The
+ * server keeps gateway endpoints and rates to itself; the dialog gets only
+ * what it renders.
+ */
+export type SpecDrivenCatalogProvider = Schemas['CatalogProviderResponse'];
+
+/** `SpecDrivenConfigResponse` as the dialogs read it: checked, with the fallback filling what is missing. */
+export interface SpecDrivenConfig {
+  caps: SpecDrivenConfigCaps;
+  /**
+   * How long (seconds) the backend keeps a finished run's output around
+   * for download AND in-place editing. Drives the incremental
+   * modify window: a follow-up run can `mode:'modify'` the previous
+   * run only while it's still within this TTL.
+   */
+  download_ttl_seconds: number;
+  /**
+   * How long (seconds) `/spec-driven/download/<run>` keeps serving a finished
+   * run's archive; absent from older backends, which serve it for
+   * `download_ttl_seconds` (see `archiveTtlSeconds`).
+   */
+  archive_ttl_seconds?: number;
+  features: Record<string, boolean>;
+  default_models: Record<string, string>;
+  supported_providers: string[];
+  /** Whether the keyless free tier is offered (and its pinned model). */
+  free_tier: SpecDrivenFreeTier;
+  /**
+   * The key dialog's providers and models, in display order. Empty when the
+   * server is too old to send them or unreachable: the dialog then falls back
+   * to its built-in minimal lists.
+   */
+  providers: SpecDrivenCatalogProvider[];
+}
+
+/**
+ * Hardcoded fallback used when the config endpoint is unreachable (old
+ * backend, network failure).
+ */
+export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
+  // Mirrors the backend constants (constants.py). Must not UNDER-state the
+  // real ceilings: a stale fallback silently becomes the binding limit in the
+  // UI and kills runs the backend would have allowed.
+  caps: {
+    max_cost_usd_hard_cap: 5.0,
+    max_runtime_seconds_hard_cap: 2400,
+    default_max_cost_usd: 5.0,
+    default_max_runtime_seconds: 2400,
+  },
+  // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
+  download_ttl_seconds: 1800,
+  features: {},
+  // The shipped model catalog's defaults. Display data only: a run without a
+  // chosen model omits llm_model and the server's catalog default decides.
+  default_models: {
+    anthropic: 'claude-sonnet-5-5',
+    openai: 'gpt-6-sol',
+    mistral: 'mistral-large-latest',
+    nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
+  },
+  supported_providers: ['anthropic', 'openai', 'mistral', 'nebius'],
+  // Off by default — an old backend that doesn't advertise it must not
+  // surface a free option that would 500.
+  free_tier: { available: false, model: null, models: [] },
+  providers: [],
+};
+
+const _isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
+/**
+ * Defensive normalisation — accepts the backend payload only when the
+ * caps block is fully numeric; everything else merges over the fallback.
+ */
+function _normalize(raw: unknown): SpecDrivenConfig {
+  const data = raw as Partial<SpecDrivenConfig> | null | undefined;
+  const caps = data?.caps;
+  if (
+    !caps ||
+    !_isFiniteNumber(caps.max_cost_usd_hard_cap) ||
+    !_isFiniteNumber(caps.max_runtime_seconds_hard_cap) ||
+    !_isFiniteNumber(caps.default_max_cost_usd) ||
+    !_isFiniteNumber(caps.default_max_runtime_seconds)
+  ) {
+    return FALLBACK_SMART_GEN_CONFIG;
+  }
+  return {
+    caps: {
+      max_cost_usd_hard_cap: caps.max_cost_usd_hard_cap,
+      max_runtime_seconds_hard_cap: caps.max_runtime_seconds_hard_cap,
+      default_max_cost_usd: caps.default_max_cost_usd,
+      default_max_runtime_seconds: caps.default_max_runtime_seconds,
+    },
+    download_ttl_seconds: _isFiniteNumber(data.download_ttl_seconds)
+      ? data.download_ttl_seconds
+      : FALLBACK_SMART_GEN_CONFIG.download_ttl_seconds,
+    ...(_isFiniteNumber(data.archive_ttl_seconds) ? { archive_ttl_seconds: data.archive_ttl_seconds } : {}),
+    features:
+      data.features && typeof data.features === 'object'
+        ? data.features
+        : FALLBACK_SMART_GEN_CONFIG.features,
+    default_models:
+      data.default_models && typeof data.default_models === 'object'
+        ? data.default_models
+        : FALLBACK_SMART_GEN_CONFIG.default_models,
+    supported_providers: Array.isArray(data.supported_providers)
+      ? data.supported_providers
+      : FALLBACK_SMART_GEN_CONFIG.supported_providers,
+    free_tier:
+      data.free_tier && typeof data.free_tier === 'object'
+        ? {
+            available: data.free_tier.available === true,
+            model:
+              typeof data.free_tier.model === 'string' && data.free_tier.model
+                ? data.free_tier.model
+                : null,
+            models: _normalizeFreeModels(data.free_tier.models),
+            pilot_model:
+              typeof data.free_tier.pilot_model === 'string' && data.free_tier.pilot_model
+                ? data.free_tier.pilot_model
+                : null,
+          }
+        : FALLBACK_SMART_GEN_CONFIG.free_tier,
+    providers: _normalizeProviders(data.providers),
+  };
+}
+
+const _optionalString = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim() ? value : null;
+
+/** Keep only well-formed providers and models; malformed entries are dropped. */
+function _normalizeProviders(raw: unknown): SpecDrivenCatalogProvider[] {
+  if (!Array.isArray(raw)) return [];
+  const providers: SpecDrivenCatalogProvider[] = [];
+  for (const entry of raw) {
+    const id = _optionalString(entry?.id);
+    const label = _optionalString(entry?.label);
+    if (!id || !label) continue;
+    const models: SpecDrivenCatalogModel[] = [];
+    for (const model of Array.isArray(entry.models) ? entry.models : []) {
+      const modelId = _optionalString(model?.id)?.trim();
+      if (!modelId) continue;
+      models.push({
+        id: modelId,
+        label: _optionalString(model.label) ?? modelId,
+        default: model.default === true,
+      });
+    }
+    providers.push({
+      id,
+      label,
+      hint: _optionalString(entry.hint),
+      key_prefix: typeof entry.key_prefix === 'string' ? entry.key_prefix : null,
+      models,
+    });
+  }
+  return providers;
+}
+
+/**
+ * Keep only well-formed `{id, default}` entries. An old backend without the
+ * list (or a malformed payload) normalises to `[]` — the UI then offers no
+ * model choice, which matches the pinned-model behavior of that backend.
+ */
+function _normalizeFreeModels(raw: unknown): SpecDrivenFreeModel[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (entry): entry is { id: string; default?: unknown } =>
+        !!entry &&
+        typeof entry === 'object' &&
+        typeof (entry as { id?: unknown }).id === 'string' &&
+        ((entry as { id: string }).id.trim().length > 0),
+    )
+    .map((entry) => ({ id: entry.id.trim(), default: entry.default === true }));
+}
+
+/**
+ * Resolve the `llm_model` a free-tier run should send for a stored model
+ * choice: the stored id only when the server currently advertises it as a
+ * NON-default free model; `undefined` otherwise (the default choice — and a
+ * stale or unknown id — omits `llm_model`, the exact wire shape of a run
+ * without any choice; the backend pins unknown ids to its default anyway).
+ */
+export function resolveFreeRunModel(
+  freeTier: SpecDrivenFreeTier,
+  storedChoice: string | null,
+  isPilot = false,
+): string | undefined {
+  if (!storedChoice) return undefined;
+  const match = (freeTier.models ?? []).find((m) => m.id === storedChoice);
+  if (!match) return undefined;
+  // In a telemetry session, "no llm_model" means the server applies its
+  // pilot_model, so an explicit pick of the public default must be sent.
+  if (isPilot) return match.id;
+  return match.default ? undefined : match.id;
+}
+
+/**
+ * Display label for a free-tier model — the id itself plus a short qualifier.
+ * No model names are hardcoded, so the server can add or swap free models on its
+ * own, and both BYOK dialogs present the same choice identically.
+ *
+ * The self-hosted test is the Ollama `name:tag` shape, NOT "has no vendor
+ * prefix": a cloud model such as `gpt-5.6-luna` is also slashless and would be
+ * labelled "(self-hosted)", misleading about who pays. `:free` is excluded
+ * because that suffix marks a vendor's free tier, not our hardware.
+ */
+export function freeModelLabel(model: SpecDrivenFreeModel): string {
+  if (model.default) return `${model.id} (default)`;
+  const isOllamaTag = model.id.includes(':') && !model.id.endsWith(':free');
+  if (isOllamaTag) return `${model.id} (self-hosted)`;
+  return model.id;
+}
+
+/**
+ * The free-model id to pre-select, honouring a telemetry session.
+ *
+ * Returns the server's `pilot_model` when this tab is a telemetry session AND the
+ * server still advertises that id as choosable; otherwise the ordinary default.
+ * The advertised-list check matters because pre-selecting an id the server would
+ * refuse just pins the run back to the default with no explanation.
+ *
+ * `isPilot` is injected rather than read here so this stays a pure function.
+ */
+export function preferredFreeModelId(
+  freeTier: SpecDrivenFreeTier,
+  isPilot: boolean,
+): string {
+  const models = freeTier.models ?? [];
+  if (isPilot && freeTier.pilot_model) {
+    const offered = models.some((m) => m.id === freeTier.pilot_model);
+    if (offered) return freeTier.pilot_model;
+  }
+  return defaultFreeModelId(models);
+}
+
+/** The default free-model id from the server's advertised list, or `''`. */
+export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): string {
+  return models.find((m) => m.default)?.id ?? models[0]?.id ?? '';
+}
+
+let _configPromise: Promise<SpecDrivenConfig> | null = null;
+let _loadedConfig: SpecDrivenConfig | null = null;
+
+/** How long a finished run's download is served: the archive lifetime, else the workspace one. */
+export function archiveTtlSeconds(config: SpecDrivenConfig): number {
+  return config.archive_ttl_seconds ?? config.download_ttl_seconds;
+}
+
+/**
+ * The server's own config, or null while it is unknown (not loaded yet, the
+ * load failed, or the payload was unusable). For values the fallback must not
+ * stand in for.
+ */
+export function peekServerSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig && _loadedConfig !== FALLBACK_SMART_GEN_CONFIG ? _loadedConfig : null;
+}
+
+/**
+ * The config from the last successful load, or null before one. Lets a dialog
+ * render the server's lists on its first frame instead of the fallback.
+ */
+export function peekSpecDrivenConfig(): SpecDrivenConfig | null {
+  return _loadedConfig;
+}
+
+/**
+ * Resolve the Spec-Driven Agent config. Never rejects — failures resolve to
+ * `FALLBACK_SMART_GEN_CONFIG` (and clear the cache so a later call can
+ * retry against a recovered backend).
+ */
+export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
+  if (!_configPromise) {
+    _configPromise = (async (): Promise<SpecDrivenConfig> => {
+      try {
+        _loadedConfig = _normalize(await fetchSpecDrivenConfig());
+        return _loadedConfig;
+      } catch (err) {
+        console.warn('[specDrivenConfig] falling back to defaults:', err);
+        // Allow a retry on the next call — the backend may just be
+        // restarting. The CURRENT caller still gets the fallback.
+        _configPromise = null;
+        return FALLBACK_SMART_GEN_CONFIG;
+      }
+    })();
+  }
+  return _configPromise;
+}
+
+/** Test-only: reset the module-level promise cache. */
+export function _resetSpecDrivenConfigCacheForTests(): void {
+  _configPromise = null;
+  _loadedConfig = null;
+}

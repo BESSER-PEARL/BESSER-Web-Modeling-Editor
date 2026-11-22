@@ -319,7 +319,8 @@
                   "height": 30
                 },
                 "replyType": "llm",
-                "ragDatabaseName": ""
+                "ragDatabaseName": "",
+                "llm_name": "gpt-4o-mini"
               },
               "659e810a-f686-47fb-aea8-d23ad06e482c": {
                 "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -728,7 +729,19 @@
                 }
               }
             },
-            "assessments": {}
+            "assessments": {},
+            "components": {
+              "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                "type": "AgentLLM",
+                "name": "gpt-4o-mini",
+                "owner": null,
+                "provider": "openai",
+                "parameters": {},
+                "num_previous_messages": 1,
+                "global_context": ""
+              }
+            }
           },
           "lastUpdate": "2026-05-06T13:49:26.796Z",
           "config": {
@@ -1093,7 +1106,8 @@
                         "width": 159,
                         "height": 30
                       },
-                      "replyType": "llm"
+                      "replyType": "llm",
+                      "llm_name": "gpt-4o-mini"
                     }
                   },
                   "relationships": {
@@ -1597,7 +1611,19 @@
                       "isManuallyLayouted": false
                     }
                   },
-                  "assessments": {}
+                  "assessments": {},
+                  "components": {
+                    "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                      "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                      "type": "AgentLLM",
+                      "name": "gpt-4o-mini",
+                      "owner": null,
+                      "provider": "openai",
+                      "parameters": {},
+                      "num_previous_messages": 1,
+                      "global_context": ""
+                    }
+                  }
                 }
               },
               {
@@ -1931,7 +1957,8 @@
                         "width": 159,
                         "height": 30
                       },
-                      "replyType": "llm"
+                      "replyType": "llm",
+                      "llm_name": "gpt-4o-mini"
                     }
                   },
                   "relationships": {
@@ -2435,7 +2462,19 @@
                       "isManuallyLayouted": false
                     }
                   },
-                  "assessments": {}
+                  "assessments": {},
+                  "components": {
+                    "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                      "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                      "type": "AgentLLM",
+                      "name": "gpt-4o-mini",
+                      "owner": null,
+                      "provider": "openai",
+                      "parameters": {},
+                      "num_previous_messages": 1,
+                      "global_context": ""
+                    }
+                  }
                 }
               }
             ],
@@ -3354,7 +3393,8 @@
               "height": 30
             },
             "replyType": "llm",
-            "ragDatabaseName": ""
+            "ragDatabaseName": "",
+            "llm_name": "gpt-4o-mini"
           },
           "659e810a-f686-47fb-aea8-d23ad06e482c": {
             "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -3763,7 +3803,19 @@
             }
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       },
       "originalAgentModel": {
         "version": "3.0.0",
@@ -4061,7 +4113,8 @@
               "height": 30
             },
             "replyType": "llm",
-            "ragDatabaseName": ""
+            "ragDatabaseName": "",
+            "llm_name": "gpt-4o-mini"
           },
           "659e810a-f686-47fb-aea8-d23ad06e482c": {
             "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -4470,7 +4523,19 @@
             }
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       },
       "personalizedAgentModel": {
         "version": "3.0.0",
@@ -4796,7 +4861,8 @@
               "width": 159,
               "height": 30
             },
-            "replyType": "llm"
+            "replyType": "llm",
+            "llm_name": "gpt-4o-mini"
           }
         },
         "relationships": {
@@ -5300,7 +5366,19 @@
             "isManuallyLayouted": false
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       }
     },
     {
@@ -5634,7 +5712,8 @@
               "height": 30
             },
             "replyType": "llm",
-            "ragDatabaseName": ""
+            "ragDatabaseName": "",
+            "llm_name": "gpt-4o-mini"
           },
           "659e810a-f686-47fb-aea8-d23ad06e482c": {
             "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -6043,7 +6122,19 @@
             }
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       },
       "originalAgentModel": {
         "version": "3.0.0",
@@ -6341,7 +6432,8 @@
               "height": 30
             },
             "replyType": "llm",
-            "ragDatabaseName": ""
+            "ragDatabaseName": "",
+            "llm_name": "gpt-4o-mini"
           },
           "659e810a-f686-47fb-aea8-d23ad06e482c": {
             "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -6750,7 +6842,19 @@
             }
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       },
       "personalizedAgentModel": {
         "version": "3.0.0",
@@ -7076,7 +7180,8 @@
               "width": 159,
               "height": 30
             },
-            "replyType": "llm"
+            "replyType": "llm",
+            "llm_name": "gpt-4o-mini"
           }
         },
         "relationships": {
@@ -7580,7 +7685,19 @@
             "isManuallyLayouted": false
           }
         },
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
+          }
+        }
       }
     }
   ],
@@ -8460,7 +8577,8 @@
             "height": 30
           },
           "replyType": "llm",
-          "ragDatabaseName": ""
+          "ragDatabaseName": "",
+          "llm_name": "gpt-4o-mini"
         },
         "659e810a-f686-47fb-aea8-d23ad06e482c": {
           "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
@@ -8869,7 +8987,19 @@
           }
         }
       },
-      "assessments": {}
+      "assessments": {},
+      "components": {
+        "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+          "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+          "type": "AgentLLM",
+          "name": "gpt-4o-mini",
+          "owner": null,
+          "provider": "openai",
+          "parameters": {},
+          "num_previous_messages": 1,
+          "global_context": ""
+        }
+      }
     }
   }
 }

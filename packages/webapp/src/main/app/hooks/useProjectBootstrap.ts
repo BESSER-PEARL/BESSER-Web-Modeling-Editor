@@ -1,10 +1,12 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { localStorageLatestProject } from '../../shared/constants/constant';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { requestAssistantOpenOnLoad } from '../../shared/services/storage/assistantStorage';
+import { readContinueFromGithubIntent } from '../../shared/services/storage/githubStorage';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
-import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
-import { notifyError } from '../../shared/utils/notifyError';
-import type { BesserProject } from '../../shared/types/project';
+import { notifyError } from '../../shared/services/errors/reportError';
+import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 
 const KNOWN_ROUTES = [
   '/',
@@ -15,11 +17,9 @@ const KNOWN_ROUTES = [
 ];
 
 interface UseProjectBootstrapOptions {
-  currentProject: BesserProject | null | undefined;
+  hasProject: boolean;
   loadProject: (projectId: string) => Promise<void>;
   pathname: string;
-  /** When set and no project exists in localStorage, silently import and load this template instead of showing the project hub. */
-  studyTemplate?: object;
 }
 
 interface UseProjectBootstrapResult {
@@ -28,10 +28,9 @@ interface UseProjectBootstrapResult {
 }
 
 export const useProjectBootstrap = ({
-  currentProject,
+  hasProject,
   loadProject,
   pathname,
-  studyTemplate,
 }: UseProjectBootstrapOptions): UseProjectBootstrapResult => {
   const [showProjectHub, setShowProjectHub] = useState(false);
   const [hasCheckedForProject, setHasCheckedForProject] = useState(false);
@@ -39,6 +38,13 @@ export const useProjectBootstrap = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const { importFromGitHub, isLoading: isGitHubImportLoading } = useGitHubBumlImport();
   const hasTokenInUrl = !KNOWN_ROUTES.includes(pathname);
+
+  // Captured once at mount: was the user mid-"Continue from GitHub" when they
+  // were bounced through the GitHub OAuth redirect? If so, keep the Project Hub
+  // OPEN on return (even when a latest project loads) so the hub can jump the
+  // user straight to the repo picker. The ProjectHubDialog consumes-and-clears
+  // the flag; this ref keeps the intent for the lifetime of this load only.
+  const continueFromGithubReopenRef = useRef<boolean>(readContinueFromGithubIntent() !== null);
 
   useEffect(() => {
     const checkForLatestProject = async () => {
@@ -56,29 +62,25 @@ export const useProjectBootstrap = ({
         return;
       }
 
-      const latestProjectId = localStorage.getItem(localStorageLatestProject);
+      const latestProjectId = ProjectStorageRepository.getLatestProjectId();
 
       if (latestProjectId) {
         try {
           await loadProject(latestProjectId);
+          track('project_opened', { source: 'startup' });
           setShowProjectHub(false);
-        } catch {
-          setShowProjectHub(true);
-        }
-      } else if (studyTemplate) {
-        try {
-          const file = new File(
-            [JSON.stringify(studyTemplate)],
-            'study_template.json',
-            { type: 'application/json' },
-          );
-          const imported = await importProjectFromJson(file);
-          await loadProject(imported.id);
-          setShowProjectHub(false);
-        } catch {
+        } catch (error) {
+          trackFailure('project_open_failed', error, { source: 'startup' });
           setShowProjectHub(true);
         }
       } else {
+        setShowProjectHub(true);
+      }
+
+      // Returning from the GitHub OAuth redirect mid-"Continue from GitHub":
+      // force the hub open (overriding the latest-project close above) so the
+      // hub can resume on the repo picker.
+      if (continueFromGithubReopenRef.current) {
         setShowProjectHub(true);
       }
 
@@ -87,6 +89,35 @@ export const useProjectBootstrap = ({
 
     checkForLatestProject().catch(notifyError('Loading latest project'));
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
+
+  // ?agentic / ?mode=agent → the user should land in the editor with the
+  // assistant drawer open. Flag it once at mount; WorkspaceShell consumes it
+  // when a project is present. New agentic projects created through the hub set
+  // the same flag from ProjectHubDialog; this covers the existing-project case
+  // where no creation flow runs. Read once — not reactively.
+  const agenticUrlRef = useRef<boolean>(
+    (() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('agentic')) {
+          const v = params.get('agentic');
+          if (v === null || v === '' || v === 'true' || v === '1') {
+            return true;
+          }
+        }
+        return params.get('mode') === 'agent';
+      } catch {
+        return false;
+      }
+    })(),
+  );
+  useEffect(() => {
+    if (!agenticUrlRef.current) {
+      return;
+    }
+    trackInterfaceChoice('agent', 'url');
+    requestAssistantOpenOnLoad();
+  }, []);
 
   // Read ?buml= once on mount — not reactively — to avoid re-triggers
   const bumlUrlRef = useRef(new URLSearchParams(window.location.search).get('buml'));
@@ -110,9 +141,8 @@ export const useProjectBootstrap = ({
   }, []);
 
   // Track whether a project was previously loaded so we only react to the
-  // null ↔ non-null transition. Otherwise every Redux update of currentProject
-  // (e.g. autosave from the quantum editor) would force the hub open/closed.
-  const hadProjectRef = useRef<boolean>(Boolean(currentProject));
+  // null ↔ non-null transition, not to every autosave of the project.
+  const hadProjectRef = useRef<boolean>(hasProject);
 
   useEffect(() => {
     if (!hasCheckedForProject) {
@@ -121,16 +151,20 @@ export const useProjectBootstrap = ({
 
     if (hasTokenInUrl) {
       setShowProjectHub(false);
-      hadProjectRef.current = Boolean(currentProject);
+      hadProjectRef.current = hasProject;
       return;
     }
 
-    const hasProject = Boolean(currentProject);
     if (hasProject !== hadProjectRef.current) {
-      setShowProjectHub(!hasProject);
+      // Don't let the latest-project load slam the hub shut when the user is
+      // returning to finish a "Continue from GitHub" — the hub owns its own
+      // close (the repo picker's Continue / Cancel).
+      if (!continueFromGithubReopenRef.current) {
+        setShowProjectHub(!hasProject);
+      }
       hadProjectRef.current = hasProject;
     }
-  }, [currentProject, hasCheckedForProject, hasTokenInUrl]);
+  }, [hasProject, hasCheckedForProject, hasTokenInUrl]);
 
   return {
     showProjectHub,

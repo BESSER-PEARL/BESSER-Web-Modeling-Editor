@@ -1157,7 +1157,7 @@ exports[`test update pane render with relationship 1`] = `
                   class="c9 c13 c14"
                   color="primary"
                 >
-                  Association (bidirectional)
+                  Association
                 </button>
               </div>
               <hr

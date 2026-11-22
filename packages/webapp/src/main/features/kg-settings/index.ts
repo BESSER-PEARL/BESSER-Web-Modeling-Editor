@@ -1,0 +1,1 @@
+export { KnowledgeGraphSettingsPanel } from './KnowledgeGraphSettingsPanel';

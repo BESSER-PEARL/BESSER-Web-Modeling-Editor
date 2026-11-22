@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { apiClient, ApiError } from '../../../shared/api/api-client';
-import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
+import { reportError } from '../../../shared/services/errors/reportError';
+import { ApiError } from '../../../shared/api/api-client';
+import { deployToGitHub } from '../../../shared/api/github';
+import type { components } from '../../../shared/api/generated/besser-openapi';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
@@ -10,17 +12,16 @@ import { isGrapesJSProjectData } from '../../../shared/types/project';
 import { buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
 
 export type DeploymentTarget = 'webapp' | 'agent';
-type BackendDeploymentTarget = 'webapp' | 'chatbot';
+type DeployWebappResponse = components['schemas']['DeployToGitHubResponse'];
+type BackendDeploymentTarget = DeployWebappResponse['deployment_type'];
 
 const toBackendDeploymentTarget = (target: DeploymentTarget): BackendDeploymentTarget => (
   target === 'agent' ? 'chatbot' : 'webapp'
 );
 
-const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefined => {
-  if (target === 'chatbot') return 'agent';
-  if (target === 'webapp') return 'webapp';
-  return undefined;
-};
+const fromBackendDeploymentTarget = (target: BackendDeploymentTarget): DeploymentTarget => (
+  target === 'chatbot' ? 'agent' : 'webapp'
+);
 
 /**
  * Deploy always ships the BASE web app — personalized page variants are a
@@ -46,15 +47,15 @@ const forceBaseWebAppGuiModel = (project: BesserProject): BesserProject => {
   };
 };
 
-export interface GitHubDeploymentUrls {
-  github: string;
-  render: string;
-  // Populated on redeploys when the backend reuses an existing render.yaml
-  // suffix. Absent on a first deploy (no stable Render hostname yet).
-  live_frontend?: string;
-  live_backend?: string;
-  live_chatbot?: string;
-  render_dashboard?: string;
+/** The live and dashboard links are set on a redeploy that reuses the repo's
+ *  render.yaml suffix; a first deploy has no stable Render hostname yet. */
+export type GitHubDeploymentUrls = components['schemas']['DeploymentUrls'];
+
+/** Why `createRepo` produced no repository; `error` is the caught error, if any. */
+export interface CreateRepoFailure {
+  success: false;
+  reason: 'no_project' | 'not_signed_in' | 'request';
+  error?: unknown;
 }
 
 export interface GitHubRepoResult {
@@ -88,34 +89,17 @@ export interface CreateRepoOptions {
   personalizationMapping?: ReadonlyArray<unknown> | null;
 }
 
-type DeployWebappResponse = {
-  success: boolean;
-  repo_url: string;
-  repo_name: string;
-  owner: string;
-  files_uploaded: number;
-  message: string;
-  deployment_urls?: GitHubDeploymentUrls;
-  is_first_deploy?: boolean;
-  deployment_type?: unknown;
-};
-
-const toGitHubRepoResult = (
-  resp: DeployWebappResponse,
-  fallbackTarget?: DeploymentTarget,
-): GitHubRepoResult => ({
+/** `POST /github/deploy-webapp`. */
+const toGitHubRepoResult = (resp: DeployWebappResponse): GitHubRepoResult => ({
   success: resp.success,
   repo_url: resp.repo_url,
   repo_name: resp.repo_name,
   owner: resp.owner,
   files_uploaded: resp.files_uploaded,
   message: resp.message,
-  deployment_urls: resp.deployment_urls ?? {
-    github: resp.repo_url,
-    render: `${RENDER_DEPLOY_URL_BASE}?repo=${encodeURIComponent(resp.repo_url)}`,
-  },
-  is_first_deploy: resp.is_first_deploy ?? true,
-  deployment_type: fromBackendDeploymentTarget(resp.deployment_type) ?? fallbackTarget ?? 'webapp',
+  deployment_urls: resp.deployment_urls,
+  is_first_deploy: resp.is_first_deploy,
+  deployment_type: fromBackendDeploymentTarget(resp.deployment_type),
 });
 
 /**
@@ -131,20 +115,20 @@ export const useGitHubRepo = () => {
    * Creates a new GitHub repository and pushes project files to it.
    * @param projectData - The project data to push to the repository
    * @param options - Repository creation options (name, description, private, session)
-   * @returns The result of the repository creation, or null if failed
+   * @returns The result of the repository creation, or why it failed
    */
   const createRepo = useCallback(
     async (
       projectData: BesserProject,
       options: CreateRepoOptions
-    ): Promise<GitHubRepoResult | null> => {
+    ): Promise<GitHubRepoResult | CreateRepoFailure> => {
       if (!projectData) {
-        toast.error(t('github.toasts.noProjectToDeploy'));
-        return null;
+        reportError(t('github.toasts.noProjectToDeploy'));
+        return { success: false, reason: 'no_project' };
       }
       if (!options.githubSession) {
-        toast.error(t('github.toasts.notSignedIn'));
-        return null;
+        reportError(t('github.toasts.notSignedIn'));
+        return { success: false, reason: 'not_signed_in' };
       }
 
       console.log('Creating GitHub repository...');
@@ -265,21 +249,9 @@ export const useGitHubRepo = () => {
           projectExport,
         };
 
-        const result = await apiClient.post<DeployWebappResponse>(
-          '/github/deploy-webapp',
-          requestBody,
-          {
-            headers: {
-              'X-GitHub-Session': options.githubSession,
-            },
-            // Deployment performs multiple GitHub API calls + code generation;
-            // observed durations up to ~37s in production. Use 2 min so the
-            // 30s default timeout doesn't abort a successful in-flight request.
-            timeout: 120_000,
-          }
-        );
+        const result = await deployToGitHub(options.githubSession, requestBody);
 
-        const repoResult = toGitHubRepoResult(result, options.deploymentTarget);
+        const repoResult = toGitHubRepoResult(result);
 
         setRepoResult(repoResult);
 
@@ -290,7 +262,7 @@ export const useGitHubRepo = () => {
               : t('github.toasts.repoCreated', { name: repoResult.repo_name })
           );
         } else {
-          toast.error(t('github.toasts.deploymentFailed'));
+          reportError(t('github.toasts.deploymentFailed'));
         }
 
         return repoResult;
@@ -301,9 +273,9 @@ export const useGitHubRepo = () => {
             : error instanceof Error
               ? error.message
               : t('github.toasts.repoCreationFailed');
-        toast.error(errorMessage);
+        reportError(errorMessage, { error });
         console.error('GitHub repository creation error:', error);
-        return null;
+        return { success: false, reason: 'request', error };
       } finally {
         setIsCreating(false);
       }

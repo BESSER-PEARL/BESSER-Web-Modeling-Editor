@@ -3,7 +3,7 @@ import {
   BPMNIntermediateEventType,
 } from '../../../../../main/packages/bpmn/bpmn-intermediate-event/bpmn-intermediate-event';
 
-describe('BPMNIntermediateEvent - eventType (Phase A construct gaps)', () => {
+describe('BPMNIntermediateEvent - eventType (construct gaps)', () => {
   it('should accept timer-throw as a valid intermediate-event type', () => {
     const event = new BPMNIntermediateEvent({ eventType: 'timer-throw' as BPMNIntermediateEventType });
     expect(event.eventType).toBe('timer-throw');

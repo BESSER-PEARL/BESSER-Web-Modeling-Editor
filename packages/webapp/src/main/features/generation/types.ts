@@ -1,16 +1,49 @@
+import type { ReactNode } from 'react';
+
+export interface GenerationOptions {
+  /** False defers the download and returns the blob (assistant result card). */
+  autoDownload?: boolean;
+  /**
+   * Replaces the error toast for a backend error detail (400/422/500 with a
+   * string detail). Return null to show the detail itself.
+   */
+  describeError?: (status: number, detail: string) => ReactNode | null;
+  /** The diagram the generated model was read from, for the project trace: set when the model is not the open
+   *  diagram's (the assistant generating from the stored class diagram). Defaults to the open diagram. */
+  traceDiagramId?: string;
+}
+
 export type GenerationResult =
   | {
       ok: true;
       filename?: string;
+      /** Generated from the stored class diagram rather than the open editor. */
+      fromStoredModel?: boolean;
+      /**
+       * The generated artifact, present when generation ran with the download
+       * deferred (e.g. the assistant flow, which renders a result card with a
+       * manual Download button instead of auto-saving). Undefined when the
+       * artifact was already auto-downloaded.
+       */
+      blob?: Blob;
     }
   | {
       ok: false;
       error: string;
+      /** Why it failed, for analytics; unset means the request itself failed. */
+      reason?:
+        | 'no_project'
+        | 'invalid_input'
+        | 'validation'
+        /** The user chose to fix the model's validation warnings first: not a failure. */
+        | 'warnings_declined'
+        | 'wrong_context'
+        | 'no_editor'
+        | 'gui_empty'
+        | 'auto_gui'
+        | 'exception'
+        /** The surface went away mid-run: not a failure. */
+        | 'unmounted';
+      /** The caught error, for analytics (never shown). */
+      cause?: unknown;
     };
-
-export type QualityCheckState = 'not_validated' | 'valid' | 'errors' | 'stale';
-
-export interface QualityCheckResult {
-  executed: boolean;
-  passed: boolean;
-}

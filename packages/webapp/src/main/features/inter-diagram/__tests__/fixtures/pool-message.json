@@ -1,0 +1,96 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 1000, "height": 700 },
+  "elements": {
+    "pool-a": {
+      "id": "pool-a",
+      "name": "SwarmA",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 400, "height": 160 }
+    },
+    "lane-a": {
+      "id": "lane-a",
+      "name": "Coordinator",
+      "type": "BPMNSwimlane",
+      "owner": "pool-a",
+      "bounds": { "x": 60, "y": 60, "width": 380, "height": 120 },
+      "isAgentic": true,
+      "role": "supervision",
+      "trustScore": 70
+    },
+    "task-a": {
+      "id": "task-a",
+      "name": "Request",
+      "type": "BPMNTask",
+      "owner": "lane-a",
+      "bounds": { "x": 120, "y": 90, "width": 140, "height": 60 },
+      "isAgentic": true
+    },
+    "pool-b": {
+      "id": "pool-b",
+      "name": "SwarmB",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 260, "width": 400, "height": 160 }
+    },
+    "lane-b": {
+      "id": "lane-b",
+      "name": "Solver",
+      "type": "BPMNSwimlane",
+      "owner": "pool-b",
+      "bounds": { "x": 60, "y": 280, "width": 380, "height": 120 },
+      "isAgentic": true,
+      "role": "solution",
+      "trustScore": 60
+    },
+    "task-b": {
+      "id": "task-b",
+      "name": "Solve",
+      "type": "BPMNTask",
+      "owner": "lane-b",
+      "bounds": { "x": 120, "y": 310, "width": 140, "height": 60 },
+      "isAgentic": true
+    },
+    "pool-c": {
+      "id": "pool-c",
+      "name": "LegacySystem",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 520, "y": 40, "width": 320, "height": 120 }
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "mf-1": {
+      "id": "mf-1",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "message",
+      "owner": null,
+      "bounds": { "x": 40, "y": 200, "width": 1, "height": 60 },
+      "path": [
+        { "x": 240, "y": 200 },
+        { "x": 240, "y": 260 }
+      ],
+      "source": { "element": "pool-a", "direction": "Down" },
+      "target": { "element": "pool-b", "direction": "Up" }
+    },
+    "mf-2": {
+      "id": "mf-2",
+      "name": "",
+      "type": "BPMNFlow",
+      "flowType": "message",
+      "owner": null,
+      "bounds": { "x": 260, "y": 90, "width": 260, "height": 1 },
+      "path": [
+        { "x": 260, "y": 120 },
+        { "x": 520, "y": 100 }
+      ],
+      "source": { "element": "task-a", "direction": "Right" },
+      "target": { "element": "pool-c", "direction": "Left" }
+    }
+  },
+  "assessments": {}
+}

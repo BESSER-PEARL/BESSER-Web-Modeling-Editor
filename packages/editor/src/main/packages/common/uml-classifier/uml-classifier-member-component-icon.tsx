@@ -7,6 +7,7 @@ import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
 import { UserModelElementType } from '../../user-modeling';
 import { resolveUserModelChipIcon } from '../../user-modeling/attribute-palette-config';
+import { sanitizeSvg } from '../../../utils/sanitize-svg';
 
 interface OwnProps {
   element: UMLClassifierMember;
@@ -94,10 +95,12 @@ const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({
   
   // For attribute chips, derive the icon from the sibling attribute's current
   // value (live swap); otherwise fall back to the element's stored icon.
-  const iconContent = resolveChipIcon(element, elements) ?? (element as any).icon;
-  if (!iconContent || typeof iconContent !== 'string' || iconContent.trim() === '') {
+  const rawIcon = resolveChipIcon(element, elements) ?? (element as any).icon;
+  if (!rawIcon || typeof rawIcon !== 'string' || rawIcon.trim() === '') {
     return null;
   }
+  // The icon comes from the model, and so from a file anyone with write access to a repository can edit.
+  const iconContent = sanitizeSvg(rawIcon);
   
   // Set your icon width here, or extract it from the SVG if dynamic
   const iconWidth = getIconWidth(iconContent);

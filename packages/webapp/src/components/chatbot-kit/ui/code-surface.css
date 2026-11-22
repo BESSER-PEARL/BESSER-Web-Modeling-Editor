@@ -1,0 +1,85 @@
+/* Shared code surface: the dark navy editor panel (both themes) and its
+   highlight.js token palette. Used by every read-only code viewer in the app
+   ("View files", the JSON / B-UML viewer, agent code, chat code blocks). */
+
+.code-surface {
+  background: #151718;
+  color: #d5dce2;
+}
+
+.code-surface code {
+  background: transparent;
+  color: inherit;
+}
+
+/* Secondary text on the surface (meta, carets, ellipses): 5:1 on #151718. */
+.code-surface-muted {
+  color: #7d8892;
+}
+
+.code-surface .hljs-comment,
+.code-surface .hljs-quote {
+  color: #808c98;
+  font-style: italic;
+}
+
+.code-surface .hljs-string,
+.code-surface .hljs-regexp,
+.code-surface .hljs-meta .hljs-string,
+.code-surface .hljs-code {
+  color: #d9b97a;
+}
+
+.code-surface .hljs-keyword,
+.code-surface .hljs-literal,
+.code-surface .hljs-selector-tag,
+.code-surface .hljs-built_in {
+  color: #6fb6c8;
+}
+
+.code-surface .hljs-number,
+.code-surface .hljs-symbol,
+.code-surface .hljs-bullet {
+  color: #e39b7b;
+}
+
+.code-surface .hljs-type,
+.code-surface .hljs-title.class_,
+.code-surface .hljs-class .hljs-title {
+  color: #a9d7c4;
+}
+
+.code-surface .hljs-title,
+.code-surface .hljs-title.function_ {
+  color: #c9d3f2;
+}
+
+.code-surface .hljs-meta,
+.code-surface .hljs-decorator {
+  color: #d9b97a;
+}
+
+.code-surface .hljs-tag,
+.code-surface .hljs-name,
+.code-surface .hljs-selector-class,
+.code-surface .hljs-selector-id {
+  color: #7fc1d3;
+}
+
+.code-surface .hljs-attr,
+.code-surface .hljs-attribute,
+.code-surface .hljs-property,
+.code-surface .hljs-variable,
+.code-surface .hljs-params {
+  color: #b8c6d2;
+}
+
+.code-surface .hljs-section,
+.code-surface .hljs-strong {
+  color: #e7ecee;
+  font-weight: 500;
+}
+
+.code-surface .hljs-link {
+  color: #7fc1d3;
+}

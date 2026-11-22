@@ -99,9 +99,9 @@ export const OfflineBanner: React.FC = () => {
         'animate-[slideDown_0.3s_ease-out]',
         // Offline: amber/yellow
         isOffline
-          ? 'bg-amber-500 text-white dark:bg-amber-600'
+          ? 'bg-warning text-warning-foreground'
           : // Reconnected: green/success
-            'bg-emerald-500 text-white dark:bg-emerald-600',
+            'bg-success text-success-foreground',
       ].join(' ')}
     >
       {isOffline ? (

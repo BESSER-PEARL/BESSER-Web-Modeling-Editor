@@ -1,0 +1,150 @@
+import { apiClient, ApiError } from './api-client';
+import type { components } from './generated/besser-openapi';
+import { BACKEND_URL } from '../constants/constant';
+import { getGitHubSession } from '../services/github/githubAuth';
+
+/**
+ * API layer for the agent simulation ("Test Agent") feature.
+ *
+ * Every simulation HTTP call goes through the shared `apiClient` (timeouts,
+ * `{"detail": ...}` error parsing into `ApiError`), and this is the single
+ * place that reads the GitHub session used to authenticate against the
+ * simulation endpoints and WebSocket.
+ */
+
+
+/** Generating the agent and starting its container can take a while. */
+const START_SESSION_TIMEOUT_MS = 120_000;
+const VALIDATE_TIMEOUT_MS = 60_000;
+
+/** Close code the backend uses when the WebSocket auth frame is rejected. */
+export const AGENT_SIMULATION_WS_AUTH_FAILED_CODE = 4401;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** Narrows the schema's `credentials: Dict[str, str]` to the keys `agent_simulator_router` forwards. */
+export interface AgentSimulationCredentials {
+  openAiApiKey?: string;
+  huggingFaceToken?: string;
+  replicateApiKey?: string;
+}
+
+/** Non-secret part of a start/validate request (`SimulationSessionInput`). `model` and
+ *  `config` are `object`: the editor's models are interfaces, which TypeScript does not
+ *  assign to the schema's `{ [key: string]: unknown }`. */
+export interface AgentSimulationRequest {
+  title: string;
+  model: object;
+  config?: object;
+  configYaml?: string;
+}
+
+export interface StartAgentSimulationSessionRequest extends AgentSimulationRequest {
+  credentials?: AgentSimulationCredentials;
+}
+
+export type StartAgentSimulationSessionResponse = components['schemas']['SimulationSessionResponse'];
+
+export type ValidateAgentResponse = components['schemas']['SimulationValidationResponse'];
+
+export type AgentSimulationSessionFile = components['schemas']['SimulationSessionFile'];
+
+export type AgentSimulationSessionFilesResponse = components['schemas']['SimulationSessionFilesResponse'];
+
+/** A limit the server does not set arrives as `null`. */
+export type AgentSimulationLimits = components['schemas']['SimulationLimitsResponse'];
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+function authHeaders(): Record<string, string> {
+  const githubSession = getGitHubSession();
+  return githubSession ? { 'X-GitHub-Session': githubSession } : {};
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket helpers
+// ---------------------------------------------------------------------------
+
+/** Convert an http(s) base URL into the matching ws(s) URL. */
+export function toWebSocketBaseUrl(httpUrl: string | undefined): string | null {
+  if (!httpUrl) return null;
+  if (/^https:/i.test(httpUrl)) return httpUrl.replace(/^https:/i, 'wss:');
+  if (/^http:/i.test(httpUrl)) return httpUrl.replace(/^http:/i, 'ws:');
+  return null;
+}
+
+/** WebSocket URL of a simulation session, derived from BACKEND_URL. */
+export function getAgentSimulationWebSocketUrl(sessionId: string, backendUrl: string | undefined = BACKEND_URL): string | null {
+  const base = toWebSocketBaseUrl(backendUrl);
+  return base ? `${base}/simulation/${encodeURIComponent(sessionId)}/ws` : null;
+}
+
+/** First frame sent on the simulation WebSocket; never put the session in the URL. */
+export function buildAgentSimulationAuthFrame(): string {
+  return JSON.stringify({ type: 'auth', githubSession: getGitHubSession() ?? '' });
+}
+
+// ---------------------------------------------------------------------------
+// Errors
+// ---------------------------------------------------------------------------
+
+/**
+ * User-facing message for a failed simulation request: the backend `detail`
+ * for an `ApiError`, `timeoutMessage` for a timed-out request, otherwise the
+ * (already translated) `fallback`. Raw network/runtime messages are not shown.
+ */
+export function getAgentSimulationErrorMessage(error: unknown, fallback: string, timeoutMessage?: string): string {
+  if (error instanceof ApiError) {
+    return error.message && error.message !== '[object Object]' ? error.message : fallback;
+  }
+  const name = (error as { name?: unknown } | null)?.name;
+  if (timeoutMessage && (name === 'TimeoutError' || name === 'AbortError')) return timeoutMessage;
+  return fallback;
+}
+
+// ---------------------------------------------------------------------------
+// Endpoints
+// ---------------------------------------------------------------------------
+
+export const agentSimulationApi = {
+  startSession(payload: StartAgentSimulationSessionRequest): Promise<StartAgentSimulationSessionResponse> {
+    return apiClient.post<StartAgentSimulationSessionResponse>('/simulation/sessions', payload, {
+      headers: authHeaders(),
+      timeout: START_SESSION_TIMEOUT_MS,
+    });
+  },
+
+  validate(payload: AgentSimulationRequest): Promise<ValidateAgentResponse> {
+    return apiClient.post<ValidateAgentResponse>('/simulation/validate', payload, {
+      headers: authHeaders(),
+      timeout: VALIDATE_TIMEOUT_MS,
+    });
+  },
+
+  /** `keepalive` lets the request outlive the page (tab close / reload). */
+  stopSession(
+    sessionId: string,
+    options: { keepalive?: boolean } = {},
+  ): Promise<components['schemas']['SimulationSessionStopResponse']> {
+    return apiClient.request<components['schemas']['SimulationSessionStopResponse']>(`/simulation/sessions/${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+      keepalive: options.keepalive,
+    });
+  },
+
+  getSessionFiles(sessionId: string): Promise<AgentSimulationSessionFilesResponse> {
+    return apiClient.get<AgentSimulationSessionFilesResponse>(
+      `/simulation/sessions/${encodeURIComponent(sessionId)}/files`,
+      { headers: authHeaders() },
+    );
+  },
+
+  getLimits(): Promise<AgentSimulationLimits> {
+    return apiClient.get<AgentSimulationLimits>('/simulation/limits', { headers: authHeaders() });
+  },
+};

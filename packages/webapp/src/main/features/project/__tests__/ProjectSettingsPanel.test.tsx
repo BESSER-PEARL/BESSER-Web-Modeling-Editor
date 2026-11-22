@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -39,6 +39,12 @@ vi.mock('../../../shared/services/storage/ProjectStorageRepository', () => ({
     saveProject: vi.fn(),
     getCurrentProject: vi.fn(() => null),
   },
+}));
+
+const mockCapture = vi.fn();
+vi.mock('../../../shared/services/analytics/lazy-analytics', () => ({
+  captureEvent: (...args: unknown[]) => mockCapture(...args),
+  getSentry: () => null,
 }));
 
 vi.mock('react-toastify', () => ({
@@ -125,7 +131,7 @@ describe('ProjectSettingsPanel', () => {
   it('renders loading state', () => {
     setupUseProject({ loading: true });
     renderWithStore(null);
-    expect(screen.getByText('Loading project...')).toBeInTheDocument();
+    expect(screen.getByText('Loading project…')).toBeInTheDocument();
   });
 
   it('renders error state', () => {
@@ -151,6 +157,27 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Modeling Perspectives')).toBeInTheDocument();
   });
 
+  it('shows the active editor with the sidebar label, not the raw diagram type', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.currentDiagramType = 'QuantumCircuitDiagram';
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const label = screen.getByText('Active Editor');
+    expect(label.nextElementSibling?.textContent).toBe('Quantum');
+  });
+
+  it('labels diagram badges with sidebar names, never raw identifiers', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    for (const raw of ['QuantumCircuit', 'GUINoCode', 'StateMachine', 'NN']) {
+      expect(screen.queryByText(raw)).toBeNull();
+    }
+    expect(screen.getAllByText('Neural Net').length).toBeGreaterThan(0);
+  });
+
   it('renders quick presets row', () => {
     const project = createDefaultProject('Test', '', 'owner');
     setupUseProject({ currentProject: project });
@@ -159,7 +186,12 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Quick presets')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-data')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-agent')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-preset-agenticSwarm')).toHaveTextContent('Multi-Agent');
+    expect(screen.getByTestId('perspective-preset-agenticSwarm')).toHaveAttribute(
+      'title', 'Agentic BPMN, agent, component, and deployment diagrams.',
+    );
     expect(screen.getByTestId('perspective-preset-fullApp')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-preset-knowledge')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-quantum')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-all')).toBeInTheDocument();
   });
@@ -176,6 +208,21 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByTestId('perspective-toggle-UserDiagram')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-toggle-GUINoCodeDiagram')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-toggle-QuantumCircuitDiagram')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-toggle-KnowledgeGraphDiagram')).toBeInTheDocument();
+  });
+
+  it('marks the Knowledge Engineer preset active for class + object + KG', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives = perspectivesFromDiagramList([
+      'ClassDiagram',
+      'ObjectDiagram',
+      'KnowledgeGraphDiagram',
+    ]);
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    expect(screen.getByTestId('perspective-preset-knowledge')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('perspective-preset-data')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('marks the "Show All" preset active when every perspective is enabled', () => {
@@ -249,5 +296,27 @@ describe('ProjectSettingsPanel', () => {
     setupUseProject({ currentProject: project });
     renderWithStore(project);
     expect(screen.getByText('Export Project')).toBeInTheDocument();
+  });
+
+  describe('analytics', () => {
+    const changes = () => mockCapture.mock.calls.filter(([event]) => event === 'settings_changed').map(([, props]) => props);
+
+    it('reports a field once per visit, by name and never its value', () => {
+      const project = createDefaultProject('Old Name', '', 'owner');
+      setupUseProject({ currentProject: project });
+      renderWithStore(project);
+      const name = screen.getByDisplayValue('Old Name');
+      fireEvent.change(name, { target: { value: 'New' } });
+      fireEvent.change(name, { target: { value: 'New Name' } });
+      expect(changes()).toEqual([{ area: 'project', setting: 'name' }]);
+    });
+
+    it('reports a display toggle with its new value', () => {
+      const project = createDefaultProject('Test', '', 'owner');
+      setupUseProject({ currentProject: project });
+      renderWithStore(project);
+      fireEvent.click(within(screen.getByText('Show Instanced Objects').closest('label')!).getByRole('checkbox'));
+      expect(changes()).toEqual([{ area: 'display', setting: 'showInstancedObjects', value: true }]);
+    });
   });
 });

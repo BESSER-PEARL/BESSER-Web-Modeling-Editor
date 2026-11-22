@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { UMLModel, UMLDiagramType } from '@besser/wme';
-import { apollonBpmnToXml } from '../../export/bpmn-xml-exporter';
+import { apollonBpmnToXml } from '../../export';
 import { bpmnXmlToApollon } from '../bpmn-xml-importer';
 
 // Round-trip test for the .bpmn XML exporter ↔ importer pair.

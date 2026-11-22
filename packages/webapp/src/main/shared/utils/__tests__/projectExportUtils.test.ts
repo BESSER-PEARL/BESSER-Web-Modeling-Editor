@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
+import { importProjectFromJson } from '../../services/project-import/projectImport';
+import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import {
   buildExportableProjectPayload,
+  buildProjectPayloadForBackend,
   buildProjectExportEnvelope,
   ExportableProjectPayload,
 } from '../projectExportUtils';
@@ -82,6 +85,15 @@ describe('diagramHasContent', () => {
     expect(diagramHasContent(diagram)).toBe(true);
   });
 
+  it('keeps an Agent diagram with only off-canvas components or SQL configuration', () => {
+    const agent = createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram);
+    (agent.model as any).components = { skill: { id: 'skill', type: 'AgentSkill', name: 'Review', owner: null } };
+    expect(diagramHasContent(agent)).toBe(true);
+    delete (agent.model as any).components;
+    agent.agentConfigForm = { db: { sqlDatabases: [{ name: 'Orders' }] } };
+    expect(diagramHasContent(agent)).toBe(true);
+  });
+
   it('returns false for empty GrapesJS GUI diagram', () => {
     const diagram = createEmptyDiagram('GUI Diagram', null, 'gui');
     expect(diagramHasContent(diagram)).toBe(false);
@@ -116,7 +128,55 @@ describe('diagramHasContent', () => {
 // buildExportableProjectPayload
 // ────────────────────────────────────────────────────────────────────────────
 
+describe.each([
+  ['export', buildExportableProjectPayload],
+  ['backend', buildProjectPayloadForBackend],
+] as const)('%s diagram selection preservation', (_name, buildPayload) => {
+  it('preserves active identities and resolves legacy references before filtering', () => {
+    const project = createDefaultProject('Selection', 'desc', 'owner');
+    const classA = createNonEmptyUMLDiagram('A', UMLDiagramType.ClassDiagram);
+    const classB = createNonEmptyUMLDiagram('B', UMLDiagramType.ClassDiagram);
+    const guiA = createNonEmptyGUIDiagram('GUI A');
+    const guiB = createNonEmptyGUIDiagram('GUI B');
+    guiA.references = { ClassDiagram: 1 } as unknown as ProjectDiagram['references'];
+    guiB.references = { ClassDiagram: classB.id };
+    project.diagrams.ClassDiagram = [createEmptyDiagram('Empty', UMLDiagramType.ClassDiagram), classA, classB];
+    project.diagrams.GUINoCodeDiagram = [createEmptyDiagram('Empty GUI', null, 'gui'), guiA, guiB];
+    project.currentDiagramIndices.ClassDiagram = 2;
+    project.currentDiagramIndices.GUINoCodeDiagram = 1;
+    const original = structuredClone(project);
+
+    const payload = buildPayload(project) as ExportableProjectPayload;
+    expect(payload.currentDiagramIndices.ClassDiagram).toBe(1);
+    expect(payload.currentDiagramIndices.GUINoCodeDiagram).toBe(0);
+    expect(payload.diagrams.GUINoCodeDiagram[0].id).toBe(guiA.id);
+    expect(payload.diagrams.GUINoCodeDiagram[0].references?.ClassDiagram).toBe(classA.id);
+    expect(payload.diagrams.GUINoCodeDiagram[1].references?.ClassDiagram).toBe(classB.id);
+    expect(project).toEqual(original);
+  });
+
+  it('selects the first retained diagram when the active one is empty and respects type filters', () => {
+    const project = createDefaultProject('Selection', 'desc', 'owner');
+    const retained = createNonEmptyUMLDiagram('Retained', UMLDiagramType.ClassDiagram);
+    project.diagrams.ClassDiagram = [createEmptyDiagram('Empty', UMLDiagramType.ClassDiagram), retained];
+    project.diagrams.GUINoCodeDiagram = [createNonEmptyGUIDiagram('GUI')];
+    const payload = buildPayload(project, ['ClassDiagram']) as ExportableProjectPayload;
+    expect(payload.currentDiagramIndices.ClassDiagram).toBe(0);
+    expect(payload.diagrams.ClassDiagram[0].id).toBe(retained.id);
+    expect(payload.diagrams.GUINoCodeDiagram).toBeUndefined();
+  });
+});
+
 describe('buildExportableProjectPayload', () => {
+  it('drops the description the create form used to pre-fill, and keeps a real one', () => {
+    const legacy = createDefaultProject('Shop', 'Modern workspace project for UML, GUI and quantum modeling.', 'owner');
+    expect(buildExportableProjectPayload(legacy).description).toBe('');
+    expect(legacy.description).toBe('Modern workspace project for UML, GUI and quantum modeling.');
+
+    const own = createDefaultProject('Shop', 'An online shop', 'owner');
+    expect(buildExportableProjectPayload(own).description).toBe('An online shop');
+  });
+
   it('filters out diagram types where ALL diagrams are empty', () => {
     const project = createDefaultProject('Test Project', 'desc', 'owner');
     // Default project has all empty diagrams
@@ -260,51 +320,17 @@ describe('buildExportableProjectPayload', () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('round-trip: export filters empty diagrams, import restores them', () => {
-  /**
-   * Simulates what fillMissingDiagrams does in useImportProject.ts:
-   * ensures every SupportedDiagramType exists as an array with at least one diagram.
-   */
-  const fillMissingDiagrams = (project: BesserProject): BesserProject => {
-    const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
-      ClassDiagram: UMLDiagramType.ClassDiagram,
-      ObjectDiagram: UMLDiagramType.ObjectDiagram,
-      StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
-      AgentDiagram: UMLDiagramType.AgentDiagram,
-      UserDiagram: UMLDiagramType.UserDiagram,
-      GUINoCodeDiagram: null,
-      QuantumCircuitDiagram: null,
-      NNDiagram: null,
-    };
-    const diagramTitles: Record<SupportedDiagramType, string> = {
-      ClassDiagram: 'Class Diagram',
-      ObjectDiagram: 'Object Diagram',
-      StateMachineDiagram: 'State Machine Diagram',
-      AgentDiagram: 'Agent Diagram',
-      UserDiagram: 'User Diagram',
-      GUINoCodeDiagram: 'GUI Diagram',
-      QuantumCircuitDiagram: 'Quantum Circuit',
-      NNDiagram: 'Neural Network Diagram',
-    };
-    const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
-      GUINoCodeDiagram: 'gui',
-      QuantumCircuitDiagram: 'quantum',
-    };
+  // Goes through the REAL importer. A hand-copied fill function here used to
+  // carry its own list of diagram kinds, which hid that the importer's list
+  // was missing the Knowledge Graph type.
+  const reimport = (project: BesserProject): Promise<BesserProject> =>
+    importProjectFromJson(
+      new File([JSON.stringify(buildProjectExportEnvelope(project, undefined, { includePersonalization: false }))], 'project.json', {
+        type: 'application/json',
+      }),
+    );
 
-    for (const diagramType of ALL_DIAGRAM_TYPES) {
-      const existing = (project.diagrams as any)[diagramType];
-      if (!existing) {
-        const umlType = diagramTypeToUMLType[diagramType];
-        const title = diagramTitles[diagramType];
-        const kind = diagramKinds[diagramType];
-        (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
-      } else if (!Array.isArray(existing)) {
-        (project.diagrams as any)[diagramType] = [existing];
-      }
-    }
-    return project;
-  };
-
-  it('export excludes empty diagrams, fillMissingDiagrams restores all types on import', () => {
+  it('export excludes empty diagrams, import restores all types', async () => {
     // 1. Create a project with only ClassDiagram having content
     const project = createDefaultProject('Round Trip', 'test', 'owner');
     project.diagrams.ClassDiagram = [
@@ -318,15 +344,10 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
     expect(exported.diagrams['ObjectDiagram']).toBeUndefined();
     expect(exported.diagrams['GUINoCodeDiagram']).toBeUndefined();
     expect(exported.diagrams['QuantumCircuitDiagram']).toBeUndefined();
+    expect(exported.diagrams['KnowledgeGraphDiagram']).toBeUndefined();
 
-    // 3. Simulate import: reconstruct BesserProject from exported payload
-    const imported: BesserProject = {
-      ...exported,
-      diagrams: exported.diagrams as any,
-    };
-
-    // 4. fillMissingDiagrams restores all diagram types
-    const restored = fillMissingDiagrams(imported);
+    // 3. Import restores all diagram types
+    const restored = await reimport(project);
 
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(restored.diagrams[type]).toBeDefined();
@@ -334,30 +355,33 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       expect(restored.diagrams[type].length).toBeGreaterThanOrEqual(1);
     }
 
-    // 5. The original non-empty ClassDiagram content is preserved
+    // 4. The original non-empty ClassDiagram content is preserved
     const classModel = restored.diagrams.ClassDiagram[0].model as any;
     expect(classModel.elements).toBeDefined();
     expect(Object.keys(classModel.elements).length).toBeGreaterThan(0);
   });
 
-  it('fully empty project round-trips: export has no diagrams, import restores all empty', () => {
+  it('fully empty project round-trips: export has no diagrams, import restores all empty', async () => {
     const project = createDefaultProject('Empty Project', '', 'owner');
 
     // Export: all empty -> no diagram types in payload
     const exported = buildExportableProjectPayload(project);
     expect(Object.keys(exported.diagrams)).toHaveLength(0);
 
-    // Import: fillMissingDiagrams restores all types
-    const imported: BesserProject = {
-      ...exported,
-      diagrams: exported.diagrams as any,
-    };
-    const restored = fillMissingDiagrams(imported);
+    const restored = await reimport(project);
 
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(restored.diagrams[type]).toBeDefined();
       expect(restored.diagrams[type]).toHaveLength(1);
     }
+  });
+
+  it('restores each non-UML type with its own kind of model', async () => {
+    const restored = await reimport(createDefaultProject('Kinds', '', 'owner'));
+
+    expect(restored.diagrams.GUINoCodeDiagram[0].model).toHaveProperty('pages');
+    expect(restored.diagrams.QuantumCircuitDiagram[0].model).toHaveProperty('cols');
+    expect(restored.diagrams.KnowledgeGraphDiagram[0].model).toMatchObject({ type: 'KnowledgeGraphDiagram', nodes: [], edges: [] });
   });
 });
 
@@ -365,7 +389,107 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
 // buildProjectExportEnvelope
 // ────────────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────────────
+// buildProjectPayloadForBackend — lineage strip
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('buildProjectPayloadForBackend lineage strip', () => {
+  /** A project with one non-empty Component diagram carrying lineage. */
+  const projectWithLineage = (): BesserProject => {
+    const project = createDefaultProject('Lineage', 'desc', 'owner');
+    const derived = createNonEmptyUMLDiagram('Component Diagram', UMLDiagramType.ComponentDiagram);
+    derived.derivedFrom = {
+      sourceDiagramId: 'bpmn-1',
+      sourceDiagramType: 'BPMN',
+      derivationKind: 'bpmn-to-component',
+      derivedAt: '2026-06-06T00:00:00.000Z',
+      sourceModelHash: 'deadbeef',
+    };
+    project.diagrams.ComponentDiagram = [derived];
+    project.elementLineage = { [derived.id]: { 'derived-el': 'source-el' } };
+    return project;
+  };
+
+  it('strips derivedFrom from every diagram in the backend payload', () => {
+    const payload = buildProjectPayloadForBackend(projectWithLineage());
+    for (const arr of Object.values(payload.diagrams as Record<string, ProjectDiagram[]>)) {
+      for (const diagram of arr) {
+        expect(diagram.derivedFrom).toBeUndefined();
+      }
+    }
+  });
+
+  it('strips elementLineage from the backend payload', () => {
+    const payload = buildProjectPayloadForBackend(projectWithLineage());
+    expect(payload.elementLineage).toBeUndefined();
+  });
+
+  it('keeps the assistant conversation in the project file but not in the backend payload (BESSER#745)', () => {
+    const project = projectWithLineage();
+    project.assistantConversation = {
+      turns: [{ role: 'user', content: 'A library system' }],
+      updatedAt: '2026-11-08T00:00:00Z',
+    };
+    expect(buildProjectPayloadForBackend(project).assistantConversation).toBeUndefined();
+    expect(buildProjectExportEnvelope(project).project.assistantConversation).toEqual(project.assistantConversation);
+  });
+
+  it('does not mutate the source project (clone-only strip)', () => {
+    const project = projectWithLineage();
+    buildProjectPayloadForBackend(project);
+    expect(project.elementLineage).toBeDefined();
+    expect(project.diagrams.ComponentDiagram[0].derivedFrom).toBeDefined();
+  });
+
+  it('buildExportableProjectPayload KEEPS lineage (WME round-trip path)', () => {
+    const payload = buildExportableProjectPayload(projectWithLineage());
+    expect(payload.elementLineage).toBeDefined();
+    expect(payload.diagrams.ComponentDiagram?.[0]?.derivedFrom).toBeDefined();
+  });
+});
+
+// buildProjectExportEnvelope
+// ────────────────────────────────────────────────────────────────────────────
+
 describe('buildProjectExportEnvelope', () => {
+  it('round-trips configured Agent resources and derived element lineage through project JSON', async () => {
+    const project = createDefaultProject('Configured resources', '', '');
+    const agent = createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram);
+    (agent.model as any).components = {
+      skill: { id: 'skill', type: 'AgentSkill', name: 'Review', owner: null },
+      llm: { id: 'llm', type: 'AgentLLM', name: 'GPT model', owner: null },
+    };
+    agent.agentConfigForm = { db: { sqlDatabases: [{ name: 'Orders' }] } };
+    project.diagrams.AgentDiagram = [agent];
+
+    const bpmn = createNonEmptyUMLDiagram('Process', UMLDiagramType.BPMN);
+    (bpmn.model as any).elements['element-1'].agentDiagramRef = agent.id;
+    project.diagrams.BPMN = [bpmn];
+    const derived = createNonEmptyUMLDiagram('Components', UMLDiagramType.ComponentDiagram);
+    derived.derivedFrom = {
+      sourceDiagramId: bpmn.id,
+      sourceDiagramType: 'BPMN',
+      derivationKind: 'bpmn-to-component',
+      derivedAt: '2026-10-01T00:00:00.000Z',
+      sourceModelHash: 'source-hash',
+    };
+    project.diagrams.ComponentDiagram = [derived];
+    project.elementLineage = { [derived.id]: { 'element-1': 'element-1' } };
+
+    const exported = buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
+    const file = new File([JSON.stringify(exported)], 'project.json', { type: 'application/json' });
+    const imported = await importProjectFromJson(file);
+    expect((imported.diagrams.AgentDiagram[0].model as any).components).toEqual((agent.model as any).components);
+    expect(imported.diagrams.AgentDiagram[0].agentConfigForm).toEqual(agent.agentConfigForm);
+    expect((imported.diagrams.BPMN[0].model as any).elements['element-1'].agentDiagramRef).toBe(agent.id);
+    expect(imported.diagrams.ComponentDiagram[0].derivedFrom).toEqual(derived.derivedFrom);
+    expect(imported.elementLineage?.[derived.id]).toEqual(project.elementLineage[derived.id]);
+    const reloaded = ProjectStorageRepository.loadProject(imported.id);
+    expect((reloaded?.diagrams.AgentDiagram[0].model as any).components).toEqual((agent.model as any).components);
+    expect(reloaded?.diagrams.AgentDiagram[0].agentConfigForm).toEqual(agent.agentConfigForm);
+    expect(reloaded?.elementLineage?.[derived.id]).toEqual(project.elementLineage[derived.id]);
+  });
+
   it('pins the envelope version to the literal "2.0.0" (backend re-import contract)', () => {
     const project = createDefaultProject('Envelope Version', 'desc', 'owner');
     const env = buildProjectExportEnvelope(project);

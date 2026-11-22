@@ -1,10 +1,58 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
+import type { TFunction } from "i18next"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { Ban, ChevronRight, Code2, Loader2, Terminal } from "lucide-react"
+import {
+  AlertTriangle,
+  Ban,
+  Bell,
+  BellRing,
+  CheckCircle2,
+  ChevronRight,
+  Code2,
+  Download,
+  FolderOpen,
+  Github,
+  HelpCircle,
+  Info,
+  Loader2,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Square,
+  Terminal,
+  XCircle,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
+import { badgeVariants } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useAppSelector } from "@/main/app/store/hooks"
+import { phaseStats, selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import {
+  canOfferRunNotification,
+  isRunNotificationOn,
+  turnOnRunNotification,
+} from "@/main/features/spec-driven/runFinishNotice"
+import type {
+  SpecDrivenMessageState,
+  SpecDrivenPhaseView,
+  SpecDrivenRunTotals,
+  SpecDrivenToolCallView,
+  SpecDrivenVerificationItemView,
+  SpecDrivenVerificationView,
+  SpecDrivenWarningView,
+} from "@/main/features/spec-driven/types"
+import { cancelSpecDrivenRun } from "@/main/shared/api/specDriven"
+import {
+  fetchAndSaveSpecDrivenArtifact,
+  fetchSpecDrivenArtifactBlob,
+} from "@/main/shared/utils/specDrivenDownload"
+import { emitDeliveryEvent } from "@/main/shared/services/telemetry/pilotTelemetry"
+import { storeGeneratedCodeForPush } from "@/main/shared/services/github/saveGeneratedCode"
+import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,10 +64,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
+import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
+import { useRunLifetimes } from "@/components/chatbot-kit/hooks/use-download-ttl-minutes"
+import { useSpecDrivenRunExpired } from "@/main/shared/utils/specDrivenExpiry"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
+import { describeToolCall } from "@/components/chatbot-kit/ui/spec-driven-actions"
+import {
+  fixAttemptCount,
+  repairTimeline,
+  type FindingsSegment,
+} from "@/components/chatbot-kit/ui/run-repairs"
+import { track } from "@/main/shared/services/analytics/events"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
   {
     variants: {
       isUser: {
@@ -29,7 +87,7 @@ const chatBubbleVariants = cva(
       animation: {
         none: "",
         slide: "duration-300 animate-in fade-in-0",
-        scale: "duration-300 animate-in fade-in-0 zoom-in-75",
+        scale: "duration-200 animate-in fade-in-0 zoom-in-95",
         fade: "duration-500 animate-in fade-in-0",
       },
     },
@@ -146,12 +204,28 @@ export interface Message {
   isStreaming?: boolean
   /** The injection action type, if the message was the result of an injection. */
   injectionType?: string
+  /** Structured spec-driven run state, rendered as a card. */
+  specDriven?: SpecDrivenMessageState
 }
 
 export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
   animation?: Animation
   actions?: React.ReactNode
+  /** Always-visible status line (e.g. "Applied") rendered under the bubble. */
+  status?: React.ReactNode
+  /**
+   * Handler for the SpecDrivenCard's "Save to GitHub" button. Supplied by the
+   * assistant surface (via MessageList's messageOptions) so the push flow has
+   * access to the current project + GitHub auth. When omitted, the button is
+   * hidden (e.g. contexts without a project).
+   */
+  onPushToGithub?: (runId: string) => void
+  /**
+   * Starts a new run for the project once a card's result has expired.
+   * When omitted, the expired card only explains what happened.
+   */
+  onGenerateAgain?: () => void
 }
 
 /* ------------------------------------------------------------------ */
@@ -163,7 +237,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isProgress) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500 motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.inProgress")}
       </span>
     )
@@ -203,7 +277,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isStreaming) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.typing")}
       </span>
     )
@@ -217,11 +291,37 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
 
 function StreamingCursor() {
   return (
-    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60" />
+    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60 motion-reduce:animate-none" />
   )
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
+/** Image attachment thumbnail + lightbox; owns (and revokes) its object URL. */
+function ImageAttachment({ file }: { file: File }) {
+  const { t } = useTranslation()
+  const objectUrl = useObjectUrl(file) ?? undefined
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
+          <img
+            alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+            className="max-h-48 max-w-[280px] object-contain"
+            src={objectUrl}
+          />
+        </div>
+      </DialogTrigger>
+      <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
+        <img
+          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+          className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
+          src={objectUrl}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
   const { t } = useTranslation()
   const {
     role,
@@ -230,6 +330,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     showTimeStamp = false,
     animation = "scale",
     actions,
+    status,
     experimental_attachments,
     toolInvocations,
     parts,
@@ -239,6 +340,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     isError,
     isStreaming,
     injectionType,
+    specDriven,
+    onPushToGithub,
+    onGenerateAgain,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -266,34 +370,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => {
               if (file.type.startsWith("image/")) {
-                const objectUrl = URL.createObjectURL(file)
-                return (
-                  <Dialog key={index}>
-                    <DialogTrigger asChild>
-                      <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
-                        <img
-                          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                          className="max-h-48 max-w-[280px] object-contain"
-                          src={objectUrl}
-                        />
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
-                      <img
-                        alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                        className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
-                        src={objectUrl}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                )
+                return <ImageAttachment file={file} key={index} />
               }
               return <FilePreview file={file} key={index} />
             })}
           </div>
         ) : null}
 
-        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+        <div data-user="" className={cn(chatBubbleVariants({ isUser, animation }))}>
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </div>
 
@@ -333,11 +417,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
               <MarkdownRenderer>{part.text}</MarkdownRenderer>
               {isStreaming && isLastTextPart && <StreamingCursor />}
               {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
                   {actions}
                 </div>
               ) : null}
             </div>
+            {status && isLastTextPart ? <div className="mt-1">{status}</div> : null}
 
             {showTimeStamp && createdAt ? (
               <time
@@ -399,6 +484,46 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     )
   }
 
+  /* ---- Spec-Driven Agent: structured run card ---- */
+  if (specDriven) {
+    return (
+      <div className="flex w-full flex-col items-start sm:max-w-[85%]">
+        {specDriven.liveKey ? (
+          // Live run: the card subscribes to the Redux slice by run key,
+          // so every SSE event re-renders it regardless of how the
+          // conversation list itself is owned or synced. Mounted only for
+          // live cards so historical/final cards (and Provider-less test
+          // renders) never touch the store.
+          <LiveSpecDrivenCard
+            liveKey={specDriven.liveKey}
+            fallback={specDriven}
+            isStreaming={isStreaming === true}
+            onPushToGithub={onPushToGithub}
+            onGenerateAgain={onGenerateAgain}
+          />
+        ) : (
+          <SpecDrivenCard
+            specDriven={specDriven}
+            isStreaming={isStreaming === true}
+            onPushToGithub={onPushToGithub}
+            onGenerateAgain={onGenerateAgain}
+          />
+        )}
+        {showTimeStamp && createdAt ? (
+          <time
+            dateTime={createdAt.toISOString()}
+            className={cn(
+              "mt-1 block px-1 text-xs opacity-50",
+              animation !== "none" && "duration-500 animate-in fade-in-0"
+            )}
+          >
+            {formattedTime}
+          </time>
+        ) : null}
+      </div>
+    )
+  }
+
   /* ---- Default assistant / fallback message ---- */
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
@@ -407,11 +532,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
         <MarkdownRenderer>{content}</MarkdownRenderer>
         {isStreaming && <StreamingCursor />}
         {actions ? (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
             {actions}
           </div>
         ) : null}
       </div>
+      {status ? <div className="mt-1">{status}</div> : null}
 
       {showTimeStamp && createdAt ? (
         <time
@@ -427,6 +553,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     </div>
   )
 }
+
+// Memoised: typing in the composer or streaming the newest reply must not
+// re-render (and re-parse the markdown of) every older message.
+export const ChatMessage = React.memo(ChatMessageImpl)
+ChatMessage.displayName = "ChatMessage"
 
 function dataUrlToUint8Array(data: string) {
   const base64 = data.split(",")[1] ?? ""
@@ -476,6 +607,1651 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
           </motion.div>
         </CollapsibleContent>
       </Collapsible>
+    </div>
+  )
+}
+
+// Lazy: JSZip and the highlighter load only when someone opens the files.
+const GeneratedFilesDialog = React.lazy(
+  () => import("@/components/chatbot-kit/ui/generated-files-dialog")
+)
+
+function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["status"] }) {
+  if (status === "running") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+        Running
+      </span>
+    )
+  }
+  if (status === "done") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="h-2.5 w-2.5" />
+        Done
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 dark:text-red-400">
+      <XCircle className="h-2.5 w-2.5" />
+      Error
+    </span>
+  )
+}
+
+/** A phase's duration, LLM turns and (once the run has ended) estimated cost. */
+function PhaseStats({ stats, showCost }: { stats: SpecDrivenRunTotals; showCost: boolean }) {
+  const { t } = useTranslation()
+  const parts = [stats.elapsedSeconds < 1 ? "<1s" : formatDuration(stats.elapsedSeconds)]
+  if (stats.turns > 0) parts.push(t("assistant.runTrace.turns", { count: stats.turns }))
+  // Sub-cent phases are common; two decimals would show them as "$0.00".
+  const cost = showCost && stats.usd > 0
+    ? `~$${stats.usd < 0.01 ? stats.usd.toFixed(4) : stats.usd.toFixed(2)}`
+    : null
+  return (
+    <span
+      data-testid="phase-stats"
+      title={t("assistant.runTrace.stats")}
+      className="shrink-0 font-mono text-[10.5px] tabular-nums text-muted-foreground/80"
+    >
+      {parts.join(" · ")}
+      {cost ? <span title={t("assistant.runTrace.costEstimate")}> · {cost}</span> : null}
+    </span>
+  )
+}
+
+function ToolCallList({ calls }: { calls: SpecDrivenToolCallView[] }) {
+  return (
+    <ul className="flex flex-col font-mono text-[11px] leading-[1.75]">
+      {calls.map((tc, j) => {
+        const { verb, target } = describeToolCall(tc.tool, tc.detail, tc.summary)
+        return (
+          <li
+            key={`${tc.turn}-${tc.tool}-${j}`}
+            title={`${tc.tool} · turn ${tc.turn}${tc.detail ? ` · ${tc.detail}` : ""}`}
+            className="flex min-w-0 gap-2.5"
+          >
+            <span className="w-12 shrink-0 font-medium text-foreground">{verb}</span>
+            <span className="truncate text-muted-foreground">{target}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+const FINDINGS_SHOWN = 5
+
+/** One validation round: what failed, and against the round before, what got fixed. */
+function FindingsRound({ segment }: { segment: FindingsSegment }) {
+  const { t } = useTranslation()
+  const { round, diff } = segment
+  const [showAll, setShowAll] = useState(false)
+  const title = round.restored
+    ? t("assistant.runTrace.restored")
+    : round.attempt === 0
+      ? t("assistant.runTrace.firstCheck")
+      : t("assistant.runTrace.recheck", { attempt: round.attempt })
+  const summary =
+    round.blockerCount === 0
+      ? t("assistant.runTrace.noBlockers")
+      : [
+          t("assistant.runTrace.blockers", { count: round.blockerCount }),
+          round.issueCount > round.blockerCount
+            ? t("assistant.runTrace.ofFindings", { count: round.issueCount })
+            : null,
+        ].filter(Boolean).join(" ")
+  const items: { message: string; state: "fixed" | "remaining" | "added" | "open" }[] = diff
+    ? [
+        ...diff.fixed.map((message) => ({ message, state: "fixed" as const })),
+        ...diff.remaining.map((message) => ({ message, state: "remaining" as const })),
+        ...diff.added.map((message) => ({ message, state: "added" as const })),
+      ]
+    : round.blockers.map((message) => ({ message, state: "open" as const }))
+  const shown = showAll ? items : items.slice(0, FINDINGS_SHOWN)
+  const unshown = items.length - shown.length
+  // The backend lists a capped number of blockers; the rest are only counted.
+  const unlisted = round.blockerCount - round.blockers.length
+  const stateLabel = {
+    fixed: t("assistant.runTrace.fixed"),
+    remaining: t("assistant.runTrace.stillFailing"),
+    added: t("assistant.runTrace.new"),
+    open: "",
+  }
+  const stateClass = {
+    fixed: "text-emerald-600 dark:text-emerald-400",
+    remaining: "text-red-600 dark:text-red-400",
+    added: "text-amber-600 dark:text-amber-400",
+    open: "",
+  }
+  return (
+    <li data-testid="findings-round" className="py-1">
+      <div className="flex items-center gap-1.5">
+        {round.blockerCount === 0 ? (
+          <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <ShieldAlert className="h-3 w-3 shrink-0 text-red-600 dark:text-red-400" />
+        )}
+        <span className="font-medium text-foreground">{title}</span>
+        <span className="text-muted-foreground">· {summary}</span>
+      </div>
+      {shown.length > 0 ? (
+        <ul className="mt-0.5 flex flex-col gap-0.5 pl-[18px] font-mono text-[10.5px] leading-[1.6]">
+          {shown.map((item, i) => (
+            <li key={`${item.state}-${i}`} className="flex min-w-0 gap-2">
+              {diff ? (
+                <span className={cn("w-[84px] shrink-0 font-sans text-[10px] font-medium", stateClass[item.state])}>
+                  {stateLabel[item.state]}
+                </span>
+              ) : (
+                <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-red-500/70" />
+              )}
+              <span
+                className={cn(
+                  "min-w-0 [overflow-wrap:anywhere]",
+                  item.state === "fixed" ? "text-muted-foreground/70 line-through" : "text-muted-foreground",
+                )}
+              >
+                {item.message}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {unshown > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="ml-[18px] mt-0.5 rounded px-1 text-[10.5px] text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          + {t("assistant.runTrace.more", { count: unshown })}
+        </button>
+      ) : unlisted > 0 && (showAll || items.length <= FINDINGS_SHOWN) ? (
+        <span className="ml-[18px] text-[10.5px] text-muted-foreground">
+          + {t("assistant.runTrace.more", { count: unlisted })}
+        </span>
+      ) : null}
+    </li>
+  )
+}
+
+function SpecDrivenPhaseRow({
+  phase,
+  isActivePhase,
+  stats,
+  showCost,
+}: {
+  phase: SpecDrivenPhaseView
+  isActivePhase: boolean
+  /** What this phase took; absent for rows an older backend did not stamp. */
+  stats?: SpecDrivenRunTotals
+  showCost: boolean
+}) {
+  const { t } = useTranslation()
+  const hasTools = phase.toolCalls.length > 0
+  const hasDetails = typeof phase.details === "string" && phase.details.length > 0
+  const segments = useMemo(() => repairTimeline(phase), [phase])
+  const attempts = fixAttemptCount(segments)
+  // Findings are worth opening when a check failed; a clean check is the row's own message.
+  const hasFindings = (phase.findings ?? []).some((r) => r.blockerCount > 0 || r.restored)
+  const isExpandable = hasTools || hasDetails || hasFindings
+  const [expanded, setExpanded] = useState(false)
+
+  // Toggle label: fix attempts on a validate row that repaired; otherwise the
+  // action count (familiar metric); otherwise a generic "details" link for
+  // phases that only carry prose (e.g. the gap analyser's task list).
+  const toggleLabel = hasFindings
+    ? attempts > 0
+      ? t("assistant.runTrace.fixAttempts", { count: attempts })
+      : t("assistant.runTrace.findings")
+    : hasTools
+      ? `${phase.toolCalls.length} ${phase.toolCalls.length === 1 ? "action" : "actions"}`
+      : "details"
+
+  return (
+    <li className="border-b border-border/40 last:border-b-0">
+      <div className="flex items-baseline gap-2 px-3 py-1.5">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          {phase.phase}
+        </span>
+        <span className="text-xs font-medium text-foreground">
+          {phase.label}
+        </span>
+        {phase.message && phase.message !== phase.label ? (
+          <span className="truncate text-xs text-muted-foreground">
+            — {phase.message}
+          </span>
+        ) : null}
+        {isActivePhase ? (
+          <Loader2 className="ml-1 h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+        ) : null}
+        {stats || isExpandable ? (
+          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+            {stats ? <PhaseStats stats={stats} showCost={showCost} /> : null}
+            {isExpandable ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+                aria-label={expanded ? "Hide details" : "Show details"}
+                className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <span>{toggleLabel}</span>
+                <ChevronRight
+                  className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
+                />
+              </button>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
+      {expanded && hasDetails ? (
+        <div className="border-t border-border/40 bg-background/40 px-3 py-2 pl-6 text-xs text-muted-foreground">
+          <MarkdownRenderer>{phase.details!}</MarkdownRenderer>
+        </div>
+      ) : null}
+      {expanded && hasFindings ? (
+        <ol data-testid="repair-timeline" className="flex flex-col px-3 pb-2 pl-6 text-[11px]">
+          {segments.map((segment, i) =>
+            segment.kind === "findings" ? (
+              <FindingsRound key={`f-${i}`} segment={segment} />
+            ) : (
+              <li key={`c-${i}`} className="py-1">
+                {segment.attempt !== undefined ? (
+                  <div className="font-medium text-foreground">
+                    {segment.calls.length > 0
+                      ? t("assistant.runTrace.attempt", { attempt: segment.attempt })
+                      : t("assistant.runTrace.attemptNoCalls", { attempt: segment.attempt })}
+                  </div>
+                ) : null}
+                {segment.calls.length > 0 ? (
+                  <div className="pl-[18px]">
+                    <ToolCallList calls={segment.calls} />
+                  </div>
+                ) : null}
+              </li>
+            )
+          )}
+        </ol>
+      ) : expanded && hasTools ? (
+        <div className="px-3 pb-2 pl-6">
+          <ToolCallList calls={phase.toolCalls} />
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+/**
+ * Severity-styled notices for the run card. Terminal errors render red,
+ * warnings amber, and informational notes (e.g. "previous generation
+ * expired — rebuilding from scratch") in a neutral info style. Previously
+ * every notice shared one amber block prefixed with a raw CAPS error code,
+ * which made benign mid-run notices read as failures. The machine code is
+ * kept as a tooltip for debugging.
+ */
+function SpecDrivenNoticeList({
+  warnings,
+}: {
+  warnings: SpecDrivenWarningView[]
+}) {
+  if (warnings.length === 0) return null
+  return (
+    <div className="flex flex-col border-t border-border/40">
+      {warnings.map((w, i) => {
+        const severity = w.severity ?? "warning"
+        const styles =
+          severity === "error"
+            ? "bg-red-50 text-red-800 dark:bg-red-950/20 dark:text-red-200"
+            : severity === "info"
+              ? "bg-background/40 text-muted-foreground"
+              : "bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
+        const IconComponent =
+          severity === "error"
+            ? XCircle
+            : severity === "info"
+              ? Info
+              : AlertTriangle
+        return (
+          <div
+            key={`${w.code}-${i}`}
+            title={w.code}
+            className={cn("flex items-start gap-2 px-3 py-2 text-xs", styles)}
+          >
+            <IconComponent className="mt-0.5 h-3 w-3 shrink-0" />
+            <span className="break-words">{w.message}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Verification report — what the delivered app actually enforces     */
+/* ------------------------------------------------------------------ */
+
+const VERIFICATION_KIND_LABELS: Record<
+  SpecDrivenVerificationItemView["kind"],
+  string
+> = {
+  requirement: "Requirement",
+  ocl_constraint: "Model constraint",
+  api_workflow: "API workflow",
+  check: "Check",
+}
+
+type VerificationTone = "unenforced" | "unchecked" | "verified"
+
+const VERIFICATION_TONES: Record<
+  VerificationTone,
+  { body: string; chip: string; rule: string }
+> = {
+  unenforced: {
+    body: "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-100",
+    chip: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
+    rule: "border-red-200 dark:border-red-900/50",
+  },
+  unchecked: {
+    body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
+    chip: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+    rule: "border-amber-200 dark:border-amber-900/40",
+  },
+  verified: {
+    body: "bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100",
+    chip: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+    rule: "border-emerald-200 dark:border-emerald-900/40",
+  },
+}
+
+/**
+ * One finding. `what` is the thing; `why` / `how` are the payload — the
+ * evidence that makes the verdict checkable — so neither is clamped or
+ * ellipsised. The backend already caps each string at 240 characters.
+ */
+function VerificationItemRow({
+  item,
+  tone,
+}: {
+  item: SpecDrivenVerificationItemView
+  tone: VerificationTone
+}) {
+  const styles = VERIFICATION_TONES[tone]
+  return (
+    <li className={cn("border-t px-3 py-2 first:border-t-0", styles.rule)}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wider",
+            styles.chip
+          )}
+        >
+          {VERIFICATION_KIND_LABELS[item.kind]}
+        </span>
+        {item.id ? (
+          <span className="font-mono text-[11px] opacity-70">{item.id}</span>
+        ) : null}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap break-words text-xs font-medium leading-snug">
+        {item.what}
+      </p>
+      {item.why ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Why: </span>
+          {item.why}
+        </p>
+      ) : null}
+      {item.how ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Checked by: </span>
+          {item.how}
+        </p>
+      ) : null}
+    </li>
+  )
+}
+
+/** "Showing 5 of 23." — the lists are capped, `counts` carries the truth. */
+function VerificationCapNote({
+  shown,
+  total,
+  className,
+}: {
+  shown: number
+  total: number
+  className?: string
+}) {
+  if (total <= shown) return null
+  return (
+    <p className={cn("px-3 py-1.5 text-[11px] opacity-80", className)}>
+      Showing {shown} of {total}. The full list is in the run report inside the
+      downloaded project.
+    </p>
+  )
+}
+
+/**
+ * A ledger row for the two NON-headline states. Collapsed by default, but
+ * the count is always on the row: the number is never hidden, only the
+ * detail behind it.
+ */
+function VerificationSection({
+  label,
+  blurb,
+  emptyNote,
+  count,
+  items,
+  tone,
+  icon: Icon,
+}: {
+  label: string
+  blurb: string
+  emptyNote: string
+  count: number
+  items: SpecDrivenVerificationItemView[]
+  tone: VerificationTone
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const styles = VERIFICATION_TONES[tone]
+  const isEmpty = count === 0
+
+  return (
+    <div className="border-t border-border/40">
+      <button
+        type="button"
+        onClick={() => {
+          if (!isEmpty) setExpanded((v) => !v)
+        }}
+        aria-expanded={isEmpty ? undefined : expanded}
+        disabled={isEmpty}
+        className={cn(
+          "flex w-full items-center gap-2 px-3 py-2 text-left text-xs",
+          isEmpty ? "cursor-default text-muted-foreground" : "hover:bg-muted/60"
+        )}
+      >
+        <Icon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isEmpty ? "opacity-50" : undefined
+          )}
+        />
+        <span className="font-medium text-foreground">{label}</span>
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 font-mono text-[11px] font-semibold",
+            isEmpty ? "bg-muted text-muted-foreground" : styles.chip
+          )}
+        >
+          {count}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+          {isEmpty ? emptyNote : blurb}
+        </span>
+        {isEmpty ? null : (
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 shrink-0 transition-transform",
+              expanded ? "rotate-90" : undefined
+            )}
+          />
+        )}
+      </button>
+      {expanded && items.length > 0 ? (
+        <div className={styles.body}>
+          <ul className="flex flex-col">
+            {items.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone={tone}
+              />
+            ))}
+          </ul>
+          <VerificationCapNote shown={items.length} total={count} />
+        </div>
+      ) : null}
+      {expanded && items.length === 0 ? (
+        <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+          The run counted {count} of these but sent no detail for them.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/** Paths shown before "Show all", so a large edit does not swamp the card. */
+const CHANGED_FILES_PREVIEW = 4
+
+/** What an update run changed: the model (against its base) and the code files. */
+function RunChangesSummary({
+  modelChanges,
+  changedFiles,
+  changedFileCount,
+}: {
+  modelChanges: string[]
+  changedFiles: string[]
+  changedFileCount: number
+}) {
+  const { t } = useTranslation()
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? changedFiles : changedFiles.slice(0, CHANGED_FILES_PREVIEW)
+  const hidden = changedFileCount - shown.length
+  const title = t("assistant.chatKit.runChanges.title", { defaultValue: "What changed" })
+
+  return (
+    <section
+      aria-label={title}
+      className="space-y-1.5 border-t border-border/60 px-3 py-2 text-[11px]"
+    >
+      <p className="font-medium text-foreground">{title}</p>
+      <div className="flex gap-2">
+        <Sparkles className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <span className="font-medium text-foreground">
+            {t("assistant.chatKit.runChanges.model", { defaultValue: "Model" })}
+          </span>
+          {modelChanges.length ? (
+            <ul className="mt-0.5 space-y-0.5 text-muted-foreground">
+              {modelChanges.map((change) => (
+                <li key={change}>{change}</li>
+              ))}
+            </ul>
+          ) : (
+            <span className="text-muted-foreground">
+              {" · "}
+              {t("assistant.chatKit.runChanges.unchanged", { defaultValue: "unchanged" })}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Code2 className="mt-px h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <span className="font-medium text-foreground">
+            {t("assistant.chatKit.runChanges.code", { defaultValue: "Code" })}
+          </span>
+          <span className="text-muted-foreground">
+            {" · "}
+            {changedFileCount === 0
+              ? t("assistant.chatKit.runChanges.noFiles", { defaultValue: "no files changed" })
+              : t("assistant.chatKit.runChanges.filesChanged", {
+                  defaultValue: "{{count}} files changed",
+                  count: changedFileCount,
+                })}
+          </span>
+          {shown.length ? (
+            <ul className="mt-0.5 space-y-0.5 font-mono text-muted-foreground">
+              {shown.map((path) => (
+                <li key={path} className="truncate" title={path}>
+                  {path}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {hidden > 0 && changedFiles.length > shown.length ? (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mt-0.5 rounded px-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              {t("assistant.chatKit.runChanges.showAll", {
+                defaultValue: "Show all {{count}}",
+                count: changedFiles.length,
+              })}
+            </button>
+          ) : hidden > 0 ? (
+            <p className="mt-0.5 text-muted-foreground">
+              {t("assistant.chatKit.runChanges.more", { defaultValue: "and {{count}} more", count: hidden })}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The verification report: three visually distinct states, each labelled
+ * with the TRUE total from `counts` rather than the capped list length.
+ *
+ * `shippedUnenforced` is the headline and is never collapsed: rules the user
+ * asked for that the delivered app does not enforce must not hide behind a
+ * disclosure or an aggregate blocker count.
+ */
+function SpecDrivenVerificationPanel({
+  verification,
+}: {
+  verification: SpecDrivenVerificationView
+}) {
+  const { verified, notVerified, shippedUnenforced, counts } = verification
+  const unenforced = counts.shippedUnenforced
+  const alarm = VERIFICATION_TONES.unenforced
+
+  // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
+  // collapse to one summary row the user can open.
+  // Never when something shipped unenforced — see above.
+  const collapsible = unenforced === 0
+  const [open, setOpen] = React.useState(false)
+
+  if (collapsible && !open) {
+    return (
+      <div className="border-t border-border/60">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={counts.verified > 0 ? "text-foreground" : undefined}>
+              {counts.verified} verified
+            </span>
+            <span aria-hidden>·</span>
+            <span className={counts.notVerified > 0 ? "text-foreground" : undefined}>
+              {counts.notVerified} unverified
+            </span>
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t border-border/60">
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-expanded
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 rotate-90 text-muted-foreground" />
+        </button>
+      ) : null}
+      {unenforced > 0 ? (
+        <section className={cn(alarm.body, "border-b-2", alarm.rule)}>
+          <div className="flex items-start gap-2 px-3 py-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-snug">
+                Delivered, but {unenforced}{" "}
+                {unenforced === 1
+                  ? "rule you asked for is"
+                  : "rules you asked for are"}{" "}
+                not enforced
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug opacity-90">
+                The application was generated and can be downloaded. Nothing in
+                the delivered code enforces the following, so any behaviour
+                that depends on {unenforced === 1 ? "it" : "them"} is
+                unprotected.
+              </p>
+            </div>
+          </div>
+          <ul className={cn("flex flex-col border-t", alarm.rule)}>
+            {shippedUnenforced.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone="unenforced"
+              />
+            ))}
+          </ul>
+          <VerificationCapNote
+            shown={shippedUnenforced.length}
+            total={unenforced}
+            className={cn("border-t", alarm.rule)}
+          />
+        </section>
+      ) : (
+        <VerificationSection
+          label="Not enforced"
+          count={0}
+          items={[]}
+          tone="unenforced"
+          icon={ShieldAlert}
+          blurb=""
+          emptyNote="Nothing we checked was found missing from the delivered code."
+        />
+      )}
+
+      <VerificationSection
+        label="Could not verify"
+        count={counts.notVerified}
+        items={notVerified}
+        tone="unchecked"
+        icon={HelpCircle}
+        blurb="Unknown, not absent — no evidence either way."
+        emptyNote="Everything in scope reached a verdict."
+      />
+
+      <VerificationSection
+        label="Verified"
+        count={counts.verified}
+        items={verified}
+        tone="verified"
+        icon={ShieldCheck}
+        blurb="Checked against the delivered code, with the evidence."
+        emptyNote="Nothing was confirmed working in this run."
+      />
+
+      <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
+        Verified means we ran or re-checked it against the delivered code.
+        Could not verify means there is no evidence either way — it is not a
+        pass.
+      </p>
+    </div>
+  )
+}
+
+/** `3m 10s` / `45s` / `10m` — compact duration for the runtime meter. */
+function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds))
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  if (m === 0) return `${rem}s`
+  if (rem === 0) return `${m}m`
+  return `${m}m ${rem}s`
+}
+
+/** Compact token count: 940 → "940", 3_200 → "3.2k", 2_900_000 → "2.9M". */
+function formatTokens(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "0"
+  if (n < 1_000) return `${Math.round(n)}`
+  if (n < 1_000_000) {
+    const k = n / 1_000
+    return `${k < 10 ? k.toFixed(1).replace(/\.0$/, "") : Math.round(k)}k`
+  }
+  const mm = n / 1_000_000
+  return `${mm < 10 ? mm.toFixed(2).replace(/\.?0+$/, "") : Math.round(mm)}M`
+}
+
+/**
+ * What the run cost, as a clearly-labelled estimate: token counts times a static
+ * price table, so an approximation rather than an invoice.
+ *
+ * Exactly $0 is meaningful rather than missing — the keyless free tier and
+ * self-hosted models are priced at zero deliberately (_is_free_local_model in
+ * llm_client.py), so "no cost" is the true answer, not an absent measurement.
+ */
+function renderRunCost(costUsd?: number) {
+  if (typeof costUsd !== "number" || !Number.isFinite(costUsd)) return null
+  if (costUsd <= 0) {
+    return (
+      <div className="text-[11px] text-muted-foreground/80">
+        No cost — this run used the free tier.
+      </div>
+    )
+  }
+  // Sub-cent runs are common; two decimals would render them all as "$0.00".
+  const shown = costUsd < 0.01 ? costUsd.toFixed(4) : costUsd.toFixed(2)
+  return (
+    <div
+      className="text-[11px] text-muted-foreground/80"
+      title="Estimated from token counts at list prices. Approximate — not a bill."
+    >
+      ~<span className="font-mono">${shown}</span> estimated cost
+    </div>
+  )
+}
+
+/**
+ * "Notify me when it is done" on a running card: asks the browser's permission
+ * on click; hidden where notifications are unsupported or refused.
+ */
+function RunNotifyControl() {
+  const { t } = useTranslation()
+  const [on, setOn] = useState(isRunNotificationOn)
+  const [offered, setOffered] = useState(canOfferRunNotification)
+  if (on) {
+    return (
+      <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+        <BellRing className="h-3 w-3" />
+        {t("assistant.runCard.notifyOn")}
+      </span>
+    )
+  }
+  if (!offered) return null
+  return (
+    <Button
+      type="button"
+      size="xs"
+      variant="ghost"
+      className="ml-auto text-[11px] text-muted-foreground"
+      onClick={() => {
+        void turnOnRunNotification().then((granted) => {
+          setOn(granted)
+          setOffered(canOfferRunNotification())
+        })
+      }}
+    >
+      <Bell />
+      {t("assistant.runCard.notifyMe")}
+    </Button>
+  )
+}
+
+/** The configured download lifetime in words: whole hours when it is a multiple of an hour, else minutes. */
+function lifetimeText(t: TFunction, ttlSeconds: number): string {
+  return ttlSeconds >= 3600 && ttlSeconds % 3600 === 0
+    ? t("assistant.runCard.lifetimeHours", { count: ttlSeconds / 3600 })
+    : t("assistant.runCard.lifetimeMinutes", { count: Math.max(1, Math.round(ttlSeconds / 60)) })
+}
+
+/** "14:30", or "12 Nov, 14:30" when the time is not today. */
+function formatExpiry(at: number): string {
+  const when = new Date(at)
+  const sameDay = when.toDateString() === new Date().toDateString()
+  return when.toLocaleString(undefined, {
+    ...(sameDay ? {} : { day: "numeric", month: "short" }),
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+/** True once `expiresAt` has passed; re-renders at that moment. */
+function useExpired(expiresAt: number | undefined): boolean {
+  const [expired, setExpired] = useState(() => expiresAt !== undefined && Date.now() >= expiresAt)
+  useEffect(() => {
+    if (expiresAt === undefined) {
+      setExpired(false)
+      return
+    }
+    const left = expiresAt - Date.now()
+    setExpired(left <= 0)
+    if (left <= 0) return
+    const timer = setTimeout(() => setExpired(true), Math.min(left, 2_147_483_647))
+    return () => clearTimeout(timer)
+  }, [expiresAt])
+  return expired
+}
+
+/** The server no longer holds the run's output: say so and offer a new run. */
+function ResultExpiredNote({ ttlSeconds, onGenerateAgain }: { ttlSeconds?: number; onGenerateAgain?: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div
+      role="status"
+      className="flex flex-wrap items-center gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200"
+    >
+      <AlertTriangle className="h-3 w-3 shrink-0" />
+      <span className="min-w-0 flex-1">
+        {ttlSeconds === undefined
+          ? t("assistant.runCard.expiredNoLifetime")
+          : t("assistant.runCard.expired", { lifetime: lifetimeText(t, ttlSeconds) })}
+      </span>
+      {onGenerateAgain ? (
+        <Button type="button" size="xs" onClick={onGenerateAgain}>
+          <RotateCcw />
+          {t("assistant.runCard.generateAgain")}
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * Live run card: renders the run's LIVE state straight from the Redux
+ * spec-driven slice, subscribed by the message's `liveKey`.
+ *
+ * This is the architectural fix for the "empty bubble until the run
+ * finishes" bug: the chat message itself is only a stub while the run
+ * streams, and every SSE event lands in `specDriven.runs[liveKey]` via
+ * `liveRunEvent` — so the card re-renders on every event by construction,
+ * no matter which assistant surface (widget / drawer) is mounted, owns
+ * the SSE loop, or remounts mid-run. When the run finalizes, the slice
+ * entry disappears and the message carries the final snapshot instead
+ * (`fallback` covers the brief window in between).
+ */
+function LiveSpecDrivenCard({
+  liveKey,
+  fallback,
+  isStreaming,
+  onPushToGithub,
+  onGenerateAgain,
+}: {
+  liveKey: string
+  fallback: SpecDrivenMessageState
+  isStreaming: boolean
+  onPushToGithub?: (runId: string) => void
+  onGenerateAgain?: () => void
+}) {
+  const live = useAppSelector((state) => selectLiveSpecDrivenRun(state, liveKey))
+  const specDriven = live ?? fallback
+  return (
+    <SpecDrivenCard
+      specDriven={specDriven}
+      isStreaming={isStreaming || specDriven.status === "running"}
+      onPushToGithub={onPushToGithub}
+      onGenerateAgain={onGenerateAgain}
+    />
+  )
+}
+
+function SpecDrivenCard({
+  specDriven,
+  isStreaming,
+  onStop,
+  onPushToGithub,
+  onGenerateAgain,
+}: {
+  specDriven: SpecDrivenMessageState
+  isStreaming: boolean
+  /**
+   * Optional override for the Stop action — defaults to a self-contained
+   * fire-and-forget POST to the backend cancel endpoint. The backend
+   * then terminates the SSE stream with a CANCELLED event which the
+   * run's existing error handling renders. Deliberately independent of
+   * the chat's `isGenerating` flag (which auto-clears after 120s and on
+   * any incoming WS message — long before a spec-driven run finishes).
+   */
+  onStop?: (runId: string) => void
+  /**
+   * Push the finished generation (code + model) to GitHub. Supplied by the
+   * assistant surface so the handler has the current project + GitHub auth.
+   * When omitted the button is hidden. Rendered next to Download and gated on
+   * the same `canRedownload` condition (a finished run with a run id + file).
+   */
+  onPushToGithub?: (runId: string) => void
+  /** Offered on a card whose result has expired. */
+  onGenerateAgain?: () => void
+}) {
+  const { t } = useTranslation()
+  // costUsd is rendered in the finished-run summary only and explicitly marked
+  // as an estimate — see renderRunCost.
+  const {
+    runId,
+    provider,
+    model,
+    phases,
+    warnings,
+    text,
+    status,
+    incomplete,
+    incompleteReason,
+    blockerCount,
+    verification,
+    costUsd,
+    elapsedSeconds,
+    turns,
+    maxRuntime,
+    fileName,
+    isZip,
+    finishedAt,
+    needsDownload,
+    generatorUsed,
+    fileCount,
+    runMode,
+    changedFiles,
+    changedFileCount,
+    modelChanges,
+    detPct,
+    aiPct,
+    modPct,
+    tokenUsage,
+    deterministic,
+    deterministicBlob,
+  } = specDriven
+
+  const [stopRequested, setStopRequested] = useState(false)
+  const [redownloadState, setRedownloadState] = useState<
+    "idle" | "busy" | "failed"
+  >("idle")
+  // The run no longer auto-saves the artifact (consent fix). Track
+  // whether the user has saved it yet so the button reads "Download"
+  // before the first save and "Download again" afterwards.
+  const [hasDownloaded, setHasDownloaded] = useState(false)
+  // Completed runs collapse to a compact line, but the phase/tool-call timeline
+  // stays available behind a toggle so users can still see what the agent did.
+  const [showSteps, setShowSteps] = useState(false)
+  // The file-provenance badge is a disclosure (a hover-only tooltip wasn't
+  // discoverable): clicking it toggles an inline breakdown of the
+  // deterministic / AI-refined / AI-authored split plus the raw token count.
+  const [showSplit, setShowSplit] = useState(false)
+  // "View files": mounted on first open, then kept so the unpacked project
+  // survives closing and reopening the dialog.
+  const [viewFiles, setViewFiles] = useState(false)
+  const [viewerUsed, setViewerUsed] = useState(false)
+  const openViewer = () => {
+    setViewerUsed(true)
+    setViewFiles(true)
+  }
+
+  const handleStop = () => {
+    if (!runId || stopRequested) return
+    setStopRequested(true)
+    if (onStop) {
+      onStop(runId)
+      return
+    }
+    // If the cancel request fails the run keeps streaming; re-enable Stop so the user can retry.
+    void cancelSpecDrivenRun(runId).then((accepted) => {
+      if (!accepted) setStopRequested(false)
+    })
+  }
+
+  const handleRedownload = async () => {
+    if (!runId || !fileName || redownloadState === "busy") return
+    setRedownloadState("busy")
+    const result = await fetchAndSaveSpecDrivenArtifact(
+      runId,
+      fileName,
+      isZip === true
+    )
+    setRedownloadState(result.ok ? "idle" : "failed")
+    if (result.ok) {
+      track("spec_result_downloaded", { is_zip: isZip === true, again: hasDownloaded, size_bytes: result.sizeBytes })
+      setHasDownloaded(true)
+    } else {
+      track("spec_result_download_failed", { is_zip: isZip === true, again: hasDownloaded })
+    }
+  }
+
+  // Deterministic runs hold the artifact in-hand (no server run id), so the
+  // Download button saves the blob directly instead of re-fetching by run id.
+  const handleDeterministicDownload = () => {
+    if (!deterministicBlob) return
+    // Opt-in research telemetry (no-op unless the tab was opened with
+    // `?pilot=<label>`). This click never reaches the shared fetch helper,
+    // so it is recorded here.
+    emitDeliveryEvent("download", runId || undefined)
+    try {
+      downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
+      track("spec_result_downloaded", { is_zip: true, again: hasDownloaded, size_bytes: deterministicBlob.size })
+      setHasDownloaded(true)
+    } catch {
+      track("spec_result_download_failed", { is_zip: true, again: hasDownloaded })
+      setRedownloadState("failed")
+    }
+  }
+  const canDetDownload = status === "done" && deterministic === true && deterministicBlob instanceof Blob
+  // A deterministic run has no server run to push: store its file as one
+  // first, then open the same "Save to GitHub" dialog a Spec-Driven run gets.
+  const [preparingPush, setPreparingPush] = useState(false)
+  const handleDeterministicPush = async () => {
+    if (!deterministicBlob || !onPushToGithub || preparingPush) return
+    setPreparingPush(true)
+    try {
+      const pushRunId = await storeGeneratedCodeForPush(deterministicBlob, fileName || "generated_code.zip")
+      if (pushRunId) onPushToGithub(pushRunId)
+    } finally {
+      setPreparingPush(false)
+    }
+  }
+
+  // The "generator wrote it, then the LLM refined it" middle bucket. The
+  // backend done event doesn't always carry generator_llm_modified_pct, which
+  // left an unexplained gap (e.g. 71% + 11% = 82%). Derive it as the remainder
+  // so the three shares always reconcile to ~100.
+  const refinedPct =
+    typeof modPct === "number"
+      ? modPct
+      : typeof detPct === "number"
+        ? Math.max(0, 100 - detPct - (typeof aiPct === "number" ? aiPct : 0))
+        : undefined
+
+  const showMeter =
+    (status === "running" || status === "done") &&
+    typeof elapsedSeconds === "number"
+  const showStop = status === "running" && typeof runId === "string"
+  // The action in flight, named in the running card's activity strip.
+  const lastCall = phases[phases.length - 1]?.toolCalls.slice(-1)[0]
+  const lastAction = lastCall
+    ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
+    : null
+  const serverResult =
+    status === "done" &&
+    typeof runId === "string" &&
+    typeof fileName === "string"
+  // From the run's end the server serves its download for the archive
+  // lifetime, and can push it to GitHub for the (shorter or equal) workspace
+  // lifetime. Past those, or once a fetch says it is gone, they cannot work.
+  // Unknown lifetimes (config not loaded) expire nothing by the clock: only a fetch that finds the run gone does.
+  const lifetimes = useRunLifetimes()
+  const finished = serverResult && typeof finishedAt === "number" ? finishedAt : undefined
+  const expiresAt = finished !== undefined && lifetimes ? finished + lifetimes.archiveSeconds * 1000 : undefined
+  const pushEndsAt = finished !== undefined && lifetimes ? finished + lifetimes.workspaceSeconds * 1000 : undefined
+  const expiredByClock = useExpired(expiresAt)
+  const pushExpired = useExpired(pushEndsAt)
+  const expiredOnServer = useSpecDrivenRunExpired(serverResult ? runId : undefined)
+  const resultExpired = serverResult && (expiredByClock || expiredOnServer)
+  const canRedownload = serverResult && !resultExpired
+  const canPush = canRedownload && !pushExpired
+  const showFooter = showMeter || showStop || canRedownload
+  const canViewFiles = canRedownload || canDetDownload
+
+  // Completed run: collapse the big phased card to a SMALL inline line with a
+  // compact download button (the process timeline is no longer useful once the
+  // artifact is available). Warnings and the download-failed note stay visible.
+  if (status === "done") {
+    const isFirstSave = needsDownload === true && !hasDownloaded
+    // Trust the backend's verdict; derive it only for cards that predate
+    // the flag. blockerCount also counts unverified findings, so on a
+    // complete run it means "could not verify", not "unresolved".
+    const isIncomplete = incomplete ?? (
+      (blockerCount ?? 0) > 0 ||
+      // Older persisted cards only retained the INCOMPLETE warning.
+      warnings.some((warning) =>
+        warning.code === "INCOMPLETE" && warning.severity !== "info"
+      )
+    )
+    // Rules the run CHECKED and found missing from the delivered code. This
+    // outranks every other status: a run can finish clean, report zero
+    // blockers and still ship an app that does not enforce what was asked
+    // for. Never let such a run render as "Application ready".
+    const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
+    return (
+      <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">
+          {unenforcedCount > 0 ? (
+            <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+          ) : isIncomplete ? (
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span className="text-sm font-medium text-foreground">
+            {unenforcedCount > 0
+              ? "Delivered — rules not enforced"
+              : isIncomplete
+                ? "Generated — incomplete"
+                : deterministic
+                  ? "Generated deterministically"
+                  : "Application ready"}
+          </span>
+          {unenforcedCount > 0 ? (
+            <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
+              · {unenforcedCount} rule{unenforcedCount === 1 ? "" : "s"} not
+              enforced
+            </span>
+          ) : null}
+          {isIncomplete && (blockerCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-amber-700 dark:text-amber-400">
+              · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+          {!isIncomplete && (blockerCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {blockerCount} could not be verified
+            </span>
+          ) : null}
+          {generatorUsed ? (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              · {generatorUsed}
+            </span>
+          ) : null}
+          {typeof fileCount === "number" && fileCount > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {fileCount} file{fileCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+          {!deterministic && (
+            (typeof detPct === "number" && detPct > 0) || tokenUsage
+          ) ? (
+            <button
+              type="button"
+              onClick={() => setShowSplit((v) => !v)}
+              aria-expanded={showSplit}
+              className={cn(badgeVariants({ variant: "outline", size: "sm" }), "gap-1 border-border font-mono text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground")}
+              title="File provenance for this run, not requirements coverage or correctness. Click for details."
+            >
+              {typeof detPct === "number" && detPct > 0
+                ? `${detPct}% files unchanged from scaffold`
+                : "file & token breakdown"}
+              <ChevronRight
+                className={`h-3 w-3 transition-transform ${showSplit ? "rotate-90" : ""}`}
+              />
+            </button>
+          ) : null}
+          {deterministic ? (
+            <span
+              className={cn(badgeVariants({ variant: "soft", size: "sm" }), "gap-1 font-mono text-[11px]")}
+              title="Built by BESSER's deterministic generator — no LLM, no tokens, exact output."
+            >
+              0 tokens
+            </span>
+          ) : tokenUsage ? (
+            // ACTIVE = fresh input + output, never the cumulative total: that
+            // re-counts context re-sent every turn and runs ~87% cache on the
+            // free tier, so it reads 5x the real work. Cached context is in the
+            // breakdown, one click away.
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground"
+              title="Fresh input + output — the tokens this run actually paid for. Re-sent context is counted separately in the breakdown."
+            >
+              {formatTokens(tokenUsage.input + tokenUsage.output)} tokens
+            </span>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 px-3 pb-2.5 pt-1 text-xs">
+          {phases.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowSteps((v) => !v)}
+              aria-expanded={showSteps}
+              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <span>{showSteps ? "Hide steps" : "Show steps"}</span>
+              <ChevronRight
+                className={`h-3 w-3 transition-transform ${showSteps ? "rotate-90" : ""}`}
+              />
+            </button>
+          ) : null}
+          {canRedownload && expiresAt !== undefined && pushEndsAt !== undefined ? (
+            <span className="text-[11px] text-muted-foreground">
+              {!onPushToGithub || pushExpired
+                ? t("assistant.runCard.downloadUntil", { time: formatExpiry(expiresAt) })
+                : pushEndsAt >= expiresAt
+                  ? t("assistant.runCard.availableUntil", { time: formatExpiry(expiresAt) })
+                  : t("assistant.runCard.downloadAndGithubUntil", {
+                      download: formatExpiry(expiresAt),
+                      github: formatExpiry(pushEndsAt),
+                    })}
+            </span>
+          ) : null}
+          <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {redownloadState === "failed" && !resultExpired ? (
+              <span className="text-[11px] text-red-600 dark:text-red-400">
+                Retry failed
+              </span>
+            ) : null}
+            {canViewFiles ? (
+              <Button type="button" size="xs" onClick={openViewer}>
+                <FolderOpen />
+                View files
+              </Button>
+            ) : null}
+            {canDetDownload ? (
+              <Button
+                type="button"
+                size="xs"
+                variant={!canViewFiles && !hasDownloaded ? "default" : "outline"}
+                onClick={handleDeterministicDownload}
+              >
+                <Download />
+                {hasDownloaded ? "Download again" : "Download"}
+              </Button>
+            ) : null}
+            {canRedownload ? (
+              <Button
+                type="button"
+                size="xs"
+                variant={!canViewFiles && isFirstSave ? "default" : "outline"}
+                onClick={() => void handleRedownload()}
+                disabled={redownloadState === "busy"}
+              >
+                {redownloadState === "busy" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Download />
+                )}
+                {isFirstSave ? "Download" : "Download again"}
+              </Button>
+            ) : null}
+            {canPush && onPushToGithub && runId ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => onPushToGithub(runId)}
+              >
+                <Github />
+                Save to GitHub
+              </Button>
+            ) : canDetDownload && onPushToGithub ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => void handleDeterministicPush()}
+                disabled={preparingPush}
+              >
+                {preparingPush ? <Loader2 className="animate-spin" /> : <Github />}
+                Save to GitHub
+              </Button>
+            ) : null}
+          </span>
+        </div>
+        {runMode === "modify" ? (
+          <RunChangesSummary
+            modelChanges={modelChanges ?? []}
+            changedFiles={changedFiles ?? []}
+            changedFileCount={changedFileCount ?? changedFiles?.length ?? 0}
+          />
+        ) : null}
+        {/* What the app actually enforces. Absent on older / interrupted
+            runs — the compact summary above then stands on its own. */}
+        {verification ? (
+          <SpecDrivenVerificationPanel verification={verification} />
+        ) : null}
+
+        {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
+          <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {incompleteReason}
+          </p>
+        ) : null}
+
+        {/* File-count provenance for this run, not a readiness/coverage score. */}
+        {showSplit && !deterministic && typeof detPct === "number" ? (
+          <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="mb-1.5 font-medium text-foreground">
+              How this was built
+            </div>
+            <div aria-hidden className="mb-2 flex h-2 overflow-hidden rounded-full bg-border/60">
+              <span className="bg-brand" style={{ width: `${detPct}%` }} />
+              {typeof refinedPct === "number" && refinedPct > 0 ? (
+                <span className="bg-brand-dark" style={{ width: `${refinedPct}%` }} />
+              ) : null}
+              {typeof aiPct === "number" && aiPct > 0 ? (
+                <span className="bg-foreground/30" style={{ width: `${aiPct}%` }} />
+              ) : null}
+            </div>
+            <ul className="flex flex-col gap-0.5">
+              <li className="flex items-baseline gap-2">
+                <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-brand" />
+                <span>
+                  <span className="font-mono font-medium text-foreground">{detPct}%</span>{" "}
+                  scaffold files not edited in this run.
+                </span>
+              </li>
+              {typeof refinedPct === "number" && refinedPct > 0 ? (
+                <li className="flex items-baseline gap-2">
+                  <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-brand-dark" />
+                  <span>
+                    <span className="font-mono font-medium text-foreground">{refinedPct}%</span>{" "}
+                    generated by BESSER, then edited in this run.
+                  </span>
+                </li>
+              ) : null}
+              {typeof aiPct === "number" && aiPct > 0 ? (
+                <li className="flex items-baseline gap-2">
+                  <span aria-hidden className="h-2 w-2 shrink-0 rounded-[2px] bg-foreground/30" />
+                  <span>
+                    <span className="font-mono font-medium text-foreground">{aiPct}%</span>{" "}
+                    additional files outside the scaffold (including
+                    harness-created files).
+                  </span>
+                </li>
+              ) : null}
+            </ul>
+            <p className="mt-1 text-[11px]">
+              File counts, not requirements coverage or correctness. Earlier-run edits may be included in the scaffold.
+            </p>
+            {/* Honest token accounting. Lead with ACTIVE = fresh input +
+                output (the real work / cost), show cached context as a
+                secondary throughput number, and never lead with the cumulative
+                total that re-counts re-sent context. Falls back to a short note
+                when the provider reported no split. */}
+            {tokenUsage ? (
+              <div className="mt-1.5 border-t border-border/30 pt-1.5">
+                <div className="text-foreground">
+                  <span className="font-mono font-medium">
+                    {formatTokens(tokenUsage.input + tokenUsage.output)}
+                  </span>{" "}
+                  active tokens
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({formatTokens(tokenUsage.input)} fresh input ·{" "}
+                    {formatTokens(tokenUsage.output)} output)
+                  </span>
+                </div>
+                {tokenUsage.cacheRead > 0 ? (
+                  <div className="text-[11px] text-muted-foreground/80">
+                    {formatTokens(tokenUsage.cacheRead)} cached context (re-read,
+                    not new work
+                    {tokenUsage.input + tokenUsage.cacheRead > 0
+                      ? ` — ${Math.round(
+                          (tokenUsage.cacheRead /
+                            (tokenUsage.cacheRead + tokenUsage.input)) *
+                            100,
+                        )}% served from cache`
+                      : ""}
+                    )
+                  </div>
+                ) : null}
+                {renderRunCost(costUsd)}
+              </div>
+            ) : (
+              <div className="mt-1 text-[11px] italic text-muted-foreground/80">
+                File provenance does not measure token savings; unchanged files may still have been read by the agent.
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {/* Run timeline — hidden by default, revealed via "Show steps" so users
+            can still inspect the phases and tool calls after the run ends. */}
+        {showSteps && phases.length > 0 ? (
+          <ol className="flex flex-col border-t border-border/40">
+            {phases.map((phase, i) => (
+              <SpecDrivenPhaseRow
+                key={`${phase.phase}-${i}`}
+                phase={phase}
+                isActivePhase={false}
+                stats={phaseStats(phases, i, { costUsd, turns, elapsedSeconds })}
+                showCost
+              />
+            ))}
+          </ol>
+        ) : null}
+
+        {/* The model's own narration/output. Shown while streaming (running
+            card); keep it inspectable after the run too, behind "Show steps",
+            so the LLM's text isn't lost the moment the run finishes. */}
+        {showSteps && typeof text === "string" && text.trim() ? (
+          <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+            <MarkdownRenderer>{text}</MarkdownRenderer>
+          </div>
+        ) : null}
+
+        {/* Warnings (incomplete / timeout) stay visible on the compact card */}
+        <SpecDrivenNoticeList warnings={warnings} />
+
+        {resultExpired ? (
+          <ResultExpiredNote ttlSeconds={lifetimes?.archiveSeconds} onGenerateAgain={onGenerateAgain} />
+        ) : null}
+
+        {viewerUsed && canViewFiles ? (
+          <React.Suspense fallback={null}>
+            <GeneratedFilesDialog
+              open={viewFiles}
+              onOpenChange={setViewFiles}
+              load={
+                canDetDownload
+                  ? async () => deterministicBlob ?? null
+                  : () => fetchSpecDrivenArtifactBlob(runId!)
+              }
+              fileName={fileName || "generated_code.zip"}
+              meta={generatorUsed}
+              runId={runId}
+              onDownload={
+                canDetDownload
+                  ? handleDeterministicDownload
+                  : () => void handleRedownload()
+              }
+            />
+          </React.Suspense>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
+        <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="font-medium text-foreground">Spec-Driven Agent</span>
+        {runId ? (
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {runId.slice(0, 8)}…
+          </span>
+        ) : null}
+        {provider ? (
+          <span className="text-muted-foreground">
+            • {provider}
+            {model ? ` / ${model}` : ""}
+          </span>
+        ) : null}
+        <span className="ml-auto">
+          <SpecDrivenStatusPill status={status} />
+        </span>
+      </div>
+
+      {/* Phases timeline */}
+      {phases.length > 0 ? (
+        <ol className="flex flex-col">
+          {phases.map((phase, i) => {
+            const isLast = i === phases.length - 1
+            const isActivePhase = isLast && status === "running"
+            return (
+              <SpecDrivenPhaseRow
+                key={`${phase.phase}-${i}`}
+                phase={phase}
+                isActivePhase={isActivePhase}
+                stats={phaseStats(phases, i, { costUsd, turns, elapsedSeconds })}
+                showCost={status !== "running"}
+              />
+            )
+          })}
+        </ol>
+      ) : (
+        <div className="px-3 py-2 text-xs text-muted-foreground">
+          Waiting for the first event…
+        </div>
+      )}
+
+      {/* Live activity strip — the "it's still alive" signal during a long,
+          quiet phase (the phase spinner spins even when the stream is dead,
+          so it cannot tell a healthy run from a frozen one). The clock is NOT
+          repeated here: the footer's runtime meter is the single timer, and it
+          is driven by the backend's ~2s cost heartbeat, so it KEEPS TICKING
+          while the run is genuinely alive and FREEZES if the transport dies
+          (the stall watchdog then surfaces an error). */}
+      {status === "running" ? (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+          <span className="font-medium text-foreground">Working…</span>
+          {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
+            <span className="text-[11px] text-muted-foreground">
+              Big steps can take a few minutes — the timer keeps moving while
+              it's running.
+            </span>
+          ) : null}
+          <RunNotifyControl />
+          {lastAction ? (
+            <span className="flex w-full min-w-0 gap-2 font-mono text-[11px] text-muted-foreground">
+              <span className="shrink-0 font-medium text-brand">{lastAction.verb}</span>
+              <span className="truncate">{lastAction.target}</span>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Warnings / notices, styled by severity */}
+      <SpecDrivenNoticeList warnings={warnings} />
+
+      {/* LLM prose */}
+      {text ? (
+        <div className="border-t border-border/60 bg-background/40 px-3 py-2">
+          <MarkdownRenderer>{text}</MarkdownRenderer>
+          {isStreaming ? <StreamingCursor /> : null}
+        </div>
+      ) : null}
+
+      {/* Footer: live cost/runtime meter + run controls */}
+      {showFooter ? (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 bg-muted/60 px-3 py-1.5 text-xs">
+          {showMeter ? (
+            <span className="font-mono tabular-nums text-muted-foreground">
+              {formatDuration(elapsedSeconds ?? 0)}
+              {typeof maxRuntime === "number"
+                ? ` / ${formatDuration(maxRuntime)}`
+                : ""}
+            </span>
+          ) : null}
+          <span className="ml-auto flex items-center gap-2">
+            {redownloadState === "failed" ? (
+              <span className="text-[11px] text-red-600 dark:text-red-400">
+                Retry failed
+              </span>
+            ) : null}
+            {canDetDownload ? (
+              <Button
+                type="button"
+                size="xs"
+                variant={hasDownloaded ? "outline" : "default"}
+                onClick={handleDeterministicDownload}
+              >
+                <Download />
+                {hasDownloaded ? "Download again" : "Download"}
+              </Button>
+            ) : null}
+            {canRedownload ? (
+              (() => {
+                // First save vs. re-download. Before the user has saved
+                // the artifact (the run no longer auto-downloads), show a
+                // prominent primary "Download" button to signal the
+                // pending action; afterwards fall back to a subtle
+                // "Download again".
+                const isFirstSave = needsDownload === true && !hasDownloaded
+                return (
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant={isFirstSave ? "default" : "outline"}
+                    onClick={() => void handleRedownload()}
+                    disabled={redownloadState === "busy"}
+                  >
+                    {redownloadState === "busy" ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Download />
+                    )}
+                    {isFirstSave ? "Download" : "Download again"}
+                  </Button>
+                )
+              })()
+            ) : null}
+            {canPush && onPushToGithub && runId ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => onPushToGithub(runId)}
+              >
+                <Github />
+                Save to GitHub
+              </Button>
+            ) : null}
+            {showStop ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={handleStop}
+                disabled={stopRequested}
+                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800/40 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
+              >
+                <Square />
+                {stopRequested ? "Stopping…" : "Stop"}
+              </Button>
+            ) : null}
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }

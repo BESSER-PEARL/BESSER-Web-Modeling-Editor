@@ -4,57 +4,58 @@ import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner'
 import { setTheme } from './shared/utils/theme-switcher';
 import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
-import { runStorageMigrations } from './shared/utils/storage-migration';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY, GA_MEASUREMENT_ID, EDITOR_VERSION } from './shared/constants/constant';
+import { runStorageMigrations } from './shared/services/storage/storage-migration';
+import { claimChunkReload } from './shared/services/storage/tabStorage';
+import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
+import { initDemoModeFromUrl } from './shared/services/demoMode';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
-import { hasUserConsented } from './shared/services/analytics/analytics-consent';
+import { trackUncaughtErrors } from './shared/services/analytics/events';
+import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
 // Initialise i18next (language detection + resource bundles) before first render.
-import './shared/i18n';
+import { i18nReady } from './shared/i18n';
 
 import './styles.css';
-
-// ── Auto-recovery: clear stale localStorage on crash and reload once ────
-const CRASH_GUARD_KEY = 'besser_crash_recovery';
-const crashGuard = sessionStorage.getItem(CRASH_GUARD_KEY);
-
-if (!crashGuard) {
-  // First load this session — arm the guard so a crash triggers cleanup
-  sessionStorage.setItem(CRASH_GUARD_KEY, 'pending');
-
-  window.addEventListener('error', () => {
-    if (sessionStorage.getItem(CRASH_GUARD_KEY) !== 'pending') return;
-    sessionStorage.setItem(CRASH_GUARD_KEY, 'recovered');
-    // Clear all besser_* localStorage
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k?.startsWith('besser_')) keys.push(k);
-    }
-    keys.forEach((k) => localStorage.removeItem(k));
-    // Clear legacy non-prefixed keys
-    ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
-     'github_username', 'last_published_token', 'last_published_type',
-     'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
-    window.location.reload();
-  });
-}
 
 // Run localStorage schema migrations before anything else reads stored data
 runStorageMigrations();
 
-// If we got here without crashing, clear the guard
-sessionStorage.setItem(CRASH_GUARD_KEY, 'ok');
+// Opt-in research study mode: capture the `?study=<label>` (or legacy
+// `?pilot=<label>`) parameter before the router can touch the URL. Without it
+// this is a no-op and no telemetry is ever produced.
+initPilotModeFromUrl();
 
-// Defer Sentry + PostHog initialization until the browser is idle.
-// This removes ~40KB+ of synchronous JS from the critical render path.
+// Demo mode: capture the `?demo=<token>` secret before the router can
+// touch the URL. Without the parameter this is a no-op and runs use the
+// ordinary free tier.
+initDemoModeFromUrl();
+
+// Every deploy replaces the content-hashed lazy chunks, so a tab that stayed
+// open across a deploy fails its next dynamic import ("Failed to fetch
+// dynamically imported module") and surfaced an Editor Error. Vite emits
+// vite:preloadError for exactly this — reload ONCE to pick up the new build
+// (guarded per-session so a genuinely broken deploy can't reload-loop).
+window.addEventListener('vite:preloadError', (event) => {
+  if (!claimChunkReload()) return;
+  event.preventDefault();
+  window.location.reload();
+});
+
+// Defer Sentry + PostHog + Google Analytics initialization until the browser is idle.
+// This removes ~40KB+ of synchronous JS from the critical render path. It runs after
+// initPilotModeFromUrl and initDemoModeFromUrl, so no analytics ever sees a `?demo=`
+// token or a `?study=`/`?pilot=` label in the address bar.
 initLazyAnalytics({
   sentryDsn: SENTRY_DSN,
   sentryEnvironment: NO_HTTP_URL,
   posthogKey: POSTHOG_KEY,
   posthogHost: POSTHOG_HOST,
+  gaMeasurementId: GA_MEASUREMENT_ID,
+  editorVersion: EDITOR_VERSION,
   hasUserConsented,
 });
+trackUncaughtErrors();
 const themePreference = LocalStorageRepository.getUserThemePreference();
 
 if (themePreference === 'dark') {
@@ -68,9 +69,12 @@ if (themePreference === 'dark') {
 
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
-root.render(
-  <>
-    <RoutedApplication />
-    <OfflineBanner />
-  </>,
+// Wait for the active language's chunk so the first paint is already translated.
+void i18nReady.then(() =>
+  root.render(
+    <>
+      <RoutedApplication />
+      <OfflineBanner />
+    </>,
+  ),
 );

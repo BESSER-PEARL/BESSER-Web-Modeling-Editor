@@ -3,8 +3,12 @@ import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/w
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DiagramLineage,
+  ElementLineageMap,
+  InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
+  ProjectConversation,
   ProjectDiagram,
   SupportedDiagramType,
   QuantumCircuitData,
@@ -17,8 +21,16 @@ import {
   getReferencedDiagram,
 } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { localStorageLatestProject } from '../../shared/constants/constant';
+import { track, trackFailure } from '../../shared/services/analytics/events';
 import { DeepPartial } from '../../shared/utils/types';
+import {
+  recordDiagramCreated,
+  recordDiagramDeleted,
+  recordDiagramRenamed,
+  recordDiagramUpdate,
+  recordElementLineage,
+} from '../../shared/traceability/traceStore';
+import type { DiagramChangeSource } from '../../shared/traceability/traceStore';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -156,7 +168,7 @@ export const loadProjectThunk = createAsyncThunk(
 
     if (!project) throw new Error('Project not found');
 
-    localStorage.setItem(localStorageLatestProject, project.id);
+    ProjectStorageRepository.setLatestProjectId(project.id);
 
     // Mirror the bridge setup that `switchDiagramTypeThunk` would do, so
     // imported / template-loaded projects whose active diagram is a User
@@ -175,15 +187,27 @@ export const createProjectThunk = createAsyncThunk(
     description,
     owner,
     perspectives,
+    preferredInterface,
+    initialDiagramType,
   }: {
     name: string;
     description: string;
     owner: string;
     perspectives?: PerspectiveSettings;
+    preferredInterface?: InterfaceMode;
+    /** Diagram to open on (a preset's entry diagram); see `resolveInitialDiagramType`. */
+    initialDiagramType?: SupportedDiagramType;
   }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
+      project = ProjectStorageRepository.createNewProject(
+        name,
+        description,
+        owner,
+        perspectives,
+        preferredInterface,
+        initialDiagramType,
+      );
     });
     return project;
   },
@@ -199,19 +223,29 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
-    const supportedType =
-      diagramType === 'QuantumCircuitDiagram' || diagramType === 'GUINoCodeDiagram'
-        ? (diagramType as SupportedDiagramType)
-        : toSupportedDiagramType(diagramType as UMLDiagramType);
+    // Only BPMN's two names differ ('BPMN' vs the editor's 'BPMNDiagram'), and
+    // toSupportedDiagramType falls back to ClassDiagram for a name it does not know.
+    const supportedType = (ALL_DIAGRAM_TYPES as readonly string[]).includes(diagramType)
+      ? (diagramType as SupportedDiagramType)
+      : toSupportedDiagramType(diagramType as UMLDiagramType);
 
     let diagram: ProjectDiagram | null = null;
-    ProjectStorageRepository.withoutNotify(() => {
-      diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
-    });
-    if (!diagram) throw new Error('Failed to switch diagram type');
+    try {
+      ProjectStorageRepository.withoutNotify(() => {
+        diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
+      });
+      if (!diagram) throw new Error('Failed to switch diagram type');
 
-    await setupBridgeForActiveDiagram(project, diagram, supportedType);
+      await setupBridgeForActiveDiagram(project, diagram, supportedType);
+    } catch (error) {
+      trackFailure('diagram_type_switch_failed', error, { to_type: supportedType });
+      throw error;
+    }
 
+    // Every switch (sidebar, palette, assistant, perspective auto-switch) passes here.
+    if (project.currentDiagramType !== supportedType) {
+      track('diagram_type_switched', { from_type: project.currentDiagramType, to_type: supportedType });
+    }
     return { diagram, diagramType: supportedType };
   },
 );
@@ -236,10 +270,30 @@ export const switchDiagramIndexThunk = createAsyncThunk(
   },
 );
 
+/**
+ * Open the diagram at `index` of any diagram type, e.g. for the lineage
+ * "jump to source" links. switchDiagramTypeThunk expects the UML wire value
+ * for UML types ('BPMNDiagram', not 'BPMN'), so the conversion lives here
+ * instead of at every call site.
+ */
+export const openDiagramThunk = createAsyncThunk(
+  'workspace/openDiagram',
+  async ({ diagramType, index }: { diagramType: SupportedDiagramType; index: number }, { dispatch }) => {
+    await dispatch(switchDiagramTypeThunk({ diagramType: toUMLDiagramType(diagramType) ?? diagramType })).unwrap();
+    await dispatch(switchDiagramIndexThunk({ diagramType, index })).unwrap();
+  },
+);
+
+export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>> & {
+  /** Who made the change, for the project trace: the user on the canvas (default), the assistant, or a model
+   *  generator (a template, an import, a derivation from another diagram). */
+  traceSource?: DiagramChangeSource;
+};
+
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (
-    updates: Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>>,
+    { traceSource = 'user', ...updates }: DiagramModelUpdate,
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -248,9 +302,19 @@ export const updateDiagramModelThunk = createAsyncThunk(
 
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
+    let updatedUpdates = updates;
+    // For AgentDiagram: when Apollon fires a canvas model-change it only carries
+    // canvas elements (no components). Preserve the existing model.components so
+    // off-canvas components (intents, tools, RAGs …) are never wiped.
+    if (activeDiagramType === 'AgentDiagram' && isUMLModel(updates.model) && isUMLModel(current.model)) {
+      const existingComponents = current.model.components;
+      if (existingComponents && !updates.model.components) {
+        updatedUpdates = { ...updates, model: { ...updates.model, components: existingComponents } };
+      }
+    }
     const updated: ProjectDiagram = {
       ...current,
-      ...updates,
+      ...updatedUpdates,
       lastUpdate: new Date().toISOString(),
     };
 
@@ -264,13 +328,39 @@ export const updateDiagramModelThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update diagram');
+    // Every diagram type is recorded, except the user's GUI edits, which the GUI editor records from its own saves
+    // (an assistant's or a generator's GUI written here is compared with the same baseline, so none is recorded twice).
+    if (updates.model && !(activeDiagramType === 'GUINoCodeDiagram' && traceSource === 'user')) {
+      recordDiagramUpdate(project, activeDiagramType, updated, current.model, updated.model, traceSource);
+    }
+    if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
     return updated;
+  },
+);
+
+/** Turn trace recording on or off for the open project (view-only, no revision bump). */
+export const setTraceabilityEnabledThunk = createAsyncThunk(
+  'workspace/setTraceabilityEnabled',
+  async (enabled: boolean, { getState }) => {
+    const { project } = (getState() as { workspace: WorkspaceState }).workspace;
+    if (!project) throw new Error('No active project');
+    const updatedProject: BesserProject = {
+      ...project,
+      settings: { ...project.settings, traceabilityEnabled: enabled },
+    };
+    ProjectStorageRepository.withoutNotify(() => {
+      ProjectStorageRepository.saveProject(updatedProject);
+    });
+    return enabled;
   },
 );
 
 export const updateQuantumDiagramThunk = createAsyncThunk(
   'workspace/updateQuantumDiagram',
-  async ({ model }: { model: QuantumCircuitData }, { getState }) => {
+  async (
+    { model, traceSource = 'user' }: { model: QuantumCircuitData; traceSource?: DiagramChangeSource },
+    { getState },
+  ) => {
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
@@ -296,6 +386,7 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update quantum diagram');
+    recordDiagramUpdate(project, 'QuantumCircuitDiagram', updated, current.model, model, traceSource);
     return updated;
   },
 );
@@ -461,7 +552,19 @@ export const updateDiagramReferencesThunk = createAsyncThunk(
 export const addDiagramThunk = createAsyncThunk(
   'workspace/addDiagram',
   async (
-    { diagramType, title }: { diagramType: SupportedDiagramType; title?: string },
+    {
+      diagramType,
+      title,
+      derivedFrom,
+      traceSource = 'user',
+    }: {
+      diagramType: SupportedDiagramType;
+      title?: string;
+      /** Lineage metadata set by inter-diagram derivation hooks. */
+      derivedFrom?: DiagramLineage;
+      /** Who added the diagram, for the project trace (the user by default). */
+      traceSource?: DiagramChangeSource;
+    },
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -481,12 +584,56 @@ export const addDiagramThunk = createAsyncThunk(
 
     let result: { index: number; diagram: ProjectDiagram } | null = null;
     ProjectStorageRepository.withoutNotify(() => {
-      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title, derivedFrom);
     });
     if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    recordDiagramCreated(project, diagramType, diagram, traceSource);
     return { diagramType, index: newIndex, diagram };
+  },
+);
+
+/**
+ * Write an `ElementLineageMap` sidecar for a derived diagram.
+ * Called by inter-diagram derivation hooks after the derived
+ * diagram is added and its model is stamped.
+ */
+export const setElementLineageThunk = createAsyncThunk(
+  'workspace/setElementLineage',
+  async (
+    {
+      derivedDiagramId,
+      mapping,
+      generator,
+      sourceDiagramId,
+    }: {
+      derivedDiagramId: string;
+      mapping: ElementLineageMap;
+      /** The diagram the mapping's source elements are in, when the derived diagram has no `derivedFrom`. */
+      sourceDiagramId?: string;
+      /** The model generator that derived the diagram (`MODEL_GENERATORS`), recorded in the project trace. */
+      generator?: string;
+    },
+    { getState },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    let saved: BesserProject | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      const p = ProjectStorageRepository.loadProject(project.id);
+      if (!p) return;
+      p.elementLineage = { ...(p.elementLineage ?? {}), [derivedDiagramId]: mapping };
+      ProjectStorageRepository.saveProject(p);
+      saved = p;
+    });
+    // The lineage is also the trace's: each derived element is linked from its source element.
+    const savedProject = saved as BesserProject | null;
+    if (savedProject && generator) recordElementLineage(savedProject, derivedDiagramId, mapping, generator, sourceDiagramId);
+
+    return { derivedDiagramId, mapping };
   },
 );
 
@@ -500,6 +647,7 @@ export const removeDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    const removed = project.diagrams[diagramType]?.[index];
     let success = false;
     let updatedProject: BesserProject | null = null;
     ProjectStorageRepository.withoutNotify(() => {
@@ -510,6 +658,7 @@ export const removeDiagramThunk = createAsyncThunk(
     });
     if (!success) throw new Error('Cannot remove diagram');
     if (!updatedProject) throw new Error('Failed to reload project after removal');
+    if (removed) recordDiagramDeleted(project, removed.id, removed.title);
     return { project: updatedProject as BesserProject, diagramType };
   },
 );
@@ -549,6 +698,7 @@ export const renameDiagramThunk = createAsyncThunk(
     ProjectStorageRepository.withoutNotify(() => {
       ProjectStorageRepository.updateDiagram(project.id, diagramType, updated, index);
     });
+    recordDiagramRenamed(project, updated.id, diagrams[index].title, newTitle);
     return { diagramType, index, diagram: updated };
   },
 );
@@ -561,6 +711,26 @@ const workspaceSlice = createSlice({
   reducers: {
     bumpEditorRevision(state) {
       state.editorRevision += 1;
+    },
+    /** Who added what, after a save: the model and the editor stay as they are. */
+    setProjectAttribution(
+      state,
+      action: PayloadAction<{ projectId: string; attribution: NonNullable<BesserProject['attribution']> }>,
+    ) {
+      if (state.project?.id === action.payload.projectId) state.project.attribution = action.payload.attribution;
+    },
+    /** The assistant conversation kept with the project (BESSER#745). */
+    setProjectConversation(
+      state,
+      action: PayloadAction<{ projectId: string; conversation: ProjectConversation | undefined }>,
+    ) {
+      const { projectId, conversation } = action.payload;
+      if (state.project?.id !== projectId) return;
+      if (conversation) state.project.assistantConversation = conversation;
+      else delete state.project.assistantConversation;
+      ProjectStorageRepository.withoutNotify(() => {
+        ProjectStorageRepository.saveProject(state.project!);
+      });
     },
     clearError(state) {
       state.error = null;
@@ -734,6 +904,18 @@ const workspaceSlice = createSlice({
         state.error = action.error.message || 'Failed to add diagram';
       })
 
+      // ── Element lineage sidecar ────────────────────────────────
+      .addCase(setElementLineageThunk.fulfilled, (state, action) => {
+        if (!state.project) return;
+        state.project.elementLineage = {
+          ...(state.project.elementLineage ?? {}),
+          [action.payload.derivedDiagramId]: action.payload.mapping,
+        };
+      })
+      .addCase(setElementLineageThunk.rejected, (state, action) => {
+        console.error('setElementLineageThunk failed:', action.error.message);
+      })
+
       // ── Remove diagram ────────────────────────────────────────
       .addCase(removeDiagramThunk.fulfilled, (state, action) => {
         const { project, diagramType } = action.payload;
@@ -803,6 +985,14 @@ const workspaceSlice = createSlice({
           };
         }
       })
+      .addCase(setTraceabilityEnabledThunk.fulfilled, (state, action) => {
+        if (state.project) {
+          state.project.settings = { ...state.project.settings, traceabilityEnabled: action.payload };
+        }
+      })
+      .addCase(setTraceabilityEnabledThunk.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update traceability';
+      })
       .addCase(applyPerspectivePresetThunk.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to apply perspective preset';
       })
@@ -838,6 +1028,8 @@ const workspaceSlice = createSlice({
 
 export const {
   bumpEditorRevision,
+  setProjectAttribution,
+  setProjectConversation,
   clearError,
   updateProjectInfo,
   changeEditorMode,
@@ -898,6 +1090,11 @@ export const selectGUIDiagrams = createSelector(
 export const selectQuantumCircuitDiagrams = createSelector(
   selectDiagrams,
   (diagrams) => diagrams?.QuantumCircuitDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectNNDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.NNDiagram ?? EMPTY_DIAGRAMS,
 );
 
 export const selectUMLDiagramType = createSelector(

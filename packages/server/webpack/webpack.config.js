@@ -1,5 +1,13 @@
+var fs = require('fs');
 var path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const { DefinePlugin } = require('webpack');
+
+// Vite reads this file for the webapp bundle; variables already in the environment win, in both.
+const webappEnvFile = path.resolve(__dirname, '../../webapp/.env');
+if (fs.existsSync(webappEnvFile)) {
+  process.loadEnvFile(webappEnvFile);
+}
 
 module.exports = {
   entry: './src/main/server.ts',
@@ -54,9 +62,11 @@ module.exports = {
     'utf-8-validate': 'utf-8-validate',
   },
   plugins: [
-    // Prebuilt default museum website, served at /study-default/ in study mode.
-    new CopyPlugin({
-      patterns: [{ from: path.resolve(__dirname, '../study-default-site'), to: path.resolve(__dirname, '../../../build/server/study-default') }],
+    // Build-time values, as in the webapp bundle: the Content-Security-Policy must allow what it was built with.
+    new DefinePlugin({
+      'process.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL ?? ''),
+      'process.env.UML_BOT_WS_URL': JSON.stringify(process.env.UML_BOT_WS_URL ?? ''),
+      'process.env.POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST ?? ''),
     }),
   ],
 };

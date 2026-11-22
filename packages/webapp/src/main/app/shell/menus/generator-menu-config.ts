@@ -1,4 +1,4 @@
-import type { GeneratorMenuMode, GeneratorType } from '../workspace-types';
+import type { GeneratorMenuMode, GeneratorType } from '../../../shared/types/workspace-types';
 
 export interface GeneratorMenuAction {
   kind: 'action';
@@ -33,6 +33,7 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
     labelKey: 'menu.generate.groups.web',
     actions: [
       { kind: 'action', label: 'Django Project', labelKey: 'menu.generate.actions.djangoProject', generator: 'django' },
+      { kind: 'action', label: 'Spring Project', labelKey: 'menu.generate.actions.springProject', generator: 'spring' },
       { kind: 'action', label: 'Full Backend', labelKey: 'menu.generate.actions.fullBackend', generator: 'backend' },
       {
         kind: 'action',
@@ -81,6 +82,19 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
       },
       { kind: 'action', label: 'JSON Schema', generator: 'jsonschema' },
       { kind: 'action', label: 'Smart Data Models', generator: 'smartdata' },
+    ],
+  },
+  {
+    kind: 'group',
+    label: 'Formal Methods',
+    labelKey: 'menu.generate.groups.formalMethods',
+    actions: [
+      {
+        kind: 'action',
+        label: 'Alloy Specification',
+        labelKey: 'menu.generate.actions.alloySpecification',
+        generator: 'alloy',
+      },
     ],
   },
 ];
@@ -148,6 +162,12 @@ const NN_GENERATORS: GeneratorMenuEntry[] = [
     actions: [
       { kind: 'action', label: 'Subclassing', generator: 'pytorch', config: { generation_type: 'subclassing' } },
       { kind: 'action', label: 'Sequential', generator: 'pytorch', config: { generation_type: 'sequential' } },
+      {
+        kind: 'action',
+        label: 'Time-Series Forecaster',
+        labelKey: 'menu.generate.actions.forecaster',
+        generator: 'forecaster',
+      },
     ],
   },
   {
@@ -156,6 +176,22 @@ const NN_GENERATORS: GeneratorMenuEntry[] = [
     actions: [
       { kind: 'action', label: 'Subclassing', generator: 'tensorflow', config: { generation_type: 'subclassing' } },
       { kind: 'action', label: 'Sequential', generator: 'tensorflow', config: { generation_type: 'sequential' } },
+    ],
+  },
+];
+
+const KG_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'Convert to B-UML',
+    labelKey: 'menu.generate.groups.kgConvert',
+    actions: [
+      {
+        kind: 'action',
+        label: 'Class Diagram',
+        labelKey: 'menu.generate.actions.kgToClassDiagram',
+        generator: 'kg_to_class',
+      },
     ],
   },
 ];
@@ -174,5 +210,20 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   quantum: QUANTUM_GENERATORS,
   nn: NN_GENERATORS,
   bpmn: BPMN_GENERATORS,
+  kg: KG_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };
+
+/** The Generate menu's name of a generator: its action's, or its group's where the group offers it in several forms
+ *  (PyTorch: Subclassing, Sequential). Undefined for a generator the menu does not offer. */
+export function generatorMenuName(generator: string): Pick<GeneratorMenuAction, 'label' | 'labelKey'> | undefined {
+  for (const entries of Object.values(GENERATOR_MENU_CONFIG)) {
+    for (const entry of entries) {
+      if (entry.kind === 'action' && entry.generator === generator) return entry;
+      if (entry.kind !== 'group') continue;
+      const actions = entry.actions.filter((action) => action.generator === generator);
+      if (actions.length > 0) return actions.length > 1 ? entry : actions[0];
+    }
+  }
+  return undefined;
+}

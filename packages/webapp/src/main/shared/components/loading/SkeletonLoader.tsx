@@ -4,7 +4,7 @@ import React from 'react';
  * Reusable skeleton primitives.
  *
  * All primitives use Tailwind's built-in `animate-pulse` utility for the
- * shimmer effect, and respect dark-mode via `dark:` variants.
+ * shimmer effect, and follow the theme via the `muted` token.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export interface SkeletonLineProps {
@@ -19,7 +19,7 @@ export interface SkeletonLineProps {
  */
 export const SkeletonLine: React.FC<SkeletonLineProps> = ({ width = '100%', className = '' }) => (
   <div
-    className={`animate-pulse rounded bg-slate-200 dark:bg-slate-700 h-4 ${className}`}
+    className={`animate-pulse rounded bg-muted h-4 ${className}`}
     style={{ width }}
   />
 );
@@ -36,7 +36,7 @@ export interface SkeletonBlockProps {
  */
 export const SkeletonBlock: React.FC<SkeletonBlockProps> = ({ height = '200px', className = '' }) => (
   <div
-    className={`animate-pulse rounded bg-slate-200 dark:bg-slate-700 w-full ${className}`}
+    className={`animate-pulse rounded bg-muted w-full ${className}`}
     style={{ height }}
   />
 );
@@ -53,7 +53,7 @@ export interface SkeletonCircleProps {
  */
 export const SkeletonCircle: React.FC<SkeletonCircleProps> = ({ size = 40, className = '' }) => (
   <div
-    className={`animate-pulse rounded-full bg-slate-200 dark:bg-slate-700 shrink-0 ${className}`}
+    className={`animate-pulse rounded-full bg-muted shrink-0 ${className}`}
     style={{ width: size, height: size }}
   />
 );

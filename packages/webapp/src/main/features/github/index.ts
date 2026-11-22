@@ -1,2 +1,5 @@
-export { GitHubSidebar } from './components/GitHubSidebar';
-export { default } from './components/GitHubSidebar';
+export { GitHubMenu } from './components/GitHubMenu';
+export { useGitHubRepo } from './hooks/useGitHubRepo';
+export type { CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from './hooks/useGitHubRepo';
+export { GitHubAutosaveSetting } from './components/GitHubAutosaveSetting';
+export { ElementMark, RelationshipMark, relationshipLine, useElementBoxes } from './components/ModelAttributionLayer';

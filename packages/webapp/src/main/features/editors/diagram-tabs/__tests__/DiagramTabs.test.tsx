@@ -3,12 +3,20 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { DiagramTabs } from '../DiagramTabs';
+import { ApollonEditorContext } from '../../uml/apollon-editor-context';
 import { MAX_DIAGRAMS_PER_TYPE, ProjectDiagram, SupportedDiagramType } from '../../../../shared/types/project';
 import { createDefaultProject } from '../../../../shared/types/project';
+import { streamSse } from '../../../../shared/api/sseClient';
+import type { SemanticSearchEvent } from '../../../../shared/api/validation';
 
 // ── Mocks ────────────────────────────────────────────────────────────────
 
-const mockDispatch = vi.fn(() => Promise.resolve());
+/** A dispatched thunk's result: awaitable, with RTK's `unwrap`. */
+const thunkResult = (outcome: Promise<unknown> = Promise.resolve()) =>
+  Object.assign(Promise.resolve(), { unwrap: () => outcome });
+const mockDispatch = vi.fn((_action?: unknown) => thunkResult());
+
+const NO_DIAGRAMS: ProjectDiagram[] = [];
 
 vi.mock('../../../../app/store/hooks', () => ({
   useAppDispatch: () => mockDispatch,
@@ -20,12 +28,14 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
   removeDiagramThunk: vi.fn((payload: any) => ({ type: 'removeDiagram', payload })),
   renameDiagramThunk: vi.fn((payload: any) => ({ type: 'renameDiagram', payload })),
   switchDiagramIndexThunk: vi.fn((payload: any) => ({ type: 'switchDiagramIndex', payload })),
+  updateDiagramModelThunk: vi.fn((payload: any) => ({ type: 'updateDiagramModel', payload })),
   updateDiagramReferencesThunk: vi.fn((payload: any) => ({ type: 'updateRefs', payload })),
   bumpEditorRevision: vi.fn(() => ({ type: 'bumpRevision' })),
   selectActiveDiagramIndex: (state: any) => state.workspace.activeDiagramIndex,
   selectDiagramsForActiveType: (state: any) => state.workspace.diagrams,
   selectActiveDiagramType: (state: any) => state.workspace.activeDiagramType,
   selectProject: (state: any) => state.workspace.project,
+  selectClassDiagrams: (state: any) => state.workspace.project?.diagrams?.ClassDiagram ?? NO_DIAGRAMS,
 }));
 
 vi.mock('@besser/wme', async (importOriginal) => {
@@ -43,11 +53,26 @@ vi.mock('react-toastify', () => ({
     success: vi.fn(),
     warning: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(() => 'toast-id'),
+    update: vi.fn(),
+    dismiss: vi.fn(),
   },
 }));
 
+vi.mock('../../../../shared/api/sseClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../shared/api/sseClient')>();
+  return { ...actual, streamSse: vi.fn() };
+});
+
+const mockCaptureEvent = vi.hoisted(() => vi.fn());
 vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
-  getPostHog: () => null,
+  captureEvent: mockCaptureEvent,
+}));
+
+const mockGlobalConfirm = vi.fn((_options: unknown) => Promise.resolve(true));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: (options: unknown) => mockGlobalConfirm(options),
 }));
 
 // ── State helpers ────────────────────────────────────────────────────────
@@ -193,7 +218,7 @@ describe('DiagramTabs', () => {
 
     render(<DiagramTabs />);
 
-    expect(screen.getByLabelText('Add new diagram')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add a new diagram tab')).toBeInTheDocument();
   });
 
   it('hides add button when at MAX_DIAGRAMS_PER_TYPE', () => {
@@ -207,6 +232,44 @@ describe('DiagramTabs', () => {
     expect(screen.queryByLabelText('Add new diagram')).not.toBeInTheDocument();
   });
 
+  it('tracks diagram_created only once the new diagram exists', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'Diagram 1')] });
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getByLabelText('Add a new diagram tab'));
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('diagram_created', { type: 'ClassDiagram' }),
+    );
+    expect(mockCaptureEvent).not.toHaveBeenCalledWith('diagram_create_failed', expect.anything());
+  });
+
+  it('tracks diagram_create_failed, not diagram_created, when adding fails', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'Diagram 1')] });
+    mockDispatch.mockImplementationOnce(() => thunkResult(Promise.reject(new Error('storage full'))));
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getByLabelText('Add a new diagram tab'));
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith(
+        'diagram_create_failed',
+        expect.objectContaining({ type: 'ClassDiagram', reason: 'exception', error_type: 'Error' }),
+      ),
+    );
+    expect(mockCaptureEvent).not.toHaveBeenCalledWith('diagram_created', expect.anything());
+  });
+
+  it('tracks diagram_deleted with the remaining count, never the title', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Secret title')] });
+    mockGlobalConfirm.mockResolvedValueOnce(true);
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('diagram_deleted', { type: 'ClassDiagram', remaining: 1 }),
+    );
+    expect(JSON.stringify(mockCaptureEvent.mock.calls)).not.toContain('Secret title');
+  });
+
   it('shows close button for diagrams when more than one exists', () => {
     setMockState({
       diagrams: [
@@ -218,9 +281,33 @@ describe('DiagramTabs', () => {
 
     render(<DiagramTabs />);
 
-    // Close buttons should exist (one per tab when multiple diagrams)
-    const closeButtons = screen.getAllByTitle('Close tab');
-    expect(closeButtons.length).toBe(2);
+    // Delete buttons should exist (one per tab when multiple diagrams)
+    const deleteButtons = screen.getAllByTitle('Delete diagram');
+    expect(deleteButtons.length).toBe(2);
+  });
+
+  // The tab "x" removes the diagram from the project (ProjectStorageRepository.removeDiagram),
+  // so it must ask first instead of deleting on a single click.
+  it('asks for confirmation before deleting a diagram', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(true);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' })));
+    expect(mockGlobalConfirm).toHaveBeenCalledWith(expect.objectContaining({ variant: 'danger' }));
+  });
+
+  it('keeps the diagram when the deletion is cancelled', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(false);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockGlobalConfirm).toHaveBeenCalled());
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' }));
   });
 
   it('does not show close button when only one diagram exists', () => {
@@ -336,16 +423,54 @@ describe('DiagramTabs', () => {
       project,
     });
 
-    const { container } = render(<DiagramTabs />);
+    render(<DiagramTabs />);
 
-    // Use the select element id since aria-label is shared with InfoTooltip
-    const select = container.querySelector('#ref-class-diagram') as HTMLSelectElement;
-    expect(select).toBeInTheDocument();
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveAttribute('id', 'ref-class-diagram');
+    expect(trigger).toHaveTextContent('Class Diagram');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
 
-    const options = select.querySelectorAll('option');
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(2);
     expect(options[0].textContent).toBe('Class Diagram');
     expect(options[1].textContent).toBe('Class Diagram 2');
+  });
+
+  it('persists the picked class diagram reference by id', async () => {
+    const { updateDiagramReferencesThunk } = await import('../../../../app/store/workspaceSlice');
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram.push({
+      ...project.diagrams.ClassDiagram[0],
+      id: 'cd2',
+      title: 'Class Diagram 2',
+    });
+    setMockState({
+      diagrams: [makeDiagram('od1', 'Object Diagram')],
+      activeDiagramType: 'ObjectDiagram',
+      project,
+    });
+
+    render(<DiagramTabs />);
+
+    const trigger = screen.getByRole('combobox', {
+      name: 'Select which Class Diagram provides the data model for this Object Diagram',
+    });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.click(screen.getByRole('option', { name: 'Class Diagram 2' }));
+
+    expect(updateDiagramReferencesThunk).toHaveBeenCalledWith(
+      expect.objectContaining({ diagramType: 'ObjectDiagram', references: { ClassDiagram: 'cd2' } }),
+    );
+  });
+
+  it('shows the broken-reference placeholder when the referenced class diagram is gone', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Reference broken - please reselect');
   });
 
   it('shows linked diagrams toggle button for reference types', () => {
@@ -360,5 +485,239 @@ describe('DiagramTabs', () => {
 
     // The "Linked Diagrams" toggle should be visible
     expect(screen.getByLabelText('Collapse linked diagrams')).toBeInTheDocument();
+  });
+  describe('keyboard navigation', () => {
+    const threeTabs = () =>
+      setMockState({
+        diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second'), makeDiagram('d3', 'Third')],
+        activeDiagramIndex: 0,
+      });
+
+    it('renders the tabs inside a tablist with a roving tabIndex', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      const tabs = screen.getAllByRole('tab');
+      expect(screen.getByRole('tablist')).toContainElement(tabs[0]);
+      expect(tabs.map((tab) => tab.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
+    });
+
+    it('moves focus and activates with ArrowRight, ArrowLeft (wrapping) and End', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+      const [first, second, third] = screen.getAllByRole('tab');
+
+      fireEvent.keyDown(first, { key: 'ArrowRight' });
+      expect(second).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 1 }));
+
+      fireEvent.keyDown(first, { key: 'ArrowLeft' });
+      expect(third).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+
+      fireEvent.keyDown(first, { key: 'End' });
+      expect(third).toHaveFocus();
+    });
+
+    it('activates the focused tab with Enter', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Third'), { key: 'Enter' });
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+    });
+
+    it('starts renaming the focused tab with F2', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Second'), { key: 'F2' });
+      expect(screen.getByLabelText('Rename diagram')).toHaveValue('Second');
+    });
+
+    it('ignores navigation keys typed into the rename input', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: First'), { key: 'F2' });
+      fireEvent.keyDown(screen.getByLabelText('Rename diagram'), { key: 'ArrowRight' });
+      expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
+    });
+  });
+
+  it('announces a broken class-diagram reference to assistive technology', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(
+      screen.getByRole('img', { name: 'The referenced diagram was deleted. Please select a new one.' }),
+    ).toBeInTheDocument();
+  });
+});
+
+// ── Semantic generation ──────────────────────────────────────────────────
+
+const umlModel = (type: UMLDiagramType, elements: Record<string, unknown> = {}) => ({
+  version: '3.0.0' as const,
+  type,
+  size: { width: 1400, height: 740 },
+  elements,
+  relationships: {},
+  interactive: { elements: {}, relationships: {} },
+  assessments: {},
+});
+
+const generatedObjectDiagram = umlModel(UMLDiagramType.ObjectDiagram, {
+  o1: { id: 'o1', type: 'ObjectName', name: 'book_0' },
+});
+
+const instanceFound: SemanticSearchEvent = {
+  done: true,
+  isValid: true,
+  message: 'Instance found within 5 objects per class.',
+  object_model: generatedObjectDiagram,
+};
+
+describe('semantic generation', () => {
+  let releaseSearch: (event: SemanticSearchEvent) => void;
+  let editor: { model: unknown; nextRender: Promise<void> };
+
+  /**
+   * Makes the object diagram `id` active, referencing a class diagram with one class: the project's first,
+   * or `classRef`, a second class diagram of the project (as the picker leaves the store).
+   */
+  const activateObjectDiagram = (id: string, classRef?: string) => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram[0].model = umlModel(UMLDiagramType.ClassDiagram, {
+      c1: { id: 'c1', type: 'Class', name: 'Book' },
+    }) as any;
+    const objectDiagram = makeDiagram(id, 'Object Diagram');
+    if (classRef) {
+      project.diagrams.ClassDiagram.push(makeDiagram(classRef, 'Class Diagram 2'));
+      objectDiagram.references = { ClassDiagram: classRef };
+    }
+    setMockState({ diagrams: [objectDiagram], activeDiagramType: 'ObjectDiagram', project });
+  };
+
+  const tabs = () => (
+    <ApollonEditorContext.Provider value={{ editor: editor as any, setEditor: vi.fn() }}>
+      <DiagramTabs />
+    </ApollonEditorContext.Provider>
+  );
+
+  const clickSemanticGeneration = () => fireEvent.click(screen.getByText('Semantic generation'));
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    editor = { model: umlModel(UMLDiagramType.ObjectDiagram), nextRender: Promise.resolve() };
+    // The search runs until the test releases its last event
+    vi.mocked(streamSse).mockImplementation(
+      () =>
+        (async function* () {
+          yield await new Promise<SemanticSearchEvent>((resolve) => {
+            releaseSearch = resolve;
+          });
+        })() as AsyncGenerator<never, void, void>,
+    );
+    activateObjectDiagram('od1');
+  });
+
+  it('asks to confirm before replacing a non-empty object diagram', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const objects = umlModel(UMLDiagramType.ObjectDiagram, { o9: { id: 'o9', type: 'ObjectName', name: 'mine' } });
+    editor.model = objects;
+    mockGlobalConfirm.mockResolvedValueOnce(false);
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(mockGlobalConfirm).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(streamSse).not.toHaveBeenCalled();
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toBe(objects);
+  });
+
+  it('replaces the object diagram with the generated one', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    releaseSearch(instanceFound);
+
+    await waitFor(() => expect(editor.model).toEqual(generatedObjectDiagram));
+    expect(updateDiagramModelThunk).toHaveBeenCalledWith({ model: generatedObjectDiagram });
+  });
+
+  it('reports a generation to analytics, with counts only', async () => {
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(mockCaptureEvent).toHaveBeenCalledWith('object_diagram_generated_from_constraints', {
+        elements: 1,
+        relationships: 0,
+      }),
+    );
+  });
+
+  it('discards the result when the user leaves the diagram during the search', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const { toast } = await import('react-toastify');
+    const { rerender } = render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    activateObjectDiagram('od2');
+    rerender(tabs());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you switched diagrams.'),
+    );
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toEqual(umlModel(UMLDiagramType.ObjectDiagram));
+  });
+
+  it('discards the result when the user picks another class diagram during the search', async () => {
+    const { updateDiagramModelThunk } = await import('../../../../app/store/workspaceSlice');
+    const { toast } = await import('react-toastify');
+    const { rerender } = render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    activateObjectDiagram('od1', 'cd2');
+    rerender(tabs());
+    releaseSearch(instanceFound);
+
+    await waitFor(() =>
+      expect(toast.info).toHaveBeenCalledWith('Semantic generation stopped: you switched diagrams.'),
+    );
+    expect(updateDiagramModelThunk).not.toHaveBeenCalled();
+    expect(editor.model).toEqual(umlModel(UMLDiagramType.ObjectDiagram));
+  });
+
+  it('ignores a second click while a search runs', async () => {
+    const { toast } = await import('react-toastify');
+    render(tabs());
+
+    clickSemanticGeneration();
+    await waitFor(() => expect(streamSse).toHaveBeenCalled());
+    clickSemanticGeneration();
+
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith('A semantic check is already running.'));
+    expect(streamSse).toHaveBeenCalledTimes(1);
+    releaseSearch(instanceFound);
+    await waitFor(() => expect(editor.model).toEqual(generatedObjectDiagram));
   });
 });

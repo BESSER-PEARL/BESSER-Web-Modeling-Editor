@@ -1,0 +1,133 @@
+/**
+ * Opt-in research study mode (telemetry).
+ *
+ * Active only when the editor is opened with a study link, `?study=<label>`
+ * (`?pilot=<label>` is the older form, still accepted so links already handed
+ * out keep working). The label is stored for the tab and attached to every
+ * telemetry event; without it NOTHING is collected — regular users never
+ * produce telemetry. The backend applies its own
+ * master switch on top (`BESSER_TELEMETRY_ENABLED`), so posting here is
+ * always safe: the collector answers 204 whether or not it records.
+ *
+ * Every send is fire-and-forget: no retries, no blocking, no user-visible
+ * errors. A telemetry hiccup must never affect chat or generation.
+ *
+ * The telemetry session id REUSES the assistant's per-tab session id (the
+ * one `AssistantClient` sends on every WebSocket message), so agent-side
+ * and frontend-side events for the same session land in the same store.
+ * This module owns the get-or-create logic and `AssistantClient` delegates
+ * to it — one id per tab, never two.
+ */
+
+import { BACKEND_URL } from '../../constants/constant';
+import { postTelemetryEvent, type TelemetryEventRequest } from '../../api/telemetry';
+import { readPilotParticipant, writePilotParticipant } from '../storage/tabStorage';
+import { readAssistantSessionId, writeAssistantSessionId } from '../storage/assistantStorage';
+
+/** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
+const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
+
+export type TelemetryEventKind = TelemetryEventRequest['kind'];
+
+export type DeliveryAction = 'download' | 'push_github' | 'continue_from_repo';
+
+/**
+ * Read the `study` (or legacy `pilot`) URL query parameter on app load and,
+ * when it carries a valid participant label, store it for the tab; both
+ * parameters are then removed from the URL (as `initDemoModeFromUrl` does).
+ * Idempotent and safe to call in any environment (SSR, sandboxed iframe, tests).
+ */
+export const initPilotModeFromUrl = (): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const label = url.searchParams.get('study') ?? url.searchParams.get('pilot');
+    if (label && PILOT_PARTICIPANT_PATTERN.test(label)) {
+      writePilotParticipant(label);
+    }
+    // Drop the label from the address bar so analytics page locations never
+    // carry it; the tab keeps it in sessionStorage.
+    if (url.searchParams.has('study') || url.searchParams.has('pilot')) {
+      url.searchParams.delete('study');
+      url.searchParams.delete('pilot');
+      window.history.replaceState(window.history.state, '', url.toString());
+    }
+  } catch {
+    // Storage or URL unavailable — study mode simply stays off.
+  }
+};
+
+/**
+ * The participant label for this tab, or null when study mode is off
+ * (the overwhelmingly common case). Validated on read so a corrupted
+ * stored value can never leak into a request.
+ */
+export const getPilotParticipant = (): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const stored = readPilotParticipant();
+    return stored && PILOT_PARTICIPANT_PATTERN.test(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+};
+
+/** True when this tab was opened with a valid study link. */
+export const isPilotSession = (): boolean => getPilotParticipant() !== null;
+
+/**
+ * Get (or create) the per-tab session id shared with the assistant
+ * WebSocket protocol. `AssistantClient.createSessionId` delegates here so
+ * the telemetry session and the assistant session are always the SAME id.
+ */
+export const getOrCreateAssistantSessionId = (): string => {
+  try {
+    const existing = readAssistantSessionId();
+    if (existing) return existing;
+  } catch {
+    // sessionStorage unavailable (e.g. iframe sandbox) — fall through
+  }
+
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  try {
+    writeAssistantSessionId(id);
+  } catch {
+    // best-effort
+  }
+  return id;
+};
+
+/**
+ * Fire-and-forget POST of one telemetry event. No-op unless study mode is
+ * active. Never throws, never retries, never blocks the caller —
+ * `keepalive` lets the request outlive a page unload (e.g. a download
+ * click right before closing the tab).
+ */
+export const sendTelemetryEvent = (kind: TelemetryEventKind, payload: Record<string, unknown>): void => {
+  try {
+    const participant = getPilotParticipant();
+    if (!participant || !BACKEND_URL) return;
+    void postTelemetryEvent({
+      session: getOrCreateAssistantSessionId(),
+      participant,
+      kind,
+      payload,
+    }).catch(() => {
+      // Swallowed by design — telemetry can never surface an error.
+    });
+  } catch {
+    // Swallowed by design.
+  }
+};
+
+/**
+ * Record a delivery action (the user actually TOOK the generated output
+ * somewhere): artifact download, push to GitHub, continue-from-repo import.
+ */
+export const emitDeliveryEvent = (action: DeliveryAction, runId?: string): void => {
+  sendTelemetryEvent('delivery', runId ? { action, runId } : { action });
+};

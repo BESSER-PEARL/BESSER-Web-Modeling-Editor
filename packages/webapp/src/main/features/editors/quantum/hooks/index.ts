@@ -1,4 +1,4 @@
-export { useUndoRedo } from './useUndoRedo';
+export { useUndoRedo } from '../../../../shared/hooks/useUndoRedo';
 export { useCircuitPersistence, useAutoSave } from './useCircuitPersistence';
 export type { SaveStatus } from './useCircuitPersistence';
 export { useCircuitDragDrop } from './useCircuitDragDrop';
@@ -8,3 +8,4 @@ export { useCircuitIO, useKeyboardShortcuts } from './useCircuitIO';
 export { useCircuitEditor } from './useCircuitEditor';
 export type { CircuitEditorState } from './useCircuitEditor';
 export { useCircuitKeyboard } from './useCircuitKeyboard';
+export { useArmedGate } from './useArmedGate';

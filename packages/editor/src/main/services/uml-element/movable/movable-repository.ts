@@ -13,6 +13,8 @@ import { UMLDiagramRepository } from '../../uml-diagram/uml-diagram-repository';
 // we do this, because it enables us to not do a full shallow copy of all elements in the state, when a pointer move event is triggered
 // but just update the position of elements which are actually moved
 // that is why there is the the separation of movable and moving reducer
+const GRID = 10;
+
 export const Movable = {
   startMoving:
     (id?: string | string[]): AsyncAction =>
@@ -63,6 +65,23 @@ export const Movable = {
       const ids = id ? (Array.isArray(id) ? id : [id]) : getState().moving;
       if (!ids.length) {
         return;
+      }
+
+      // A pointer drag moves freely; on release, snap the dragged group to the 10px grid
+      // (one shared delta, so relative positions are kept). Keyboard nudges are already grid steps.
+      if (!keyboard) {
+        const bounds = getState().elements[ids[0]]?.bounds;
+        if (bounds) {
+          const dx = Math.round(bounds.x / GRID) * GRID - bounds.x;
+          const dy = Math.round(bounds.y / GRID) * GRID - bounds.y;
+          if (dx !== 0 || dy !== 0) {
+            dispatch<MoveAction>({
+              type: MovingActionTypes.MOVE,
+              payload: { ids, delta: { x: dx, y: dy } },
+              undoable: false,
+            });
+          }
+        }
       }
 
       dispatch<MoveEndAction>({

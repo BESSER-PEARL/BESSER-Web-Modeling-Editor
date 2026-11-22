@@ -29,12 +29,12 @@ The numbered elements in the interface are described below.
 
 The *File* menu provides project and diagram management:
 
-- *New / Open / Import Project*: Opens the project hub where you can create a new project, open a recent one, or import an existing project. Supported diagram types: Structural (class diagrams), Object, State Machine, Agent, Neural Network, GUI No-Code, and Quantum Circuit. A project can contain multiple diagrams of each type.
-- *Load Template*: Import a model template in JSON or B-UML format (``.json`` or ``.py`` file).
-- *Export Project*: Export your project or individual diagrams in B-UML, JSON, SVG, PNG, or PDF format.
-- *Import Class Diagram from Image*: Use AI (OpenAI) to convert an image of a class diagram into a model.
+- *New / Open / Import Project*: Opens the project hub where you can create a blank project, build a class diagram from data (spreadsheet files or a statistics API), open a recent one, import an existing project, or continue from a GitHub repository. Diagram types available in a project: Class, Object, State Machine, Agent, User, GUI No-Code, Quantum Circuit, Neural Network and BPMN — up to five diagrams of each.
+- *Load Template*: Start from one of the bundled templates (class-diagram patterns, agents, state machines, BPMN processes, neural networks, quantum circuits, or two complete example projects).
+- *Export Project*: Export your project or the current diagram in B-UML, JSON, SVG or PNG format.
+- *Import Diagram*: Add a single diagram to the current project from ``.json``, ``.py``, ``.bpmn`` or ``.xml``.
+- *Import Class Diagram from Image*: Use AI to convert a picture of a class diagram into a model.
 - *Import Class Diagram from KG*: Import a class diagram from a knowledge graph file (TTL/RDF/JSON).
-- *Preview Project*: Preview the current project layout.
 
 2. Generate Menu
 ~~~~~~~~~~~~~~~~
@@ -68,7 +68,9 @@ The *Community* menu connects you with the BESSER community:
 
 The *Help* menu provides guidance and information:
 
-- **How does this editor work?**: Overview of the editor's features.
+- **How does this editor work?**: Overview of the editor's features: one
+  section per diagram type, and a *GitHub* section on keeping a project in a
+  repository.
 - **Start Tutorial**: Launches an interactive walkthrough of the editor.
 - **Keyboard Shortcuts**: Displays available keyboard shortcuts.
 - **About BESSER**: Information about the BESSER project.
@@ -76,10 +78,16 @@ The *Help* menu provides guidance and information:
 6. Quality Check
 ~~~~~~~~~~~~~~~~
 
-Click the **Quality Check** button to validate your model. The editor checks for
-errors including duplicate class names, invalid OCL constraint syntax, and
-structural model consistency. Validation results are displayed with specific
-error messages.
+On a class diagram, **Quality Check** has two entries:
+
+- Use **Quality Check > Syntactic check** to validate your model.
+  The editor checks for errors including duplicate class names, invalid OCL
+  constraint syntax, and structural model consistency. Validation results are
+  displayed with specific error messages.
+- Use **Quality Check > Semantic check** to verify the satisfiability of the
+  model and its OCL constraints. Note that the semantic check performs a bounded analysis.
+  See the `docs <https://besser.readthedocs.io/en/latest/examples/semantic_check_example.html>`_
+  for details.
 
 7. GitHub and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,18 +96,28 @@ The right side of the top bar provides quick-access utilities:
 
 - **Theme toggle**: Switch between light and dark mode.
 - **Star**: Star or unstar the BESSER GitHub repository (when signed in).
-- **GitHub account**: Sign in or out of your GitHub account. Once authenticated,
-  the Deploy menu becomes available.
-- **Sync**: Synchronize your project with GitHub version control.
+- **GitHub**: one control for everything GitHub. Signed out it reads
+  **Connect GitHub**; once you are signed in the Deploy menu becomes available
+  and the control reads **Link to GitHub** until the project has a repository.
+  For a linked project it shows the repository and a dot for its state (in sync,
+  unsaved model changes, or new commits on GitHub). Click it for a menu to save
+  the model, get the latest version, see the history, open the repository,
+  change or unlink it, and sign out (see :doc:`projects`).
 
 8. Left Sidebar
 ~~~~~~~~~~~~~~~
 
 The left sidebar provides navigation and diagram management:
 
-- **Diagram type tabs**: Switch between diagram types (Class, Object, State Machine, Agent, GUI, Quantum Circuit). Each tab shows the diagrams of that type in the current project.
-- **Diagram tabs**: Within each type, tabs at the top (e.g., "Library Complete") let you switch between multiple diagrams. The **+** button creates a new diagram of that type.
-- **Icon shortcuts**: Quick access to project settings, layers, and other tools.
+- **Diagram type tabs**: Switch between diagram types — Class, Object, State
+  Machine, Agent, BPMN, User, Neural Network, GUI No-Code and Quantum Circuit.
+  Types you have hidden through *Modeling Perspectives* do not appear here.
+- **Diagram tabs**: Within each type, tabs above the canvas let you switch
+  between diagrams of that type. The **+** button adds one (up to five per
+  type); double-click a tab to rename it.
+- **Agent Customization**: Expanding the Agent entry reveals the agent
+  configuration page.
+- **Settings**: Opens the project settings page.
 
 9. Palette
 ~~~~~~~~~~
@@ -125,7 +143,12 @@ The canvas is the main drawing area where you design your model. You can:
 - Double-click elements to edit their properties.
 - Pan and zoom to navigate large diagrams.
 
-11. Agent Widget
+11. AI Assistant
 ~~~~~~~~~~~~~~~~
 
-The **Agent Widget** (bottom-right corner) provides an AI-powered assistant that can help you with modeling tasks. Click the bot icon to open the chat interface and ask questions about your model or get suggestions.
+The **Modeling Assistant** is the chat button in the bottom-right corner, or the
+drawer that slides up over the canvas. Describe what you want in plain language
+and it builds and edits the diagrams for you; ask it to generate and it either
+runs a BESSER generator or hands the project to the Spec-Driven Agent, which
+assembles a whole application. See :doc:`ai-assistant`,
+:doc:`spec-driven-agent` and :doc:`ai-keys`.

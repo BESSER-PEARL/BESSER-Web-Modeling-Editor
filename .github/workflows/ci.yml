@@ -1,0 +1,101 @@
+name: CI
+
+# Lint, tests, type check, build and translation coverage on every PR and push
+# to develop/main. Actions are pinned to commit SHAs (matches the BESSER repo's
+# security policy); the trailing comment records the version, update both together.
+# Node setup + `npm ci` live in .github/actions/setup.
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+# A new push to a PR cancels its running checks; pushes to develop/main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Lint webapp + server (errors fail, warnings are reported)
+        run: npm run lint
+      - name: OpenAPI types match the committed schema
+        run: |
+          npm run api:types --workspace=webapp
+          git diff --exit-code -- packages/webapp/src/main/shared/api/generated/ \
+            || { echo "::error::besser-openapi.d.ts is stale: run 'npm run api:types --workspace=webapp' and commit it."; exit 1; }
+
+  # The webapp suite is ~300 test files, each in its own jsdom environment, so
+  # it is split by file across three runners. `test` reports the combined result
+  # under the check name the suite had as one job.
+  test-shard:
+    name: test (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Webapp unit tests (vitest)
+        run: npm test --workspace=webapp -- --shard=${{ matrix.shard }}/3
+      - name: Server tests (vitest)
+        if: matrix.shard == 1
+        run: npm test --workspace=server
+
+  test:
+    needs: test-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: All test shards passed
+        run: test "${{ needs.test-shard.result }}" = success
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Type check (no new errors; the baseline is in scripts/typecheck.mjs)
+        run: npm run typecheck
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Build (webapp + server)
+        run: npm run build
+        env:
+          # The webapp build needs more than Node's 2 GB default heap.
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  # Policy: English is required and complete; the other languages are optional and
+  # fall back to English at runtime. FAILS only on an incomplete English reference
+  # or stale/mistyped keys; untranslated keys are warnings (annotations + a coverage
+  # table in the run summary). See docs/TRANSLATING.md.
+  i18n-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # No dependencies to install: the checker uses only Node built-ins.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Check translation coverage
+        run: node scripts/i18n-check.mjs

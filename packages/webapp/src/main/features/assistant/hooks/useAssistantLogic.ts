@@ -16,30 +16,109 @@
  * that AssistantWidget and AssistantWorkspaceDrawer require zero changes.
  */
 
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+
+import { settleProgressMessage } from './settleProgressMessage';
+import { generationKeyLabel } from '../components/GenerationKeyChip';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { getSpecDrivenConfig } from '../../../shared/services/specDrivenConfig';
 import { toast } from 'react-toastify';
+import { reportError } from '../../../shared/services/errors/reportError';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
-import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { AssistantClient, type AssistantActionPayload } from '../services';
-import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
+import { errorProperties, track } from '../../../shared/services/analytics/events';
+import { isAssistantKeyProvider, readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { markMessageSent, takeReplyLatency } from './replyLatency';
+import { recentHistoryFrom } from './recentHistory';
+import {
+  messagesFromProjectConversation,
+  projectConversationTurns,
+  sameTurns,
+  toProjectConversation,
+} from './projectConversation';
+import {
+  autoFixFailedMessage,
+  autoFixInProgressMessage,
+  autoFixInterruptedMessage,
+  autoFixRemainingMessage,
+  autoFixResolvedMessage,
+} from './autoFixMessages';
+import { AssistantClient, getSharedAssistantClient, INJECTION_FALLBACK_MESSAGE, RESPONSE_STILL_RUNNING_MESSAGE, type AssistantActionPayload, type AssistantClientMode } from '../services';
+import {
+  autoFixRef,
+  conversationStore,
+  freshAutoFixState,
+  setConversationHandlers,
+  voicePlaceholderIdRef,
+  wireConversationDispatchers,
+} from './assistantConversationStore';
+import { UML_BOT_WS_URL, bugReportRepo } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import type { RootState } from '../../../app/store/store';
+import {
+  updateDiagramModelThunk,
+  selectActiveDiagram,
+  selectActiveDiagramType,
+  selectProject,
+  selectProjectId,
+  loadProjectThunk,
+  addDiagramThunk,
+  switchDiagramIndexThunk,
+  bumpEditorRevision,
+  setProjectConversation,
+} from '../../../app/store/workspaceSlice';
+import { ApollonEditorContext } from '../../editors';
 import {
   UMLModelingService,
   RateLimiterService,
   type RateLimitStatus,
+  type ChatMessage,
+  type InjectionCommand,
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
-import type { GeneratorType } from '../../../app/shell/workspace-types';
-import type { GenerationResult } from '../../generation/types';
+import {
+  endAssistantConversation,
+  expectAssistantRequirements,
+  isTraceabilityEnabled,
+  loadProjectTrace,
+  readLlmUsage,
+  recordAssistantReply,
+  recordAssistantRequest,
+} from '../../../shared/traceability/traceStore';
+import type { GeneratorType } from '../../../shared/types/workspace-types';
+import type { GenerationResult } from '../../generation';
 
+import { readShowTrace } from './suggestedActionRouting';
+import { buildAssistantTraceDigest } from '../services/traceDigestContext';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
+import {
+  useSpecDrivenTrigger,
+  openByokDialog,
+  readGenerationContext,
+  readGenerationKey,
+  readLastGeneration,
+  setLastRunForProject,
+  selectHasLiveSpecDrivenRun,
+} from '../../spec-driven';
+import type { TriggerSpecDrivenPayload } from '../../spec-driven';
+import {
+  continueFromGithubRepo,
+  describeOpenedRepo,
+  githubRepoContext,
+} from '../../../shared/services/github/continueFromGithub';
+import { appVersion } from '../../../shared/constants/application-constants';
+import { getGitHubSession } from '../../../shared/services/github/githubAuth';
+import {
+  buildIssueReport,
+  buildIssueReportMarkdown,
+  buildGithubIssueTitle,
+  buildGithubIssueUrl,
+  type IssueReportContext,
+} from './buildIssueReport';
 
 /* ------------------------------------------------------------------ */
 /*  Types  (re-exported so consumers keep importing from here)         */
@@ -47,9 +126,38 @@ import { useModelInjection } from './useModelInjection';
 
 export type { ConnectionStatus } from './useWebSocketConnection';
 
+/** What the agent's "Generate the application" chip sends. */
+export const GENERATE_AGAIN_PROMPT = 'generate the application';
+
+/** The key the assistant would send, by provider only (analytics). */
+function keyProperties(): { uses_own_key: boolean; provider?: string } {
+  const key = readLlmKey();
+  return key && isAssistantKeyProvider(key.provider)
+    ? { uses_own_key: true, provider: key.provider }
+    : { uses_own_key: false };
+}
+
+function trackReply(action: string, diagramType?: unknown): void {
+  track('assistant_reply', {
+    action,
+    latency_ms: takeReplyLatency(),
+    diagram_type: typeof diagramType === 'string' ? diagramType : undefined,
+  });
+}
+
 export interface SuggestedAction {
   label: string;
   prompt: string;
+  /**
+   * Optional explicit routing hint from the backend. When set to 'open-gui'
+   * the chip switches to the GUI tab instead of relaying its prompt to the
+   * agent (see shouldOpenGuiTab). The current "Modify the GUI" chip works via
+   * a label/prompt regex fallback even without this field.
+   */
+  action?: string;
+  /** `show-trace` chips (the agent's `show_trace` reply): the Traceability view and artifact to open. */
+  traceView?: string;
+  traceArtifactId?: string;
 }
 
 export interface MessageMeta {
@@ -59,6 +167,12 @@ export interface MessageMeta {
   badge?: 'injection' | 'error' | 'generation';
   /** Human-readable badge label, e.g. "Applied to ClassDiagram". */
   badgeLabel?: string;
+  /**
+   * True when the agent reported a rate-limit / auth error and the user can
+   * recover by supplying their own API key. Surfaces render an inline
+   * "Add your API key" button that opens the AssistantByokDialog.
+   */
+  needsApiKey?: boolean;
 }
 
 export interface UseAssistantLogicOptions {
@@ -71,6 +185,11 @@ export interface UseAssistantLogicOptions {
   switchDiagram: (targetType: string) => Promise<boolean>;
   /** Trigger code generation (optional -- not available in all contexts). */
   onGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
+  /**
+   * Which surface mounts this hook, sent with each message: the drawer is the agentic
+   * interface ('workspace'), the floating bubble the small widget ('widget').
+   */
+  surface: AssistantClientMode;
 }
 
 export interface UseAssistantLogicReturn {
@@ -85,6 +204,12 @@ export interface UseAssistantLogicReturn {
   messageMeta: Record<string, MessageMeta>;
   /** Transient progress status from the assistant (e.g. "Generating code..."). */
   progressMessage: string;
+  /**
+   * Recent sequence of progress steps (most-recent last, capped to the last
+   * few). Surfaces render this as an evolving step list so long operations
+   * feel responsive. Clears automatically when the operation finishes.
+   */
+  progressSteps: string[];
   /** The last user-sent message text (for input recall via Up arrow). */
   lastSentMessage: string;
   /** The id of the message currently being streamed, or null when idle. */
@@ -93,14 +218,41 @@ export interface UseAssistantLogicReturn {
   /* refs */
   messageListContainerRef: React.RefObject<HTMLDivElement>;
 
+  /* scroll-follow state */
+  /** True when the user has scrolled up — surfaces render a
+   * "scroll to bottom" affordance instead of being force-scrolled. */
+  showScrollToBottom: boolean;
+  /** Smooth-scroll the message list to the bottom and re-enable
+   * auto-follow. */
+  scrollMessagesToBottom: () => void;
+
   /* actions */
   handleSubmit: (
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList; overrideText?: string },
   ) => Promise<void>;
+  /** New run for the project after its result expired (the run card's "Generate again"), after a confirmation. */
+  generateAgain: () => void;
+  /** Run id of the conversation's latest run card. */
+  latestRunId: string | undefined;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
+  /**
+   * Ask the user to confirm, then start a new chat (clears the conversation).
+   * When a Spec-Driven run is in flight the confirm copy also warns that the
+   * running generation will be stopped. This is the handler the "New Chat"
+   * controls should call — `clearConversation` itself stays guard-free because
+   * it is also invoked on project switch (where no prompt is wanted).
+   */
+  requestNewChat: () => void;
+  /**
+   * Build a privacy-safe issue report (conversation + non-secret workspace
+   * context) and open a pre-filled GitHub issue on the BESSER repository in a
+   * new browser tab. If the browser blocks the tab, the issue link is posted
+   * into the conversation instead. NEVER includes the BYOK API key.
+   */
+  reportIssue: () => Promise<void>;
   /** Undo the last assistant-driven model change using the undo stack. */
   handleUndo: () => void;
   /** Whether an undo action is available. */
@@ -123,6 +275,9 @@ const createMessageId = (): string => {
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+/** Wait for the conversation to settle before writing it to the project. */
+export const PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS = 1500;
 
 const toKitMessage = (
   role: 'user' | 'assistant',
@@ -174,6 +329,32 @@ const readBlobAsBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+/** A ref-shaped, read-only live view: `.current` reads the value on access. */
+const liveRef = <T,>(read: () => T): React.MutableRefObject<T> => ({
+  get current() {
+    return read();
+  },
+  set current(_value: T) {
+    // Read-only: the store is the source of truth.
+  },
+});
+
+const SPEC_DRIVEN_KEY_CANCELLED_TEXT =
+  'No API key set, so the Spec-Driven Agent did not run. Add a key ' +
+  '(OpenAI, Anthropic, or Mistral — or a Local / PIA model) in the ' +
+  'key box, then say "generate" again. Your key stays in your browser.';
+
+// Both surfaces (widget + drawer) mount this hook, but the conversation is
+// shared, so the explanation must be appended once per event: one module-level
+// listener, ref-counted so it lives exactly as long as some surface does.
+const onSpecDrivenKeyCancelled = () => {
+  conversationStore.setMessages((prev) => [
+    ...prev,
+    toKitMessage('assistant', SPEC_DRIVEN_KEY_CANCELLED_TEXT),
+  ]);
+};
+let keyCancelledSubscribers = 0;
+
 const waitForSwitchRender = (): Promise<void> =>
   new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
@@ -191,61 +372,139 @@ export function useAssistantLogic({
   isActive,
   switchDiagram,
   onGenerate,
+  surface,
 }: UseAssistantLogicOptions): UseAssistantLogicReturn {
   const { t } = useTranslation();
 
   /* ---- core state (owned by orchestrator) ---- */
-  const [messages, setMessages] = useState<ChatKitMessage[]>([]);
+  // Conversation lives in a SHARED external store so the floating widget and the
+  // workspace drawer render IDENTICAL content (one client, one session, one
+  // conversation). The store mutators are setState-compatible, so every existing
+  // setMessages/setMessageMeta call site below works unchanged.
+  const messages = useSyncExternalStore(conversationStore.subscribe, conversationStore.getMessages);
+  const setMessages = conversationStore.setMessages;
+  const messageMeta = useSyncExternalStore(conversationStore.subscribe, conversationStore.getMessageMeta);
+  const setMessageMeta = conversationStore.setMessageMeta;
   const [inputValue, setInputValue] = useState('');
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus>({
     requestsLastMinute: 0,
     requestsLastHour: 0,
     cooldownRemaining: 0,
   });
-  const [messageMeta, setMessageMeta] = useState<Record<string, MessageMeta>>({});
   const [lastSentMessage, setLastSentMessage] = useState('');
 
   const messageListContainerRef = useRef<HTMLDivElement>(null);
   const operationQueueRef = useRef<Promise<void>>(Promise.resolve());
   const isSendingRef = useRef(false);
 
+  /**
+   * Id of the optimistic "🎤 Transcribing…" user bubble appended the moment a
+   * voice message is sent. It exists so the drawer's welcome→chat split (gated
+   * on `messages.length > 0`) flips to the chat view immediately, exactly like
+   * the text path does. When the agent's transcription echo (an incoming
+   * `isUser` message carrying the spoken text) arrives, we replace this bubble
+   * in place rather than appending a second one — see the onMessage handler.
+   * Lives in the conversation store (`voicePlaceholderIdRef`): the echo may be
+   * handled by the other surface.
+   */
+
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
-  const activeDiagram = useAppSelector(selectActiveDiagram);
-  const { currentProject, currentDiagramType } = useProject();
+  // Project/diagram state is only read inside callbacks, so read it from the
+  // store on demand instead of subscribing: every model edit would otherwise
+  // re-render both assistant surfaces. Only the project id drives rendering.
+  const store = useStore<RootState>();
+  const currentProjectId = useAppSelector(selectProjectId);
+  // True while a Spec-Driven generation run is in flight (global run slot or a
+  // live run card). Drives the "…the running generation will be stopped" half
+  // of the New Chat confirmation copy.
+  const hasActiveSpecRun = useAppSelector(
+    (s) => s.specDriven.runStatus === 'running' || selectHasLiveSpecDrivenRun(s),
+  );
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
   const onGenerateRef = useRef(onGenerate);
   const switchDiagramRef = useRef(switchDiagram);
-  const currentProjectRef = useRef(currentProject);
-  const currentDiagramTypeRef = useRef(currentDiagramType);
-  const currentModelRef = useRef<any>(null);
+  const [{ currentProjectRef, currentDiagramTypeRef, currentModelRef }] = useState(() => ({
+    currentProjectRef: liveRef(() => selectProject(store.getState())),
+    currentDiagramTypeRef: liveRef(() => selectActiveDiagramType(store.getState())),
+    currentModelRef: liveRef<any>(() => selectActiveDiagram(store.getState())?.model),
+  }));
 
   onGenerateRef.current = onGenerate;
   switchDiagramRef.current = switchDiagram;
-  currentProjectRef.current = currentProject;
-  currentDiagramTypeRef.current = currentDiagramType;
-  currentModelRef.current = activeDiagram?.model;
+
+  // Validate-and-repair loop state: one automatic repair attempt per user
+  // message ('attempted'), and whether the modify currently being applied
+  // IS that repair ('fixInFlight' — gates the success/failure follow-up).
+  // `progressMessageId` is the id of the "fixing it now…" status line, so the
+  // outcome REPLACES it instead of being appended below it. Progress messages
+  // render with a live spinner and never get removed, so appending left a row
+  // spinning forever next to a second row saying the work had finished.
+  // Shared via the conversation store (`autoFixRef`): the surface that sends
+  // resets it, the dispatch winner that applies the model reads it.
+
+  /**
+   * Settle the auto-fix status line: swap its text for the outcome and stop
+   * the spinner. Falls back to appending if the row is already gone (the user
+   * cleared the conversation mid-repair).
+   */
+  const settleAutoFixProgress = useCallback((text: string, isError = false) => {
+    const id = autoFixRef.current.progressMessageId;
+    autoFixRef.current.progressMessageId = null;
+    setMessages((prev) =>
+      settleProgressMessage(
+        prev,
+        id,
+        text,
+        (body, err) => toKitMessage('assistant', body, err ? { isError: true } : undefined),
+        isError,
+      ),
+    );
+  }, []);
+
+  // The digest is built synchronously from the loaded trace: load it as soon as a recording project is open.
+  useEffect(() => {
+    const project = currentProjectRef.current;
+    if (project && isTraceabilityEnabled(project)) void loadProjectTrace(project.id);
+  }, [currentProjectId, currentProjectRef]);
 
   /* ---- singleton services ---- */
 
-  const [assistantClient] = useState(
-    () =>
-      new AssistantClient(UML_BOT_WS_URL, {
-        clientMode: 'workspace',
-        contextProvider: buildWorkspaceContext,
-      }),
+  // Shared singleton: the floating widget and the workspace drawer use ONE
+  // client (one socket, one session id) so they share the same conversation
+  // instead of opening two sockets with the same id (BAF reply collision).
+  const [assistantClient] = useState(() =>
+    getSharedAssistantClient(UML_BOT_WS_URL, {
+      clientMode: 'workspace',
+      contextProvider: buildWorkspaceContext,
+    }),
   );
+
+  // Keep the shared client's context provider pointed at THIS mounted surface's
+  // live workspace state (the singleton only captured the first surface's).
+  useEffect(() => {
+    assistantClient.setContextProvider(buildWorkspaceContext);
+  }, [assistantClient, buildWorkspaceContext]);
+
+  // The conversation is module-level (shared by both surfaces), so the history
+  // the client sends after a reconnect reads it straight from the store.
+  useEffect(() => {
+    assistantClient.setHistoryProvider((current) => recentHistoryFrom(conversationStore.getMessages(), current));
+  }, [assistantClient]);
 
   const [rateLimiter] = useState(
     () =>
       new RateLimiterService({
-        maxRequestsPerMinute: 8,
-        maxRequestsPerHour: 40,
-        maxMessageLength: 10000,
-        cooldownPeriodMs: 3000,
+        maxRequestsPerMinute: 15,
+        maxRequestsPerHour: 250,
+        // See the default in RateLimiterService: 1000 blocked a pasted stack
+        // trace or specification, which is a primary way people use the
+        // assistant.
+        maxMessageLength: 64000,
+        cooldownPeriodMs: 1000,
       }),
   );
 
@@ -265,18 +524,85 @@ export function useAssistantLogic({
   }, [dispatch, editor, modelingService]);
 
   useEffect(() => {
-    if (modelingService && activeDiagram?.model && isUMLModel(activeDiagram.model)) {
-      modelingService.updateCurrentModel(activeDiagram.model);
-    }
-  }, [activeDiagram, modelingService]);
+    if (!modelingService) return;
+    let lastModel: unknown;
+    const syncModel = () => {
+      const model = selectActiveDiagram(store.getState())?.model;
+      if (model === lastModel) return;
+      lastModel = model;
+      if (model && isUMLModel(model)) modelingService.updateCurrentModel(model);
+    };
+    syncModel();
+    return store.subscribe(syncModel);
+  }, [store, modelingService]);
 
-  /* ---- auto-scroll on new messages ---- */
+  /* ---- auto-scroll on new messages (only while following the bottom) ---- */
+
+  // Streaming runs mutate `messages` on every SSE/WS delta; forcing
+  // scrollTop on each one made it impossible to scroll up and read
+  // while a generation was running. Follow the bottom only while the
+  // user is already there (within a small tolerance); otherwise leave
+  // their position alone and surface a "scroll to bottom" button.
+  const isAtBottomRef = useRef(true);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  // The surfaces (widget / drawer) attach the container ref in their
+  // own JSX, possibly after mount — so the scroll listener is attached
+  // lazily from the messages effect, re-attaching if the element changes.
+  const scrollListenerTargetRef = useRef<HTMLDivElement | null>(null);
+
+  const ensureScrollListener = useCallback(() => {
+    const el = messageListContainerRef.current;
+    if (!el || scrollListenerTargetRef.current === el) return;
+    scrollListenerTargetRef.current = el;
+    const onScroll = () => {
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 40;
+      isAtBottomRef.current = atBottom;
+      setShowScrollToBottom(!atBottom);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+  }, []);
+
+  const scrollMessagesToBottom = useCallback(() => {
+    const el = messageListContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    isAtBottomRef.current = true;
+    setShowScrollToBottom(false);
+  }, []);
 
   useEffect(() => {
-    if (messageListContainerRef.current) {
-      messageListContainerRef.current.scrollTop = messageListContainerRef.current.scrollHeight;
+    ensureScrollListener();
+    const el = messageListContainerRef.current;
+    if (el && isAtBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, ensureScrollListener]);
+
+  // When the user dismisses the API-key box (clicks outside / Cancel) without
+  // a key while a Spec-Driven run was pending, the run cannot start — the
+  // dialog fires this event so we explain why instead of leaving an empty chat.
+  useEffect(() => {
+    if (keyCancelledSubscribers++ === 0) {
+      window.addEventListener('wme:specdriven-key-cancelled', onSpecDrivenKeyCancelled);
+    }
+    return () => {
+      if (--keyCancelledSubscribers === 0) {
+        window.removeEventListener('wme:specdriven-key-cancelled', onSpecDrivenKeyCancelled);
+      }
+    };
+  }, []);
+
+  // The free-tier run note ("use your own API key") fires this event via the
+  // markdown renderer. Open the Spec-Driven Agent key dialog in settings mode
+  // (no pending trigger) so the user can add a key for their next run.
+  useEffect(() => {
+    const onOpenByok = () => {
+      dispatch(openByokDialog(null));
+    };
+    window.addEventListener('wme:specdriven-open-byok', onOpenByok);
+    return () =>
+      window.removeEventListener('wme:specdriven-open-byok', onOpenByok);
+  }, [dispatch]);
 
   /* ================================================================ */
   /*  Sub-hooks                                                        */
@@ -297,11 +623,166 @@ export function useAssistantLogic({
     setMessages,
     setMessageMeta,
     setProgressMessage: streaming.setProgressMessage,
+    onModelApplied: handleModelApplied,
+    onModelApplyFailed: handleModelApplyFailed,
+  });
+
+  /* ---- post-injection validate-and-repair loop ---- */
+
+  // After an agent-applied ClassDiagram update lands on the canvas, run the
+  // backend validator silently. On errors, send ONE machine-tagged repair
+  // request back to the agent — the '[auto-fix]' marker routes it
+  // deterministically to the modify flow — then re-validate the repaired
+  // model. One attempt per user message (never a loop); any failure in the
+  // check itself fails open and leaves the model exactly as applied.
+  // Function declaration (hoisted) so the injection hook above can reference it.
+  function handleModelApplied(info: { action: string; diagramType: string; model: any }) {
+    void (async () => {
+      try {
+        if (info.diagramType !== 'ClassDiagram') return;
+        if (info.action !== 'inject_complete_system' && info.action !== 'modify_model') return;
+        const { validateDiagram } = await import('../../../shared/services/validation/validateDiagram');
+        const result: any = await validateDiagram(null, currentProjectRef.current?.name || 'Diagram', {
+          ...info.model,
+          _suppressToasts: true,
+        });
+        const errors: string[] = Array.isArray(result?.errors) ? result.errors : [];
+        const wasRepair = autoFixRef.current.fixInFlight;
+        if (errors.length === 0) {
+          if (wasRepair) {
+            autoFixRef.current.fixInFlight = false;
+            settleAutoFixProgress(autoFixResolvedMessage(autoFixRef.current.issues));
+          }
+          return;
+        }
+        if (autoFixRef.current.attempted) {
+          // This message's repair attempt is already spent — report and stop.
+          autoFixRef.current.fixInFlight = false;
+          settleAutoFixProgress(autoFixRemainingMessage(errors), true);
+          return;
+        }
+        autoFixRef.current.attempted = true;
+        autoFixRef.current.fixInFlight = true;
+        autoFixRef.current.issues = errors;
+        const progressMessage = toKitMessage('assistant', autoFixInProgressMessage(errors), { isProgress: true });
+        autoFixRef.current.progressMessageId = progressMessage.id;
+        setMessages((prev) => [...prev, progressMessage]);
+        const context = workspaceContextWithoutDigest();
+        const repairRequest =
+          '[auto-fix] The last change left the diagram with validation errors. ' +
+          'Fix exactly these, changing only what is necessary:\n' +
+          errors.map((e) => `- ${e}`).join('\n');
+        // Pass the just-applied model explicitly — the store refs can lag one
+        // render behind right after an injection.
+        const sent = assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
+          ...context,
+          activeDiagramType: 'ClassDiagram',
+          activeModel: info.model,
+        });
+        if (sent === 'error') {
+          autoFixRef.current.fixInFlight = false;
+          settleAutoFixProgress(autoFixFailedMessage(errors), true);
+          return;
+        }
+        void recordAssistantRequest(currentProjectRef.current, repairRequest);
+        autoFixRef.current.turnId = sent === 'sent' ? assistantClient.turnId : null;
+      } catch (loopError) {
+        console.warn('[auto-fix] validation loop skipped:', loopError);
+      }
+    })();
+  }
+
+  // A frame answers the repair when it carries the repair's turnId, or no
+  // turnId at all (an agent that stamps none).
+  function isRepairTurn(turnId: unknown): boolean {
+    const repairTurn = autoFixRef.current.turnId;
+    return !repairTurn || typeof turnId !== 'string' || turnId === repairTurn;
+  }
+
+  // A repair whose model the editor could not apply never reaches
+  // handleModelApplied; it is reported here, not as "try rephrasing".
+  function handleModelApplyFailed(info: { action: string; diagramType?: string; turnId?: string }): boolean {
+    if (!autoFixRef.current.fixInFlight || !isRepairTurn(info.turnId)) return false;
+    autoFixRef.current.fixInFlight = false;
+    settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
+    return true;
+  }
+
+  /* ---- Spec-Driven Agent trigger handler ---- */
+
+  // Pass stable React state setters directly — wrapping them in an
+  // arrow function creates a new identity on every render, thrashing
+  // the downstream useCallback deps in `useSpecDrivenTrigger`.
+  // (`onRunFinished` is exempt: the hook stores it in a ref, so the
+  // inline arrow's changing identity is harmless.)
+  const specDriven = useSpecDrivenTrigger({
+    currentProjectRef,
+    setMessages,
+    setIsGenerating: streaming.setIsGenerating,
+    onRunFinished: (result) => {
+      // Close the agent loop: report the spec-driven run outcome back to the
+      // modeling agent exactly like the deterministic trigger_generator
+      // path does, so the agent can react ("the build failed because…")
+      // instead of staying blind to the run's outcome.
+      try {
+        if (!assistantClient) return;
+        // Rules the run checked and found MISSING from the delivered code.
+        // Reported separately from blockerCount so the agent can never
+        // summarise such a run as an unqualified success.
+        const unenforced = result.verificationCounts?.shippedUnenforced ?? 0;
+        const unenforcedNote =
+          unenforced > 0
+            ? ` ${unenforced} rule${unenforced === 1 ? '' : 's'} the user asked for ${unenforced === 1 ? 'is' : 'are'} NOT enforced in the delivered code; the run card lists ${unenforced === 1 ? 'it' : 'them'} with the reason.`
+            : '';
+        const messageText = result.ok
+          ? result.incomplete
+            ? typeof result.blockerCount === 'number' && result.blockerCount > 0
+              ? // The run COMPLETED its loop but left blocker-severity
+                // issues — it did not "stop early", and the copy must
+                // not say it did.
+                `Spec-Driven Agent produced output, but ${result.blockerCount} unresolved implementation or verification issue${result.blockerCount === 1 ? '' : 's'} remain${result.blockerCount === 1 ? 's' : ''}${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The generated app is not verified complete. The user can resume the run to address ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
+              : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
+            : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.${
+                typeof result.blockerCount === 'number' && result.blockerCount > 0
+                  ? ` ${result.blockerCount} check${result.blockerCount === 1 ? '' : 's'} could not be verified.`
+                  : ''
+              }`
+          : result.errorCode === 'CANCELLED'
+            ? 'Spec-Driven Agent run was cancelled by the user.'
+            : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;
+        assistantClient.sendFrontendEvent('generator_result', {
+          ok: result.ok,
+          message: result.ok ? `${messageText}${unenforcedNote}` : messageText,
+          metadata: {
+            smart: true,
+            runId: result.runId,
+            costUsd: result.costUsd,
+            generator_used: result.generatorUsed,
+            errorCode: result.errorCode,
+            incomplete: result.incomplete,
+            incompleteReason: result.incompleteReason,
+            blockerCount: result.blockerCount,
+            verification: result.verificationCounts,
+          },
+        });
+      } catch (error) {
+        console.error('[useAssistantLogic] failed to report spec-driven result', error);
+      }
+    },
   });
 
   /* ---- workspace context builder ---- */
 
-  function buildWorkspaceContext() {
+  /** The workspace context the client sends with a message (its context provider), with the trace digest built
+   *  from that message (its focus); the digest is left out unless the project records traces and has recorded
+   *  something. */
+  function buildWorkspaceContext(message?: string) {
+    return { ...workspaceContextWithoutDigest(), traceDigest: buildAssistantTraceDigest(currentProjectRef.current, message) };
+  }
+
+  /** The context a send passes as its override: without the digest, which the client's provider builds once, from the
+   *  message being sent (also when a queued message is sent later); an override's digest would replace it. */
+  function workspaceContextWithoutDigest() {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || 'ClassDiagram';
     const diagrams = project?.diagrams?.[activeType as keyof typeof project.diagrams];
@@ -342,6 +823,9 @@ export function useAssistantLogic({
       diagramSummaries,
       projectMetadata,
       currentDiagramIndices: project?.currentDiagramIndices,
+      githubRepo: githubRepoContext(project?.id),
+      traceabilityEnabled: isTraceabilityEnabled(project),
+      ...readGenerationContext(project?.id),
     };
   }
 
@@ -354,7 +838,7 @@ export function useAssistantLogic({
         console.error('[useAssistantLogic] task queue error:', error);
         streaming.setIsGenerating(false);
         streaming.setProgressMessage('');
-        toast.error(formatErrorForUser(error));
+        reportError(formatErrorForUser(error), { error });
       });
   };
 
@@ -379,10 +863,47 @@ export function useAssistantLogic({
   /*  handleAction                                                     */
   /* ================================================================ */
 
+  /** Record an agent reply in the project trace: a progress step, an answer (a message or a finished stream), or the
+   *  agent's error (an `agent_error` frame comes only as an action), each with the turn's model and tokens. */
+  const recordReply = (payload: AssistantActionPayload) => {
+    const project = currentProjectRef.current;
+    if (payload.action === 'progress' && typeof payload.message === 'string') {
+      const { step, total } = payload as { step?: unknown; total?: unknown };
+      const label = typeof step === 'number' && typeof total === 'number' ? `[${step}/${total}] ${payload.message}` : payload.message;
+      recordAssistantReply(project, 'progress', label);
+    } else if (payload.action === 'assistant_message' && typeof payload.message === 'string') {
+      recordAssistantReply(project, 'answer', payload.message, readLlmUsage(payload.llmUsage));
+    } else if (payload.action === 'stream_done' && typeof payload.fullText === 'string') {
+      recordAssistantReply(project, 'answer', payload.fullText, readLlmUsage(payload.llmUsage));
+    } else if (payload.action === 'agent_error') {
+      const message = typeof payload.message === 'string' && payload.message.trim() ? payload.message : t('assistant.errors.genericAgentError');
+      recordAssistantReply(project, 'error', message, readLlmUsage(payload.llmUsage));
+    } else if (payload.llmUsage !== undefined) {
+      // Another terminal reply of the turn (a generation, an export) with the turn's model and tokens.
+      recordAssistantReply(project, 'answer', '', readLlmUsage(payload.llmUsage));
+    }
+  };
+
   const handleAction = async (payload: AssistantActionPayload) => {
+    recordReply(payload);
     // Let the streaming sub-hook handle streaming/progress actions first
     if (streaming.handleStreamingAction(payload, setMessages)) {
+      if (payload.action === 'stream_done') trackReply('stream', payload.diagramType);
       return;
+    }
+    if (payload.action !== 'agent_error') trackReply(payload.action, payload.diagramType);
+
+    // A repair answered without a model never reaches handleModelApplied, so its
+    // "fixing…" line is settled here; a model reply comes as an injection, never
+    // as one of these two actions (BESSER#744). A late reply to an earlier turn
+    // (another diagram of a multi-diagram plan) is not the repair's answer.
+    if (
+      autoFixRef.current.fixInFlight &&
+      isRepairTurn(payload.turnId) &&
+      (payload.action === 'assistant_message' || payload.action === 'agent_error')
+    ) {
+      autoFixRef.current.fixInFlight = false;
+      settleAutoFixProgress(autoFixFailedMessage(autoFixRef.current.issues), true);
     }
 
     // Extract suggestedActions from assistant_message payloads before returning.
@@ -406,6 +927,22 @@ export function useAssistantLogic({
       return;
     }
 
+    // The agent's answer about the trace comes with a button that opens the Traceability page. It is shown
+    // under the answer like any suggested action and never navigates by itself. Not a model edit.
+    if (payload.action === 'show_trace') {
+      const chip = readShowTrace(payload as Record<string, unknown>, t('assistant.chat.openTrace'));
+      if (!chip) return;
+      const lastAssistant = [...conversationStore.getMessages()].reverse().find((m) => m.role === 'assistant');
+      if (!lastAssistant) return;
+      setMessageMeta((prev) => {
+        const existing = prev[lastAssistant.id]?.suggestedActions ?? [];
+        const same = (a: SuggestedAction) => a.action === chip.action && a.traceView === chip.traceView && a.traceArtifactId === chip.traceArtifactId;
+        if (existing.some(same)) return prev; // a replayed reply
+        return { ...prev, [lastAssistant.id]: { ...prev[lastAssistant.id], suggestedActions: [...existing, chip] } };
+      });
+      return;
+    }
+
     if (payload.action === 'create_diagram_tab') {
       const diagramType = typeof payload.diagramType === 'string' ? payload.diagramType : '';
       if (!diagramType) return;
@@ -417,6 +954,7 @@ export function useAssistantLogic({
         const result = await dispatch(addDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
+          traceSource: 'assistant',
         })).unwrap();
 
         if (result?.index !== undefined) {
@@ -429,7 +967,7 @@ export function useAssistantLogic({
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
         const errorMsg = error instanceof Error ? error.message : t('assistant.errors.unknownError');
-        toast.error(t('assistant.errors.createTabFailed', { error: errorMsg }));
+        reportError(t('assistant.errors.createTabFailed', { error: errorMsg }), { error });
       }
       return;
     }
@@ -456,16 +994,185 @@ export function useAssistantLogic({
         setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.generationUnavailable'))]);
         return;
       }
+      // Clear any streamed "progress steps" the moment generation is triggered
+      // (deterministic generation is instant and shows its own result card).
+      // Clearing this only AFTER the await let the step popup linger visibly for
+      // the whole request; do it up front so it's gone while the code generates.
+      streaming.setProgressMessage('');
       const result = await handler(generatorType as GeneratorType, payload.config);
+      streaming.setProgressMessage('');
+      // Deterministic generation renders in the SAME card as the Spec-Driven
+      // Agent — one step, a manual Download button, and a "0 tokens" badge —
+      // instead of silently auto-downloading (deterministic transparency).
+      if (result.ok && result.blob) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...toKitMessage('assistant', ''),
+            specDriven: {
+              status: 'done',
+              phases: [
+                { phase: 'generate', label: 'Generated deterministically', message: '', toolCalls: [] },
+              ],
+              warnings: [],
+              text: '',
+              generatorUsed: generatorType,
+              fileName: result.filename,
+              deterministic: true,
+              deterministicBlob: result.blob,
+            },
+          },
+        ]);
+      }
       assistantClient.sendFrontendEvent('generator_result', {
         ok: result.ok,
-        message:
-          typeof payload.message === 'string' && payload.message.trim()
-            ? payload.message
-            : result.ok
-              ? t('assistant.generationCompleted')
-              : result.error,
-        metadata: result.ok && result.filename ? { filename: result.filename } : undefined,
+        // Don't echo the "Starting…" trigger text (it reads as "starting" after
+        // completion). Let the agent send a generator-specific "done" line; on
+        // failure, pass the real error through.
+        message: result.ok ? undefined : result.error,
+        // On failure, why (e.g. `warnings_declined`: the user chose to fix the
+        // validation warnings first), so the agent need not read the English text.
+        metadata: result.ok
+          ? result.filename ? { filename: result.filename, generatorType } : undefined
+          : result.reason ? { generatorType, reason: result.reason } : undefined,
+      });
+      return;
+    }
+
+    if (payload.action === 'trigger_github_import') {
+      // Chat path for "continue from github.com/owner/repo": the agent
+      // extracted owner/repo/branch; we import the BESSER-created repo as
+      // a modify seed, load the project, and prime baseRunId — from then
+      // on it behaves exactly like a run generated in this conversation.
+      const ghOwner = typeof payload.owner === 'string' ? payload.owner.trim() : '';
+      const ghRepo = typeof payload.repo === 'string' ? payload.repo.trim() : '';
+      const ghBranch =
+        typeof payload.branch === 'string' && payload.branch.trim()
+          ? payload.branch.trim()
+          : undefined;
+      if (typeof payload.message === 'string' && payload.message) {
+        setMessages((prev) => [...prev, toKitMessage('assistant', payload.message as string)]);
+      }
+      if (!ghOwner || !ghRepo) {
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'I could not read the repository owner/name from that message — ' +
+              'try the full URL, e.g. github.com/owner/repo.',
+            { isError: true },
+          ),
+        ]);
+        track('github_repo_open_failed', { source: 'assistant', reason: 'invalid_link' });
+        return;
+      }
+      const ghSession = getGitHubSession();
+      if (!ghSession) {
+        track('github_repo_open_failed', { source: 'assistant', reason: 'not_signed_in' });
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'You are not signed in with GitHub in this tab. Open the Project Hub ' +
+              '(File → Open) → GitHub tab to sign in, then ask me again.',
+            { isError: true },
+          ),
+        ]);
+        return;
+      }
+      void (async () => {
+        const result = await continueFromGithubRepo({
+          owner: ghOwner,
+          repo: ghRepo,
+          branch: ghBranch,
+          githubSession: ghSession,
+          source: 'assistant',
+        });
+        if (result.ok && result.projectId) {
+          await dispatch(loadProjectThunk(result.projectId)).unwrap();
+          if (result.runId) {
+            dispatch(
+              setLastRunForProject({
+                projectId: result.projectId,
+                runId: result.runId,
+                at: Date.now(),
+              }),
+            );
+          }
+          setMessages((prev) => [...prev, toKitMessage('assistant', describeOpenedRepo(result))]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            toKitMessage('assistant', result.error ?? 'Import failed.', {
+              isError: true,
+            }),
+          ]);
+        }
+      })();
+      return;
+    }
+
+    if (payload.action === 'trigger_smart_generator') {
+      // Emitted by the modeling agent when the user's request is a
+      // complex custom build ("full-stack FastAPI + JWT + Postgres").
+      // The Spec-Driven Agent runs server-side with the user's BYOK key
+      // and streams its progress back into this chat.
+      const smartPayload: TriggerSpecDrivenPayload = {
+        action: 'trigger_smart_generator',
+        instructions:
+          typeof payload.instructions === 'string' ? payload.instructions : '',
+        provider:
+          payload.provider === 'anthropic' ||
+          payload.provider === 'openai' ||
+          payload.provider === 'mistral'
+            ? payload.provider
+            : undefined,
+        llmModel: typeof payload.llmModel === 'string' ? payload.llmModel : undefined,
+        message: typeof payload.message === 'string' ? payload.message : undefined,
+        mode:
+          payload.mode === 'generate' || payload.mode === 'modify'
+            ? payload.mode
+            : undefined,
+        baseRunId: typeof payload.baseRunId === 'string' ? payload.baseRunId : undefined,
+        primaryKindOverride:
+          payload.primaryKindOverride === 'class' ||
+          payload.primaryKindOverride === 'gui' ||
+          payload.primaryKindOverride === 'agent' ||
+          payload.primaryKindOverride === 'state_machine' ||
+          payload.primaryKindOverride === 'object' ||
+          payload.primaryKindOverride === 'quantum' ||
+          payload.primaryKindOverride === 'bpmn' ||
+          payload.primaryKindOverride === 'nn'
+            ? payload.primaryKindOverride
+            : undefined,
+        targetGeneratorOverride:
+          typeof payload.targetGeneratorOverride === 'string' &&
+          payload.targetGeneratorOverride.trim()
+            ? payload.targetGeneratorOverride.trim()
+            : undefined,
+      };
+      if (!smartPayload.instructions) {
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'Spec-Driven Agent: missing instructions from the modeling agent.',
+            { isError: true },
+          ),
+        ]);
+        return;
+      }
+      // Fire-and-forget: a spec-driven run can take 5-15 minutes, and the
+      // action queue serialises handleAction calls. Awaiting here would
+      // block every other incoming WebSocket action (modeling agent
+      // stream chunks, injections, progress markers) for the duration.
+      // The hook manages its own streaming lifecycle independently.
+      // Explicit .catch so an unhandled rejection can't poison the
+      // React root — the hook already handles user-facing errors
+      // internally, but a thrown Redux / dispatch error would otherwise
+      // surface as an unhandled promise rejection.
+      specDriven.handleTrigger(smartPayload).catch((err) => {
+        console.error('[useAssistantLogic] specDriven.handleTrigger rejected', err);
       });
       return;
     }
@@ -498,13 +1205,35 @@ export function useAssistantLogic({
       const suggestedRecovery = typeof (payload as any).suggestedRecovery === 'string' ? (payload as any).suggestedRecovery as string : undefined;
       const retryable = (payload as any).retryable === true;
 
+      // If a voice transcription was still pending, the run failed before the
+      // echo arrived — drop the stuck "🎤 Transcribing…" placeholder bubble.
+      const stuckVoicePlaceholderId = voicePlaceholderIdRef.current;
+      voicePlaceholderIdRef.current = null;
+
       const errMsg = toKitMessage('assistant', errorMsg, { isError: true });
-      setMessages((prev) => [...prev, errMsg]);
+      setMessages((prev) => {
+        const cleaned = stuckVoicePlaceholderId
+          ? prev.filter((m) => m.id !== stuckVoicePlaceholderId)
+          : prev;
+        return [...cleaned, errMsg];
+      });
 
       const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? t('assistant.errors.errorWithCode', { code: errorCode }) : t('assistant.errors.error') };
+      // A rate-limit or auth error is recoverable by the user supplying their
+      // own API key — flag it so the surface shows an inline "Add your API
+      // key" button that opens the AssistantByokDialog.
+      if (errorCode === 'rate_limit' || errorCode === 'auth_error') {
+        meta.needsApiKey = true;
+      }
       if (retryable && suggestedRecovery) {
         meta.suggestedActions = [{ label: t('assistant.tryAgain'), prompt: suggestedRecovery }];
       }
+      takeReplyLatency();
+      track('assistant_error', {
+        error_code: errorCode ?? 'unknown',
+        retryable,
+        needs_api_key: meta.needsApiKey === true,
+      });
       setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
 
       streaming.setIsGenerating(false);
@@ -549,13 +1278,14 @@ export function useAssistantLogic({
         window.dispatchEvent(new CustomEvent('wme:assistant-auto-generate-gui'));
       });
       if (result.ok) {
-        setMessages((prev) => [
-          ...prev,
-          toKitMessage('assistant',
-            typeof payload.message === 'string' && payload.message.trim()
-              ? payload.message
-              : t('assistant.guiGenerated')),
-        ]);
+        const guiMsg = toKitMessage('assistant',
+          typeof payload.message === 'string' && payload.message.trim()
+            ? payload.message
+            : t('assistant.guiGenerated'));
+        setMessages((prev) => [...prev, guiMsg]);
+        // Mirror inject_complete_system: render any suggestedActions from the
+        // payload as quick-action buttons below the message.
+        attachMetaFromPayload(guiMsg.id, payload as Record<string, unknown>);
       } else {
         setMessages((prev) => [
           ...prev,
@@ -571,20 +1301,78 @@ export function useAssistantLogic({
   /* ================================================================ */
 
   useEffect(() => {
-    assistantClient.onMessage((message) => {
-      // Clear generating state on any real message -- the backend always sends
-      // a final message (success or error), so receiving ANY message means
-      // generation is done.  This also handles the 45s response-timeout
-      // synthetic message from AssistantClient.
-      streaming.setIsGenerating(false);
-      streaming.setProgressMessage('');
-
+    /* ---- SHARED single-dispatch handlers (run ONCE per event) ----
+     * These append to the SHARED conversation store and apply real diagram
+     * side-effects, so they must run exactly once -- NOT once per mounted
+     * surface (else messages double-append and injections double-apply).
+     * setConversationHandlers points the single wired dispatchers at this
+     * surface's handlers (last writer wins; the handlers are equivalent across
+     * surfaces); wireConversationDispatchers attaches them to the shared client
+     * exactly once. The generating/progress clear lives in the PER-SURFACE
+     * handler below since that is local UI state owned per surface. */
+    const onMessage = (message: ChatMessage) => {
       const responseTiming = stopTimer('response');
       const totalTiming = stopTimer('total');
 
       const role = message.isUser ? 'user' : 'assistant';
+
+      // Voice transcription echo: the backend transcribes the audio (whisper)
+      // and sends it back as an incoming USER message. If we optimistically
+      // added a "🎤 Transcribing…" placeholder in sendVoiceMessage, replace it
+      // in place with the real transcribed text instead of appending a second
+      // user bubble (which would leave a duplicate). This keeps exactly ONE
+      // user bubble for the voice message.
+      // A transcribed voice message is the user's request. The agent's replies, its errors included, are recorded
+      // from the action handler, which also sees those that are not displayed; an `agent_error` that comes as a
+      // message is the client's own (a reply it could not read): it ends the turn in error, and carries no usage.
+      // The "still running" notice is not a failure: the reply can still come.
+      if (message.isUser) void recordAssistantRequest(currentProjectRef.current, toAssistantText(message.message));
+      else if (message.action === 'agent_error' && message.message !== RESPONSE_STILL_RUNNING_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'error', toAssistantText(message.message));
+      }
+
+      if (message.isUser && voicePlaceholderIdRef.current) {
+        const placeholderId = voicePlaceholderIdRef.current;
+        voicePlaceholderIdRef.current = null;
+        const transcribedText = toAssistantText(message.message);
+        setMessages((prev) => {
+          let replaced = false;
+          const next = prev.map((m) => {
+            if (m.id === placeholderId) {
+              replaced = true;
+              return { ...m, content: transcribedText };
+            }
+            return m;
+          });
+          // Defensive: if the placeholder was cleared (e.g. New Chat) before
+          // the echo arrived, fall back to appending so the user still sees
+          // their transcription rather than losing it silently.
+          return replaced ? next : [...next, toKitMessage(role, transcribedText)];
+        });
+        return;
+      }
+
+      // Voice placeholder is still pending but an ASSISTANT error/timeout
+      // arrived (no transcription echo is coming). Drop the stuck
+      // "🎤 Transcribing…" bubble so the user isn't left with a frozen
+      // placeholder — the error message itself explains what happened.
+      if (
+        !message.isUser &&
+        voicePlaceholderIdRef.current &&
+        (message as unknown as { action?: string }).action === 'agent_error'
+      ) {
+        const placeholderId = voicePlaceholderIdRef.current;
+        voicePlaceholderIdRef.current = null;
+        setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+      }
+
       const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
+      // `assistant_message` replies are counted in handleAction, `agent_error` as errors.
+      const replyAction = (message as unknown as { action?: string }).action;
+      if (!message.isUser && replyAction !== 'assistant_message' && replyAction !== 'agent_error') {
+        trackReply('text', message.diagramType);
+      }
 
       if (responseTiming || totalTiming) {
         const timingText = [responseTiming, totalTiming].filter(Boolean).join(' \u00b7 ');
@@ -599,20 +1387,64 @@ export function useAssistantLogic({
           [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
         }));
       }
-    });
+    };
 
-    streaming.registerTypingHandler(assistantClient);
-
-    assistantClient.onInjection((command) => {
+    const onInjection = (command: InjectionCommand) => {
+      const usage = readLlmUsage(command.llmUsage);
+      if (typeof command.message === 'string' && command.message !== INJECTION_FALLBACK_MESSAGE) {
+        recordAssistantReply(currentProjectRef.current, 'answer', command.message, usage);
+      } else if (usage) {
+        recordAssistantReply(currentProjectRef.current, 'answer', '', usage);
+      }
+      // Before the edits apply: they are recorded with the requirements they realize.
+      if (command.action === 'inject_complete_system') expectAssistantRequirements(currentProjectRef.current, command);
+      trackReply(command.action, command.diagramType);
       enqueueAssistantTask(() => injection.handleInjection(command));
-    });
-    assistantClient.onAction((payload) => {
+    };
+    const onAction = (payload: AssistantActionPayload) => {
       enqueueAssistantTask(() => handleAction(payload));
+    };
+
+    setConversationHandlers({ onMessage, onInjection, onAction });
+    wireConversationDispatchers(assistantClient);
+
+    /* ---- PER-SURFACE handlers (run for EACH mounted surface) ----
+     * Clearing the generating/progress indicator is local UI state owned by
+     * this surface's useStreamingResponse, so it must fire for BOTH surfaces
+     * (widget and drawer), not just the single-dispatch winner. The backend
+     * always sends a final message (success or error) — and a 45s synthetic
+     * timeout message — so receiving ANY message means generation is done. The
+     * typing handler likewise mirrors the shared client's typing broadcast into
+     * this surface's isGenerating. Both are idempotent UI side-effects. */
+    const unsubGenClear = assistantClient.onMessage(() => {
+      streaming.setIsGenerating(false);
+      streaming.setProgressMessage('');
+    });
+    const unsubTyping = streaming.registerTypingHandler(assistantClient);
+
+    // Progress frames are ALSO per-surface UI state: the SHARED single-
+    // dispatch action handler is last-writer-wins across surfaces, so
+    // progress ("Designing your screens…") only ever updated the winning
+    // surface's label — the drawer showed a frozen "Thinking…" through
+    // every long generation. Mirror 'progress' payloads into THIS surface's
+    // streaming state; the setState is idempotent, so the dispatch-winning
+    // surface receiving it twice is harmless.
+    const unsubProgress = assistantClient.onAction((payload) => {
+      if (payload?.action === 'progress') {
+        streaming.handleStreamingAction(payload, setMessages);
+      }
     });
 
-    // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled
-    // by useWebSocketConnection. We only register message/typing/injection/action
-    // handlers here since they depend on orchestrator state.
+    return () => {
+      unsubGenClear();
+      unsubTyping?.();
+      unsubProgress();
+    };
+    // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled by
+    // useWebSocketConnection. The SHARED message/injection/action dispatchers are
+    // wired once on the shared client and intentionally persist across a single
+    // surface unmounting (the other surface still needs them); only this
+    // surface's per-surface handlers are torn down here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantClient]);
 
@@ -640,7 +1472,8 @@ export function useAssistantLogic({
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
           if (file.size > MAX_FILE_SIZE) {
-            toast.error(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
+            track('assistant_message_blocked', { reason: 'file_too_large' });
+            reportError(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
             return;
           }
         }
@@ -651,7 +1484,8 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        track('assistant_message_blocked', { reason: 'rate_limited' });
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -682,6 +1516,13 @@ export function useAssistantLogic({
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
+      // Every real user message grants a fresh automatic repair attempt. A
+      // repair still in flight is no longer tracked, so its spinner stops here.
+      if (autoFixRef.current.progressMessageId) {
+        settleAutoFixProgress(autoFixInterruptedMessage(autoFixRef.current.issues));
+      }
+      autoFixRef.current = freshAutoFixState();
+
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
         const updated = { ...prev };
@@ -705,27 +1546,36 @@ export function useAssistantLogic({
           );
         } catch (error) {
           console.error('Failed to read attached files:', error);
-          toast.error(t('assistant.errors.readFileFailed'));
+          track('assistant_message_blocked', { reason: 'attachment_read_failed', ...errorProperties(error) });
+          reportError(t('assistant.errors.readFileFailed'), { error });
           return;
         }
       }
 
-      const context = buildWorkspaceContext();
+      const context = workspaceContextWithoutDigest();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
-      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
+      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments, surface);
+      if (sendResult !== 'error') {
+        void recordAssistantRequest(currentProjectRef.current, displayText);
+        markMessageSent();
+      }
 
-      // Analytics
       const activeModel = modelSnapshot as any;
       const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
       const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
-      getPostHog()?.capture('assistant_message', {
+      track('assistant_message', {
+        input: 'text',
+        send_result: sendResult,
         diagram_type: context.activeDiagramType,
         message_length: messageText.length,
         elements_count: elementsCount,
         relationships_count: relationshipsCount,
         total_size: elementsCount + relationshipsCount,
+        attachment_count: attachments?.length ?? 0,
+        attachment_types: attachments?.map((file) => file.mimeType),
+        ...keyProperties(),
       });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
@@ -735,11 +1585,22 @@ export function useAssistantLogic({
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error(t('assistant.errors.sendFailed'));
+        reportError(t('assistant.errors.sendFailed'));
       }
+    } catch (error) {
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
+      throw error;
     } finally {
       isSendingRef.current = false;
     }
+  };
+
+  /** Remove the optimistic voice placeholder bubble (failure/cleanup paths). */
+  const removeVoicePlaceholder = () => {
+    const placeholderId = voicePlaceholderIdRef.current;
+    if (!placeholderId) return;
+    voicePlaceholderIdRef.current = null;
+    setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
   };
 
   const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
@@ -750,49 +1611,347 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
+        track('assistant_message_blocked', { reason: 'rate_limited' });
+        reportError(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
       const audioBase64 = await readBlobAsBase64(audioBlob);
 
-      const context = buildWorkspaceContext();
-      const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
+      // Optimistically append a placeholder user bubble so the drawer's
+      // welcome->chat split (gated on messages.length > 0) flips to the chat
+      // view immediately, matching the text path. The transcription echo
+      // replaces this bubble in place (see onMessage). Cleaned up on the
+      // error path below so a failed send doesn't leave it lingering.
+      const voicePlaceholder = toKitMessage('user', '\ud83c\udfa4 Transcribing\u2026');
+      voicePlaceholderIdRef.current = voicePlaceholder.id;
+      setMessages((prev) => [...prev, voicePlaceholder]);
+
+      const context = workspaceContextWithoutDigest();
       const mimeType = audioBlob.type || 'audio/wav';
       const sendResult = assistantClient.sendVoiceMessage(
         audioBase64,
         mimeType,
         context.activeDiagramType,
         context,
+        surface,
       );
+      if (sendResult !== 'error') markMessageSent();
+      track('assistant_message', {
+        input: 'voice',
+        send_result: sendResult,
+        diagram_type: context.activeDiagramType,
+        audio_bytes: audioBlob.size,
+        attachment_types: [mimeType],
+        ...keyProperties(),
+      });
 
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
       if (sendResult === 'queued') {
+        // Keep the placeholder: the message will be sent on reconnect and its
+        // transcription echo will replace the bubble in place.
         toast.info(t('assistant.reconnectingVoice'));
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error(t('assistant.errors.sendVoiceFailed'));
+        // Send failed outright - no echo is coming, so drop the placeholder.
+        removeVoicePlaceholder();
+        reportError(t('assistant.errors.sendVoiceFailed'));
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
-      toast.error(t('assistant.errors.voiceProcessFailed'));
+      track('assistant_message_blocked', { reason: 'exception', ...errorProperties(error) });
+      removeVoicePlaceholder();
+      reportError(t('assistant.errors.voiceProcessFailed'), { error });
     } finally {
       isSendingRef.current = false;
     }
   };
 
-  const stopGenerating = () => streaming.setIsGenerating(false);
-
-  const clearConversation = () => {
-    setMessages([]);
+  const stopGenerating = () => {
+    // Also abort any in-flight spec-driven run so the SSE stream
+    // disconnects and the user stops paying for LLM tokens.
+    specDriven.abortActive();
+    // Reliably tear down the whole "generating/processing" UI state so a
+    // stuck modeling-agent op (e.g. lingering "Updating model…") can be
+    // dismissed by the user. We can't truly cancel an in-flight WebSocket
+    // op on the backend, but we stop the UI from waiting on it: clear the
+    // generating flag, the progress label, and any in-progress streaming
+    // message id. Any late server response still lands in the chat
+    // normally (onMessage re-clears these), so this is safe to call.
     streaming.setIsGenerating(false);
-    setInputValue('');
-    setMessageMeta({});
     streaming.setProgressMessage('');
     streaming.setStreamingMessageId(null);
   };
+
+  // Stop this tab's turn: shared by a new chat and a project switch.
+  const resetTurnState = () => {
+    // Abort any in-flight spec-driven run first so the user's BYOK
+    // budget stops draining. NOTE: this only aborts a run owned by THIS
+    // hook instance — a run owned by the other mounted surface keeps
+    // streaming, and its next SSE event deliberately UPSERTS its card
+    // back into the cleared list (see useSpecDrivenTrigger) so live
+    // progress is never silently dropped.
+    specDriven.abortActive();
+    // Drop any pending voice placeholder tracking — the bubble is wiped with
+    // the rest of the list, so a late transcription echo should append fresh
+    // rather than try to replace a now-gone id.
+    voicePlaceholderIdRef.current = null;
+    streaming.setIsGenerating(false);
+    setInputValue('');
+    streaming.setProgressMessage('');
+    streaming.setStreamingMessageId(null);
+    // Start a fresh backend conversation session too. The agent keys its
+    // conversation memory on the sessionId, so without this a "new chat" or a
+    // project switch would reuse the old memory — the agent then "remembers"
+    // a previous project and hallucinates from it.
+    assistantClient.resetSession();
+  };
+
+  const clearConversation = () => {
+    // A new chat ends the conversation in the project trace too (a project switch keeps it).
+    endAssistantConversation(currentProjectRef.current);
+    resetTurnState();
+    conversationStore.clear();
+  };
+
+  // New Chat is destructive (it discards the current conversation and, via
+  // clearConversation → specDriven.abortActive, cancels a running Spec-Driven
+  // generation). Guard it behind an explicit confirm so an accidental click
+  // can't wipe an in-progress run. The confirm is ONLY on this user-facing
+  // control — clearConversation stays guard-free for the project-switch path.
+  const requestNewChat = () => {
+    const confirmFn =
+      typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm.bind(window)
+        : null;
+    if (confirmFn) {
+      const message = hasActiveSpecRun
+        ? t(
+            'assistant.chat.newChatConfirmWithRun',
+            'Start a new chat? Your current conversation will be cleared and the running generation will be stopped.',
+          )
+        : t(
+            'assistant.chat.newChatConfirm',
+            'Start a new chat? Your current conversation will be cleared.',
+          );
+      if (!confirmFn(message)) return;
+    }
+    track('assistant_new_chat', { had_spec_run: hasActiveSpecRun, message_count: messages.length });
+    clearConversation();
+  };
+
+  /* ================================================================ */
+  /*  reportIssue — open a pre-filled GitHub issue for the team        */
+  /* ================================================================ */
+
+  // Builds the non-secret context block. Reuses buildWorkspaceContext but
+  // DELIBERATELY drops the heavy/sensitive parts (activeModel,
+  // projectSnapshot) — we only keep diagram-type counts, the project name,
+  // and the active diagram type. The BYOK API key lives in the
+  // spec-driven Redux state / localStorage and is never touched here.
+  const buildIssueReportContext = (): IssueReportContext => {
+    const project = currentProjectRef.current;
+    const activeType = currentDiagramTypeRef.current || undefined;
+
+    const diagramCounts: Record<string, number> = {};
+    if (project) {
+      for (const [type, arr] of Object.entries(project.diagrams)) {
+        if (Array.isArray(arr) && arr.length > 0) diagramCounts[type] = arr.length;
+      }
+    }
+    const diagramTypes = Object.keys(diagramCounts);
+    const totalDiagrams = Object.values(diagramCounts).reduce((sum, n) => sum + n, 0);
+
+    return {
+      activeDiagramType: activeType,
+      projectName: project?.name,
+      diagramTypes: diagramTypes.length > 0 ? diagramTypes : undefined,
+      totalDiagrams: project ? totalDiagrams : undefined,
+      diagramCounts: diagramTypes.length > 0 ? diagramCounts : undefined,
+    };
+  };
+
+  const reportIssue = async (): Promise<void> => {
+    try {
+      const report = buildIssueReport({
+        messages,
+        messageMeta,
+        connectionStatus: connection.connectionStatus,
+        context: buildIssueReportContext(),
+        appVersion: typeof appVersion === 'string' ? appVersion : undefined,
+      });
+
+      const markdown = buildIssueReportMarkdown(report);
+
+      // Latest spec-driven run in this conversation, if any — its id,
+      // provider and model are the first things needed to triage a run issue.
+      let runInfo: { runId?: string; provider?: string; model?: string } = {};
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const sd = messages[i].specDriven;
+        if (sd?.runId) {
+          runInfo = { runId: sd.runId, provider: sd.provider, model: sd.model };
+          break;
+        }
+      }
+
+      const { url, logsTruncated } = buildGithubIssueUrl({
+        repoSlug: bugReportRepo,
+        title: buildGithubIssueTitle(report),
+        environment: {
+          pageUrl: window.location.href,
+          userAgent: navigator.userAgent,
+          appVersion: typeof appVersion === 'string' ? appVersion : undefined,
+          ...runInfo,
+        },
+        logs: markdown,
+      });
+      if (logsTruncated) {
+        console.info('[useAssistantLogic] issue report log truncated to fit the GitHub URL limit');
+      }
+
+      // Deliberately NOT passing "noopener" in the features string: that
+      // makes window.open return null even on success, which would hide
+      // popup blocking. The opener reference is severed manually instead.
+      const issueWindow = window.open(url, '_blank');
+      if (issueWindow) {
+        try {
+          issueWindow.opener = null;
+        } catch {
+          // Some browsers restrict this on cross-origin windows; the tab is open either way.
+        }
+        track('assistant_issue_reported', { logs_truncated: logsTruncated });
+        toast.success('Opened a pre-filled GitHub issue in a new tab. Review it there and submit.');
+      } else {
+        track('assistant_issue_report_failed', { reason: 'popup_blocked' });
+        // Popup blocked — surface the link in the conversation so the report is never lost.
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            `Your issue report is ready, but the browser blocked the new tab. [Open the pre-filled GitHub issue](${url}) to review and submit it.`,
+          ),
+        ]);
+      }
+    } catch (error) {
+      console.error('[useAssistantLogic] failed to build issue report', error);
+      track('assistant_issue_report_failed', { reason: 'exception', ...errorProperties(error) });
+      reportError('Could not prepare the issue report. Please try again.', { error });
+    }
+  };
+
+  /* ================================================================ */
+  /*  The open project's conversation                                  */
+  /* ================================================================ */
+
+  // The conversation belongs to the project: opening one shows its saved
+  // conversation (another tab's included), so it never bleeds across projects.
+  // Two copies are kept: the full one in this browser (assistantConversationStore)
+  // and a text one on the project (BESSER#745), written to its GitHub repo,
+  // which restores a chat this browser has not kept.
+  const restoreProjectConversation = () => {
+    const project = selectProject(store.getState());
+    const legacy = conversationStore.takeLegacyConversation();
+    if (conversationStore.getMessages().length > 0) return;
+    // The per-tab copy kept before v8.9.3 moves to the project it was about:
+    // one whose text copy matches it, or that has none yet.
+    const saved = project?.assistantConversation;
+    if (legacy?.messages.length && (!saved || sameTurns(projectConversationTurns(legacy.messages), saved.turns))) {
+      setMessages(legacy.messages);
+      setMessageMeta(legacy.messageMeta);
+      assistantClient.sendHistoryWithNextMessage();
+      return;
+    }
+    const restored = messagesFromProjectConversation(saved, (role, content) => toKitMessage(role, content));
+    if (restored.length === 0) return;
+    setMessages(restored);
+    // The agent's session for this chat is new: give it the history.
+    assistantClient.sendHistoryWithNextMessage();
+  };
+
+  // The widget and the drawer each stop their own turn (a Spec-Driven run, the
+  // streaming state) on a project switch, so each keeps the project it last
+  // saw; the conversation store they share is opened once.
+  const surfaceProjectIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (currentProjectId === undefined) return;
+    const previousHere = surfaceProjectIdRef.current;
+    surfaceProjectIdRef.current = currentProjectId;
+    if (previousHere !== undefined && previousHere !== currentProjectId) resetTurnState();
+    if (conversationStore.getProjectId() !== currentProjectId) {
+      conversationStore.openProject(currentProjectId);
+      if (conversationStore.getMessages().length > 0) assistantClient.sendHistoryWithNextMessage();
+    }
+    restoreProjectConversation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProjectId]);
+
+  // Another tab added turns or started a new chat: this session's agent memory is stale.
+  useEffect(
+    () => conversationStore.onRemoteTurns(() => assistantClient.restartWithHistoryOnNextMessage()),
+    [assistantClient],
+  );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const writeToProject = () => {
+      timer = null;
+      const project = selectProject(store.getState());
+      // Only the project this conversation belongs to (a switch rebinds it first).
+      if (!project || project.id !== conversationStore.getProjectId()) return;
+      const turns = projectConversationTurns(conversationStore.getMessages());
+      if (sameTurns(turns, project.assistantConversation?.turns)) return;
+      dispatch(setProjectConversation({ projectId: project.id, conversation: toProjectConversation(turns) }));
+    };
+    const unsubscribe = conversationStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(writeToProject, PROJECT_CONVERSATION_WRITE_DEBOUNCE_MS);
+    });
+    return () => {
+      unsubscribe();
+      if (timer) clearTimeout(timer);
+    };
+  }, [dispatch, store]);
+
+  // "Generate again" on a run card whose result expired, once the user agreed
+  // to what it uses: the project's last request through the normal run start
+  // (the user's key and tier apply), else the generate request the agent's
+  // suggestion chips send.
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+  const handleTriggerRef = useRef(specDriven.handleTrigger);
+  handleTriggerRef.current = specDriven.handleTrigger;
+  const generateAgain = useCallback(() => {
+    void (async () => {
+      await getSpecDrivenConfig();
+      const key = readGenerationKey();
+      const request = readLastGeneration(currentProjectRef.current?.id)?.request;
+      const confirmed = await globalConfirm({
+        title: t('assistant.generateAgain.title'),
+        description: t(request ? 'assistant.generateAgain.fromRequest' : 'assistant.generateAgain.askAssistant', {
+          key: key ? generationKeyLabel(key, t) : t('assistant.generateAgain.unknownKey'),
+        }),
+        confirmLabel: t('assistant.runCard.generateAgain'),
+      });
+      if (!confirmed) return;
+      if (request) {
+        await handleTriggerRef.current({ action: 'trigger_smart_generator', instructions: request });
+        return;
+      }
+      await handleSubmitRef.current(undefined, { overrideText: GENERATE_AGAIN_PROMPT });
+    })();
+  }, [currentProjectRef, t]);
+
+  // Only the latest run's card offers "Generate again": on an older card it
+  // would rebuild over the newer result.
+  const latestRunId = (() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const runId = messages[index].specDriven?.runId;
+      if (runId) return runId;
+    }
+    return undefined;
+  })();
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */
@@ -807,13 +1966,20 @@ export function useAssistantLogic({
     rateLimitStatus,
     messageMeta,
     progressMessage: streaming.progressMessage,
+    progressSteps: streaming.progressSteps,
     lastSentMessage,
     streamingMessageId: streaming.streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
+    generateAgain,
+    latestRunId,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,
+    requestNewChat,
+    reportIssue,
     handleUndo: injection.handleUndo,
     canUndo: injection.undoAvailable,
     assistantClient,

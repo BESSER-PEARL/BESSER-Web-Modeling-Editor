@@ -1,6 +1,18 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, Keyboard, PlayCircle, GraduationCap, ChevronDown } from 'lucide-react';
+import {
+  BookOpen,
+  Bug,
+  ChevronDown,
+  ExternalLink,
+  FolderGit2,
+  GitPullRequest,
+  HelpCircle,
+  Info,
+  Keyboard,
+  MessageSquare,
+  PlayCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bugReportURL } from '../../../shared/constants/constant';
 import {
@@ -9,14 +21,33 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HeaderTooltip } from './HeaderTooltip';
+import { track } from '../../../shared/services/analytics/events';
+import { menuGroupLabelClass } from './FileMenu';
 
 const COMMUNITY_URLS = {
   contribute: 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md',
   repository: 'https://github.com/BESSER-PEARL/BESSER',
-  survey: 'https://docs.google.com/forms/d/e/1FAIpQLSdhYVFFu8xiFkoV4u6Pgjf5F7-IS_W7aTj34N5YS2L143vxoQ/viewform',
 };
+
+/** `link` names the destination for analytics; the URL itself is never sent. */
+const ExternalLinkItem: React.FC<{ href: string; link: string; icon: React.ReactNode; children: React.ReactNode }> = ({
+  href,
+  link,
+  icon,
+  children,
+}) => (
+  <DropdownMenuItem asChild>
+    <a href={href} target="_blank" rel="noopener noreferrer" onClick={() => track('ui_action', { action: 'link_opened', link })}>
+      {icon}
+      {children}
+      <ExternalLink className="ml-auto size-3.5 opacity-60" aria-hidden="true" />
+    </a>
+  </DropdownMenuItem>
+);
 
 interface HelpMenuProps {
   outlineButtonClass: string;
@@ -42,24 +73,23 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
   onOpenFeedback,
 }) => {
   const { t } = useTranslation();
-  const openExternalUrl = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+  const title = t('menu.help.title');
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.help.title')}>
-          <HelpCircle className="size-4" />
-          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.help.title')}</span>
-          <ChevronDown className="size-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+      <HeaderTooltip label={title} hideFrom="lg">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
+            <HelpCircle className="size-4" aria-hidden="true" />
+            <span className="hidden lg:inline">{title}</span>
+            <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+      </HeaderTooltip>
       <DropdownMenuContent className="w-64" align="end">
-        <DropdownMenuItem onClick={onOpenHelpDialog}>{t('menu.help.howItWorks')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openExternalUrl('/tutorials')}>
-          <GraduationCap className="mr-2 size-4" />
-          {t('menu.help.tutorials')}
+        <DropdownMenuItem onClick={onOpenHelpDialog}>
+          <BookOpen className="mr-2 size-4" />
+          {t('menu.help.howItWorks')}
         </DropdownMenuItem>
         {onShowWelcomeGuide && (
           <DropdownMenuItem onClick={onShowWelcomeGuide}>
@@ -70,25 +100,28 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
         <DropdownMenuItem onClick={onOpenKeyboardShortcuts}>
           <Keyboard className="mr-2 size-4" />
           {t('menu.help.keyboardShortcuts')}
-          <span className="ml-auto text-xs text-muted-foreground">?</span>
+          <DropdownMenuShortcut>?</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenAboutDialog}>{t('menu.help.aboutBesser')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenAboutDialog}>
+          <Info className="mr-2 size-4" />
+          {t('menu.help.aboutBesser')}
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>{t('menu.community.title')}</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.contribute)}>
+        <DropdownMenuLabel className={menuGroupLabelClass}>{t('menu.community.title')}</DropdownMenuLabel>
+        <ExternalLinkItem href={COMMUNITY_URLS.contribute} link="contribute" icon={<GitPullRequest className="mr-2 size-4" />}>
           {t('menu.community.contribute')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.repository)}>
+        </ExternalLinkItem>
+        <ExternalLinkItem href={COMMUNITY_URLS.repository} link="repository" icon={<FolderGit2 className="mr-2 size-4" />}>
           {t('menu.community.githubRepository')}
+        </ExternalLinkItem>
+        <DropdownMenuItem onClick={onOpenFeedback}>
+          <MessageSquare className="mr-2 size-4" />
+          {t('menu.community.sendFeedback')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenFeedback}>{t('menu.community.sendFeedback')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.survey)}>
-          {t('menu.community.userSurvey')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openExternalUrl(bugReportURL)}>
+        <ExternalLinkItem href={bugReportURL} link="report_problem" icon={<Bug className="mr-2 size-4" />}>
           {t('menu.community.reportProblem')}
-        </DropdownMenuItem>
+        </ExternalLinkItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

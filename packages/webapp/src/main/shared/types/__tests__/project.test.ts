@@ -85,6 +85,143 @@ describe('createDefaultProject', () => {
       expect(project.settings.perspectives[type]).toBe(true);
     }
   });
+
+  it('records no traces until the user turns recording on', () => {
+    expect(createDefaultProject('Demo', 'desc', 'me').settings.traceabilityEnabled).toBe(false);
+  });
+});
+
+describe('ensureProjectMigrated v1 → v2', () => {
+  // A v1 project, as the editor saved it before projects held several diagrams
+  // per type: one diagram per type, no schemaVersion, no currentDiagramIndices.
+  const v1Project = (): any => {
+    const project: any = createDefaultProject('Old', 'saved by a v1 editor', 'me');
+    for (const type of ['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram',
+      'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'BPMN'] as const) {
+      project.diagrams[type] = project.diagrams[type][0];
+    }
+    project.diagrams.ClassDiagram.model = populatedClassModel();
+    for (const type of ['UserDiagram', 'NNDiagram', 'KnowledgeGraphDiagram', 'ComponentDiagram', 'DeploymentDiagram']) {
+      delete project.diagrams[type];
+    }
+    delete project.schemaVersion;
+    delete project.currentDiagramIndices;
+    delete project.settings.perspectives;
+    return project;
+  };
+
+  it('opens a v1 project, which has no currentDiagramIndices', () => {
+    const project = v1Project();
+    expect(isProject(project)).toBe(true);
+
+    const migrated = ensureProjectMigrated(project);
+
+    for (const type of ALL_DIAGRAM_TYPES) {
+      expect(Array.isArray(migrated.diagrams[type])).toBe(true);
+      expect(migrated.currentDiagramIndices[type]).toBe(0);
+    }
+    expect((migrated.diagrams.ClassDiagram[0].model as UMLModel).elements['class-1'].name).toBe('Foo');
+  });
+});
+
+describe('ensureProjectMigrated v4 → v5', () => {
+  const v4Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    project.schemaVersion = 4;
+    project.settings.perspectives = { ...project.settings.perspectives, ...perspectives };
+    return project;
+  };
+
+  it('hides the new Component and Deployment types in a project with chosen perspectives', () => {
+    const migrated = ensureProjectMigrated(v4Project({ AgentDiagram: false }));
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+
+  it('adds Component and Deployment diagrams to a v4 project that has none', () => {
+    const project = v4Project({});
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.ComponentDiagram;
+    delete diagrams.DeploymentDiagram;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.diagrams.ComponentDiagram).toHaveLength(1);
+    expect(migrated.diagrams.DeploymentDiagram).toHaveLength(1);
+  });
+
+  it('leaves a new project untouched', () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+});
+
+describe('ensureProjectMigrated v5 → v6', () => {
+  const v5Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    project.schemaVersion = 5;
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.KnowledgeGraphDiagram;
+    // A saved v5 map predates the KG type, so it has no KnowledgeGraphDiagram key.
+    const { KnowledgeGraphDiagram: _kg, ...saved } = project.settings.perspectives;
+    project.settings.perspectives = { ...saved, ...perspectives } as BesserProject['settings']['perspectives'];
+    return project;
+  };
+
+  it('adds the Knowledge Graph diagram and hides it where perspectives were already chosen', () => {
+    const migrated = ensureProjectMigrated(v5Project({ AgentDiagram: false }));
+    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.diagrams.KnowledgeGraphDiagram).toHaveLength(1);
+    expect(migrated.currentDiagramIndices.KnowledgeGraphDiagram).toBe(0);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(false);
+    expect(isPerspectiveVisible(migrated.settings.perspectives, 'KnowledgeGraphDiagram')).toBe(false);
+    // Every other choice is untouched.
+    expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+
+  it('keeps an explicit Knowledge Graph choice saved while the editor was a branch', () => {
+    const migrated = ensureProjectMigrated(v5Project({ KnowledgeGraphDiagram: true }));
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  it('shows the Knowledge Graph type in a project that never had saved perspectives', () => {
+    const project = v5Project({});
+    project.schemaVersion = 3;
+    delete (project.settings as { perspectives?: unknown }).perspectives;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
+
+  /** A v5 project holding a graph saved by the first settings revision. */
+  const withKgSettings = (settings: Record<string, unknown>) => {
+    const project = v5Project({});
+    project.diagrams.KnowledgeGraphDiagram = [
+      { ...createEmptyDiagram('KG', null, 'kg'), model: { version: '1.0.0', nodes: [], edges: [], settings } as any },
+    ];
+    return project;
+  };
+  const kgSettings = (project: BesserProject) => (project.diagrams.KnowledgeGraphDiagram[0].model as any).settings;
+
+  it('renames maxVisibleNodes, from the first settings revision, to softLimit', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, layout: 'grid' }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 30, layout: 'grid' });
+  });
+
+  it('keeps an explicit softLimit over the legacy field, and drops the legacy one', () => {
+    const migrated = ensureProjectMigrated(withKgSettings({ maxVisibleNodes: 30, softLimit: 70 }));
+    expect(kgSettings(migrated)).toEqual({ softLimit: 70 });
+  });
+
+  it('leaves a new project untouched', () => {
+    const migrated = ensureProjectMigrated(createDefaultProject('Fresh', '', 'me'));
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    expect(migrated.settings.perspectives.KnowledgeGraphDiagram).toBe(true);
+  });
 });
 
 describe('ensureProjectMigrated v3 → v4', () => {
@@ -102,7 +239,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     expect(isProject(v3Project)).toBe(true);
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(migrated.settings.perspectives[type]).toBe(true);
     }
@@ -121,7 +258,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     } as BesserProject;
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(false);
     expect(migrated.settings.perspectives.ObjectDiagram).toBe(true);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(true);
@@ -132,7 +269,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     const project = createDefaultProject('Fresh', '', 'me');
     project.settings.perspectives.AgentDiagram = false;
     const migrated = ensureProjectMigrated(project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
   });
@@ -230,6 +367,16 @@ describe('preset helpers', () => {
     expect(isPresetActive(data, map)).toBe(true);
     const fullApp = PERSPECTIVES.find((p) => p.key === 'fullApp')!;
     expect(isPresetActive(fullApp, map)).toBe(false);
+  });
+
+  it('isPresetActive matches the Knowledge Engineer preset for Class+Object+KG', () => {
+    const map = perspectivesFromDiagramList(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    const knowledge = PERSPECTIVES.find((p) => p.key === 'knowledge')!;
+    expect(knowledge.diagrams).toEqual(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    expect(isPresetActive(knowledge, map)).toBe(true);
+    // The Data preset is a strict subset, so it must not also read as active.
+    const data = PERSPECTIVES.find((p) => p.key === 'data')!;
+    expect(isPresetActive(data, map)).toBe(false);
   });
 
   it('perspectivesFromDiagramList enables exactly the listed types', () => {

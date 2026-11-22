@@ -14,6 +14,7 @@ import {
     useGateResize,
     useCircuitIO,
     useKeyboardShortcuts,
+    useArmedGate,
 } from './hooks';
 import {
     EditorContainer,
@@ -86,11 +87,20 @@ export function QuantumEditorComponent(): JSX.Element {
         handleDragStart,
         handleMouseMove,
         handleMouseUp,
+        placeGateAt,
     } = useCircuitDragDrop({
         circuit,
         setCircuit,
         circuitGridRef,
     });
+
+    // Click-to-place: arm a palette gate, then click a cell
+    const { armedGate, setArmedGate } = useArmedGate();
+    const handlePlaceArmedGate = useCallback((clientX: number, clientY: number) => {
+        if (armedGate && placeGateAt(armedGate, clientX, clientY)) {
+            setArmedGate(null);
+        }
+    }, [armedGate, placeGateAt, setArmedGate]);
 
     // Gate resize
     const { handleGateResize } = useGateResize({ setCircuit });
@@ -297,7 +307,7 @@ export function QuantumEditorComponent(): JSX.Element {
                     />
                     <Workspace>
                         <PaletteContainer>
-                            <GatePalette onDragStart={handleDragStart} />
+                            <GatePalette onDragStart={handleDragStart} armedGate={armedGate} onArmGate={setArmedGate} />
                         </PaletteContainer>
                         <CircuitContainer>
                             <CircuitGrid
@@ -317,6 +327,8 @@ export function QuantumEditorComponent(): JSX.Element {
                                 onGateSelect={handleGateSelect}
                                 onInitialStateChange={handleInitialStateChange}
                                 onAddQubit={handleAddQubit}
+                                armedGate={armedGate}
+                                onPlaceArmedGate={handlePlaceArmedGate}
                             />
                         </CircuitContainer>
                     </Workspace>

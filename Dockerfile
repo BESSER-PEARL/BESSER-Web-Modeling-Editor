@@ -13,7 +13,6 @@ ARG UML_BOT_WS_URL=""
 ARG POSTHOG_KEY=""
 ARG POSTHOG_HOST=""
 ARG GITHUB_CLIENT_ID=""
-ARG ENABLE_STUDY_DEPLOY=""
 
 ENV DEPLOYMENT_URL=${DEPLOYMENT_URL}
 ENV BACKEND_URL=${BACKEND_URL}
@@ -21,7 +20,6 @@ ENV UML_BOT_WS_URL=${UML_BOT_WS_URL}
 ENV POSTHOG_KEY=${POSTHOG_KEY}
 ENV POSTHOG_HOST=${POSTHOG_HOST}
 ENV GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-ENV ENABLE_STUDY_DEPLOY=${ENABLE_STUDY_DEPLOY}
 
 # Set up the build directory
 WORKDIR $build_dir
@@ -29,8 +27,14 @@ WORKDIR $build_dir
 # Copy all project files into the build directory
 COPY . .
 
-# Install dependencies and build the application
-RUN npm install
+# Install dependencies and build the application.
+# Pass --build-arg NPM_STRICT_SSL=false only when building behind a
+# TLS-inspecting proxy whose CA the container does not trust; npm still
+# verifies every package's integrity hash from package-lock.json.
+ARG NPM_STRICT_SSL=true
+RUN npm config set strict-ssl ${NPM_STRICT_SSL} \
+    && npm install --no-audit --no-fund \
+       --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-timeout=600000
 RUN npm run build
 
 # Second stage: Sets up the container to run the application
@@ -41,7 +45,7 @@ EXPOSE 8080
 
 # Create a user and set up necessary directories and permissions
 RUN adduser -D -s /bin/sh besser_standalone \
-    && mkdir -p /opt/besser/study-site
+    && mkdir /opt/besser
 
 RUN chown -R besser_standalone /opt/besser
 

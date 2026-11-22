@@ -1,18 +1,22 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
+import type { components } from '../api/generated/besser-openapi';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
   | 'ObjectDiagram'
   | 'StateMachineDiagram'
   | 'AgentDiagram'
+  | 'ComponentDiagram'
+  | 'DeploymentDiagram'
   | 'UserDiagram'
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram'
   | 'NNDiagram'
-  | 'BPMN';
+  | 'BPMN'
+  | 'KnowledgeGraphDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 4;
+export const PROJECT_SCHEMA_VERSION = 6;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram',
@@ -24,6 +28,9 @@ export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'QuantumCircuitDiagram',
   'NNDiagram',
   'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+  'KnowledgeGraphDiagram',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -55,6 +62,40 @@ export const isPerspectiveVisible = (
   type: SupportedDiagramType,
 ): boolean => perspectives?.[type] !== false;
 
+/**
+ * Diagram types in the order the workspace sidebar lists them (the UML
+ * editors, then GUI, Knowledge Graph and Quantum). Kept in sync with `UML_ITEMS` +
+ * `NON_UML_EDITOR_ITEMS` in `app/shell/workspace-navigation.tsx` by a unit test.
+ */
+export const SIDEBAR_DIAGRAM_ORDER: SupportedDiagramType[] = [
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+  'UserDiagram',
+  'NNDiagram',
+  'GUINoCodeDiagram',
+  'KnowledgeGraphDiagram',
+  'QuantumCircuitDiagram',
+];
+
+/**
+ * The diagram type a new project opens on: `preferred` when it is visible
+ * (a perspective preset's entry diagram), otherwise the first visible type in
+ * sidebar order — the Class diagram whenever it is shown, so a new project
+ * never opens on a type hidden from the sidebar.
+ */
+export const resolveInitialDiagramType = (
+  perspectives?: PerspectiveSettings,
+  preferred?: SupportedDiagramType,
+): SupportedDiagramType => {
+  if (preferred && isPerspectiveVisible(perspectives, preferred)) return preferred;
+  return SIDEBAR_DIAGRAM_ORDER.find((type) => isPerspectiveVisible(perspectives, type)) ?? 'ClassDiagram';
+};
+
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
   pages: any[];
@@ -73,11 +114,173 @@ export interface QuantumCircuitData {
   version?: string;
 }
 
+// Knowledge Graph data structure (rendered with Cytoscape.js)
+export type KGNodeType =
+  | 'class'
+  | 'individual'
+  | 'property'
+  | 'literal'
+  | 'blank'
+  | 'nodeConstraint'
+  | 'propertyConstraint';
+
+/** A single normalised OWL2 / SHACL constraint, stored inside a NodeConstraint
+ * or PropertyConstraint via `metadata.constraintSpecs`. Mirrors the backend
+ * `ConstraintSpec` dataclass; `kind` is the discriminator and `value` shape
+ * depends on `kind` (see `shared/kg/constraint-catalog.ts`).
+ *
+ * For the four SHACL logical operators (`shaclNot` / `shaclAnd` / `shaclOr` /
+ * `shaclXone`), `value` is a `KGNestedShape[]` — see below. */
+export interface KGConstraintSpec {
+  kind: string;
+  value?: unknown;
+  on_class?: string;
+  vocab_pref?: 'owl' | 'shacl';
+}
+
+/** One slot of a SHACL logical operator. Either a reference to another
+ *  constraint node (by id) or an inline anonymous shape carrying its own
+ *  list of constraint specs. The two forms are mutually exclusive. */
+export type KGNestedShape =
+  | { ref: string }
+  | { specs: KGConstraintSpec[] };
+
+export interface KGNodeData {
+  id: string;
+  nodeType: KGNodeType;
+  label: string;
+  iri?: string;
+  value?: string;      // for literals
+  datatype?: string;   // for literals
+  position?: { x: number; y: number };
+  /** Free-form annotations. For NodeConstraint / PropertyConstraint nodes,
+   *  `metadata.constraintSpecs` carries the list of constraint specifications
+   *  and `metadata.isAnonymous` flags shapes without a stable IRI. */
+  metadata?: Record<string, unknown> & { constraintSpecs?: KGConstraintSpec[] };
+}
+
+export interface KGEdgeData {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  iri?: string;
+}
+
+/** Predicate IRIs reserved for the constraint subsystem. These wire
+ *  NodeConstraint / PropertyConstraint nodes to their targets and to each
+ *  other; the RDF exporter knows to filter them and substitute the
+ *  vocabulary-appropriate predicates. */
+export const KG_CONSTRAINT_TARGET_CLASS = 'http://besser-pearl.org/kg#constraintTargetClass';
+export const KG_CONSTRAINT_TARGET_PROPERTY = 'http://besser-pearl.org/kg#constraintTargetProperty';
+export const KG_SH_PROPERTY = 'http://www.w3.org/ns/shacl#property';
+
+export type KnowledgeGraphLayout = 'concentric' | 'fcose' | 'grid';
+
+export interface KnowledgeGraphSettings {
+  /** Soft limit: on import / fresh load, this many nodes are auto-shown.
+   *  Users can enable more via the node list or palette drop (up to the
+   *  hard limit). Undefined means "use the default (50)". */
+  softLimit?: number;
+  /** Hard limit: a node cannot be made visible if it would push the
+   *  visible count past this. Undefined means "use the default (100)". */
+  hardLimit?: number;
+  /** Layout algorithm for the initial / after-layout-change arrangement.
+   *  Once run, positions are persisted in `nodes[i].position` and the
+   *  layout does not rerun unless the user picks a different one here. */
+  layout?: KnowledgeGraphLayout;
+  /** The exact set of node ids currently visualized on the canvas. Persisted
+   *  so the selection survives navigating away and back to the editor.
+   *  Fresh imports (no value here) fall back to the soft-limit seed. */
+  visibleIds?: string[];
+  /** Show the declaration nodes — the owl / rdf / rdfs terms (`owl:Class`,
+   *  `rdf:Property`, `rdfs:Class`, …) plus `sh:NodeShape` and
+   *  `sh:PropertyShape` — on the canvas and in the node list. Off by default:
+   *  those nodes are implied by the node kind they annotate (a class node is
+   *  always `rdf:type owl:Class`), so they only add clutter. `xsd:` datatypes
+   *  and the remaining `sh:` terms are not covered — they carry a property's
+   *  declared range and its constraint values, and stay visible either way.
+   *  Hidden nodes are never removed from the model; the transformation
+   *  pipelines (RDF export, KG → UML) still see them. Undefined means "use
+   *  the default (false)". */
+  showMetaVocabNodes?: boolean;
+}
+
+/** An OWL axiom relating several nodes (equivalent classes, sub-property, ...).
+ *  The frontend does not interpret it: it only carries it, because the backend
+ *  needs it back - see `shared/kg/axioms.ts`. `kind` names the backend's axiom
+ *  class; the other fields are node ids or IRIs. */
+export interface KGAxiom {
+  kind: string;
+  [field: string]: unknown;
+}
+
+export interface KnowledgeGraphData {
+  type?: 'KnowledgeGraphDiagram';
+  version: string;
+  nodes: KGNodeData[];
+  edges: KGEdgeData[];
+  /** Set by the OWL importer; carried untouched, trimmed on deletion, renamed on merge. */
+  axioms?: KGAxiom[];
+  settings?: KnowledgeGraphSettings;
+}
+
+/** A single inconsistency surfaced by the OWL/SHACL consistency check
+ *  (`kg_to_buml.consistency.ConsistencyIssue`). `constraintLabel`: short summary
+ *  of the violated constraint, e.g. "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
+export type ConsistencyIssue = components['schemas']['KGConsistencyIssueResponse'];
+
+export type ConsistencySeverity = ConsistencyIssue['severity'];
+
+/** Answer of `/kg/consistency`. */
+export type ConsistencyReport = components['schemas']['KGConsistencyReportResponse'];
+
+export const DEFAULT_KG_SOFT_LIMIT = 50;
+export const DEFAULT_KG_HARD_LIMIT = 100;
+export const DEFAULT_KG_LAYOUT: KnowledgeGraphLayout = 'concentric';
+export const DEFAULT_KG_SHOW_META_VOCAB = false;
+
+export function getKgSoftLimit(settings?: KnowledgeGraphSettings): number {
+  return settings?.softLimit ?? DEFAULT_KG_SOFT_LIMIT;
+}
+
+export function getKgHardLimit(settings?: KnowledgeGraphSettings): number {
+  return settings?.hardLimit ?? DEFAULT_KG_HARD_LIMIT;
+}
+
+export function getKgShowMetaVocab(settings?: KnowledgeGraphSettings): boolean {
+  return settings?.showMetaVocabNodes ?? DEFAULT_KG_SHOW_META_VOCAB;
+}
+
+export function getKgLayout(settings?: KnowledgeGraphSettings): KnowledgeGraphLayout {
+  const l = settings?.layout;
+  if (l === 'concentric' || l === 'fcose' || l === 'grid') return l;
+  return DEFAULT_KG_LAYOUT;
+}
+
+/**
+ * Diagram-level lineage recorded by the inter-diagram
+ * derivations (BPMN→Component, Component→Deployment). Sidecar shape
+ * without requiring editor-package storage changes.
+ */
+export interface DiagramLineage {
+  /** id of the source ProjectDiagram (same project). */
+  sourceDiagramId: string;
+  /** which diagram type the source is, so the UI doesn't have to look it up. */
+  sourceDiagramType: SupportedDiagramType;
+  /** which transform produced this diagram. */
+  derivationKind: 'bpmn-to-component' | 'component-to-deployment' | 'bpmn-to-agent';
+  /** ISO timestamp at derivation time. */
+  derivedAt: string;
+  /** djb2 hash of the source UMLModel at derivation time. */
+  sourceModelHash: string;
+}
+
 // Diagram structure within a project
 export interface ProjectDiagram {
   id: string;
   title: string;
-  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
+  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
   lastUpdate: string;
   description?: string;
   config?: Record<string, unknown>;  // agent LLM/platform/IC config
@@ -87,9 +290,26 @@ export interface ProjectDiagram {
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;
+  /** Set by inter-diagram derivation hooks. Undefined on
+   *  user-imported diagrams and on the source side of any derivation. */
+  derivedFrom?: DiagramLineage;
 }
 
-export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
+/**
+ * Per-derived-diagram element mapping: derived element id →
+ * source element id. The source diagram is implied by the containing
+ * `ProjectDiagram.derivedFrom.sourceDiagramId`. Sidecar on
+ * `BesserProject` without requiring editor-package storage changes.
+ */
+export type ElementLineageMap = Record<string, string>;
+
+export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
+
+/** Who added a class or member of the model; see `BesserProject.attribution`. */
+export interface ElementAttribution {
+  addedBy: string;
+  addedAt: string;
+}
 
 // New centralized project structure
 export interface BesserProject {
@@ -107,8 +327,11 @@ export interface BesserProject {
     ObjectDiagram: ProjectDiagram[];
     StateMachineDiagram: ProjectDiagram[];
     AgentDiagram: ProjectDiagram[];
+    ComponentDiagram: ProjectDiagram[];
+    DeploymentDiagram: ProjectDiagram[];
     UserDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
+    KnowledgeGraphDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
     NNDiagram: ProjectDiagram[];
     BPMN: ProjectDiagram[];
@@ -118,8 +341,48 @@ export interface BesserProject {
     autoSave: boolean;
     collaborationEnabled: boolean;
     perspectives: PerspectiveSettings;
+    /**
+     * Workspace the user picked on the first-run landing: `'model'` (low-code
+     * canvas) or `'agent'` (agentic assistant). Optional and purely additive —
+     * projects created before this field load unchanged, so no schema bump.
+     */
+    preferredInterface?: InterfaceMode;
+    /**
+     * Record traces (modeling edits, generation runs) for this project. Opt-in: off
+     * for a new project and when unset; the user turns it on on the Traceability
+     * page. The trace itself is stored apart from the project (see
+     * `shared/traceability/traceStore.ts`). Optional, so no schema bump.
+     */
+    traceabilityEnabled?: boolean;
   };
+  /** derivedDiagramId → ElementLineageMap. Sidecar; populated
+   *  by the inter-diagram derivation hooks after the derived diagram
+   *  is added. Survives import/export. */
+  elementLineage?: Record<string, ElementLineageMap>;
+  /** Element id → who added it. Sidecar; stamped by the backend on a save
+   *  to GitHub, read by no converter. */
+  attribution?: Record<string, ElementAttribution>;
+  /** The modeling assistant's conversation, so the user's specification is
+   *  kept with the project and saved to its GitHub repo (BESSER#745). Sidecar,
+   *  read by no converter and left out of generation requests. Optional, so no
+   *  schema bump. */
+  assistantConversation?: ProjectConversation;
 }
+
+/** One turn of the assistant conversation stored on a project. */
+export interface ProjectConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** The assistant conversation stored on a project: its latest turns. */
+export interface ProjectConversation {
+  turns: ProjectConversationTurn[];
+  updatedAt: string;
+}
+
+/** The two ways into the editor, chosen on the first-run landing. */
+export type InterfaceMode = 'model' | 'agent';
 
 // Helper to get the active diagram for a type
 export const getActiveDiagram = (project: BesserProject, type: SupportedDiagramType): ProjectDiagram | undefined => {
@@ -164,12 +427,31 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   ObjectDiagram: 0,
   StateMachineDiagram: 0,
   AgentDiagram: 0,
+  ComponentDiagram: 0,
+  DeploymentDiagram: 0,
   UserDiagram: 0,
   GUINoCodeDiagram: 0,
+  KnowledgeGraphDiagram: 0,
   QuantumCircuitDiagram: 0,
   NNDiagram: 0,
   BPMN: 0,
 });
+
+/** What an empty diagram of a type is built from. Types not listed here are
+ *  Apollon (UML-family) diagrams. Every place that creates an empty diagram for
+ *  a type MUST go through this map: a type that is missing from a private copy
+ *  silently gets a GrapesJS model. */
+export type DiagramKind = 'gui' | 'quantum' | 'kg';
+export const DIAGRAM_KIND_BY_TYPE: Partial<Record<SupportedDiagramType, DiagramKind>> = {
+  GUINoCodeDiagram: 'gui',
+  QuantumCircuitDiagram: 'quantum',
+  KnowledgeGraphDiagram: 'kg',
+};
+
+/** True for a diagram type with an editor of its own (GrapesJS, the quantum
+ *  canvas, Cytoscape), false for an Apollon (UML-family) one or no type. */
+export const hasCustomEditor = (type: string | null | undefined): boolean =>
+  !!type && !!DIAGRAM_KIND_BY_TYPE[type as SupportedDiagramType];
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
 export const migrateProjectToV2 = (project: any): BesserProject => {
@@ -189,8 +471,7 @@ export const migrateProjectToV2 = (project: any): BesserProject => {
     } else if (!value) {
       // Create empty diagram for missing types
       const umlType = toUMLDiagramType(type);
-      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-      migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, kind)];
+      migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, DIAGRAM_KIND_BY_TYPE[type])];
     }
   }
 
@@ -208,6 +489,10 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'StateMachineDiagram';
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
+    case UMLDiagramType.ComponentDiagram:
+      return 'ComponentDiagram';
+    case UMLDiagramType.DeploymentDiagram:
+      return 'DeploymentDiagram';
     case UMLDiagramType.NNDiagram:
       return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
@@ -230,6 +515,10 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.StateMachineDiagram;
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
+    case 'ComponentDiagram':
+      return UMLDiagramType.ComponentDiagram;
+    case 'DeploymentDiagram':
+      return UMLDiagramType.DeploymentDiagram;
     case 'NNDiagram':
       return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
@@ -240,6 +529,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
     case 'BPMN':
       return UMLDiagramType.BPMN;
+    case 'KnowledgeGraphDiagram':
+      return null; // KnowledgeGraphDiagram doesn't have a UML diagram type
     default:
       return null;
   }
@@ -263,7 +554,7 @@ const generateUUID = (): string => {
 export const createEmptyDiagram = (
   title: string,
   type: UMLDiagramType | null,
-  diagramKind?: 'gui' | 'quantum',
+  diagramKind?: DiagramKind,
 ): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
@@ -277,6 +568,21 @@ export const createEmptyDiagram = (
         initialStates: [],
         version: '1.0.0',
       } as QuantumCircuitData,
+      lastUpdate: new Date().toISOString(),
+    };
+  }
+
+  // For Knowledge Graph diagram (Cytoscape-backed)
+  if (diagramKind === 'kg') {
+    return {
+      id: generateUUID(),
+      title,
+      model: {
+        type: 'KnowledgeGraphDiagram',
+        version: '1.0.0',
+        nodes: [],
+        edges: [],
+      } as KnowledgeGraphData,
       lastUpdate: new Date().toISOString(),
     };
   }
@@ -377,11 +683,29 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 };
 
 // Default project factory
+/**
+ * The text the create-project form used to pre-fill as the description. It was a value, not a
+ * hint, so many saved projects still carry it; it must not reach a repository or a README.
+ */
+export const LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION = 'Modern workspace project for UML, GUI and quantum modeling.';
+
+/** `description` as the user wrote it: '' when it is missing or the legacy pre-filled text. */
+export const userProjectDescription = (description: string | null | undefined): string =>
+  !description || description.trim() === LEGACY_PLACEHOLDER_PROJECT_DESCRIPTION ? '' : description;
+
+/** `project` itself, or a shallow copy with an empty description when it holds the legacy pre-filled text. */
+export const withoutPlaceholderDescription = <T extends { description?: unknown }>(project: T): T =>
+  typeof project.description === 'string' && userProjectDescription(project.description) !== project.description
+    ? { ...project, description: '' }
+    : project;
+
 export const createDefaultProject = (
   name: string,
   description: string,
   owner: string,
   perspectives?: PerspectiveSettings,
+  preferredInterface?: InterfaceMode,
+  initialDiagramType?: SupportedDiagramType,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -393,15 +717,18 @@ export const createDefaultProject = (
     description,
     owner,
     createdAt: new Date().toISOString(),
-    currentDiagramType: 'ClassDiagram',
+    currentDiagramType: resolveInitialDiagramType(perspectives, initialDiagramType),
     currentDiagramIndices: defaultDiagramIndices(),
     diagrams: {
       ClassDiagram: [createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram)],
       ObjectDiagram: [createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram)],
       StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
+      ComponentDiagram: [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)],
+      DeploymentDiagram: [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)],
       UserDiagram: [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
+      KnowledgeGraphDiagram: [createEmptyDiagram('Knowledge Graph', null, 'kg')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
       NNDiagram: [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)],
       BPMN: [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)],
@@ -411,6 +738,8 @@ export const createDefaultProject = (
       autoSave: true,
       collaborationEnabled: false,
       perspectives: perspectives ?? createDefaultPerspectives(),
+      ...(preferredInterface ? { preferredInterface } : {}),
+      traceabilityEnabled: false,
     },
   };
 };
@@ -425,20 +754,26 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
+  // Every type ensureProjectMigrated back-fills when missing (QuantumCircuitDiagram,
+  // BPMN, NNDiagram, UserDiagram, KnowledgeGraphDiagram, ComponentDiagram,
+  // DeploymentDiagram) is not required here: projects saved before those types
+  // existed must still open.
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram &&
-    obj.diagrams.BPMN;
+    obj.diagrams.GUINoCodeDiagram;
 
   return !!hasRequiredDiagrams;
 };
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
+  // A v1 project has no currentDiagramIndices; the back-fills below write into it
+  // before migrateProjectToV2 runs.
+  obj.currentDiagramIndices ??= defaultDiagramIndices();
+
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
@@ -463,6 +798,32 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   if (obj.currentDiagramIndices.UserDiagram === undefined) {
     obj.currentDiagramIndices.UserDiagram = 0;
   }
+
+  // Add KnowledgeGraphDiagram if missing
+  if (!obj.diagrams.KnowledgeGraphDiagram) {
+    obj.diagrams.KnowledgeGraphDiagram = [createEmptyDiagram('Knowledge Graph', null, 'kg')];
+  }
+
+  // Back-fill missing entry in currentDiagramIndices
+  if (obj.currentDiagramIndices && (obj.currentDiagramIndices as any).KnowledgeGraphDiagram == null) {
+    obj.currentDiagramIndices = { ...obj.currentDiagramIndices, KnowledgeGraphDiagram: 0 };
+  }
+  // Add ComponentDiagram / DeploymentDiagram if missing
+  if (!obj.diagrams.ComponentDiagram) {
+    obj.diagrams.ComponentDiagram = [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)];
+  }
+  if (!obj.diagrams.DeploymentDiagram) {
+    obj.diagrams.DeploymentDiagram = [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)];
+  }
+  if (obj.currentDiagramIndices.ComponentDiagram === undefined) {
+    obj.currentDiagramIndices.ComponentDiagram = 0;
+  }
+  if (obj.currentDiagramIndices.DeploymentDiagram === undefined) {
+    obj.currentDiagramIndices.DeploymentDiagram = 0;
+  }
+
+  // Read before the v4 migration below creates a perspectives map.
+  const hadPerspectives = !!obj.settings?.perspectives;
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
   if (!obj.schemaVersion || obj.schemaVersion < 2) {
@@ -489,7 +850,71 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migratePerspectiveSettings(obj);
   }
 
+  // Migrate v4 → v5: Component and Deployment diagrams became project types
+  if (!obj.schemaVersion || obj.schemaVersion < 5) {
+    obj = migrateComponentDeploymentPerspectives(obj, hadPerspectives);
+  }
+
+  // Migrate v5 → v6: the Knowledge Graph diagram became a project type
+  if (!obj.schemaVersion || obj.schemaVersion < 6) {
+    obj = migrateKnowledgeGraphSoftLimit(obj);
+    obj = migrateKnowledgeGraphPerspective(obj, hadPerspectives);
+  }
+
   return obj;
+};
+
+/**
+ * Migrate v4 → v5: ComponentDiagram and DeploymentDiagram became project
+ * diagram types. A project whose user already chose perspectives keeps its
+ * sidebar unchanged, so both new types start hidden there; they can be enabled
+ * in Project Settings (e.g. with the Multi-Agent preset).
+ */
+const migrateComponentDeploymentPerspectives = (project: BesserProject, hadPerspectives: boolean): BesserProject => {
+  if (hadPerspectives && project.settings.perspectives) {
+    project.settings.perspectives = {
+      ...project.settings.perspectives,
+      ComponentDiagram: false,
+      DeploymentDiagram: false,
+    };
+  }
+  project.schemaVersion = 5;
+  return project;
+};
+
+/**
+ * Part of v5 → v6: Knowledge Graph diagrams saved by the editor's first
+ * settings revision keep their soft limit in `maxVisibleNodes`; it becomes
+ * `softLimit` (an explicit `softLimit` wins) and the old field is dropped.
+ */
+const migrateKnowledgeGraphSoftLimit = (project: BesserProject): BesserProject => {
+  for (const diagram of project.diagrams.KnowledgeGraphDiagram ?? []) {
+    const model = diagram.model as { settings?: Record<string, unknown> } | undefined;
+    if (!model?.settings || !('maxVisibleNodes' in model.settings)) continue;
+    const { maxVisibleNodes, ...settings } = model.settings;
+    if (settings.softLimit == null && typeof maxVisibleNodes === 'number') settings.softLimit = maxVisibleNodes;
+    model.settings = settings;
+  }
+  return project;
+};
+
+/**
+ * Migrate v5 → v6: KnowledgeGraphDiagram became a project diagram type. As for
+ * the v4 → v5 step, a project whose user already chose perspectives keeps its
+ * sidebar unchanged, so the new type starts hidden there; it can be enabled in
+ * Project Settings (e.g. with the Knowledge Engineer preset). A missing key
+ * would otherwise read as visible (`isPerspectiveVisible`).
+ */
+const migrateKnowledgeGraphPerspective = (project: BesserProject, hadPerspectives: boolean): BesserProject => {
+  // An explicit choice (a project saved while the KG editor was still a branch) is kept.
+  if (hadPerspectives && project.settings.perspectives && project.settings.perspectives.KnowledgeGraphDiagram === undefined) {
+    project.settings.perspectives = {
+      ...project.settings.perspectives,
+      KnowledgeGraphDiagram: false,
+    };
+  }
+  project.schemaVersion = 6;
+  return project;
 };
 
 /**
@@ -607,6 +1032,14 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
   return Array.isArray(candidate.cols);
 };
 
+export const isKnowledgeGraphData = (model: unknown): model is KnowledgeGraphData => {
+  if (!model || typeof model !== 'object') {
+    return false;
+  }
+  const candidate = model as any;
+  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
+};
+
 
 /**
  * Find perspectives that are hidden but the project still references them
@@ -655,7 +1088,12 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (isUMLModel(model)) {
     const hasElements = model.elements && Object.keys(model.elements).length > 0;
     const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
-    return !!(hasElements || hasRelationships);
+    const hasAgentComponents = model.type === UMLDiagramType.AgentDiagram &&
+      model.components && Object.keys(model.components).length > 0;
+    const sqlDatabases = (diagram.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
+    const hasSqlDatabases = model.type === UMLDiagramType.AgentDiagram &&
+      Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
+    return !!(hasElements || hasRelationships || hasAgentComponents || hasSqlDatabases);
   }
 
   if (isGrapesJSProjectData(model)) {
@@ -669,6 +1107,10 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
   if (isQuantumCircuitData(model)) {
     return Array.isArray(model.cols) && model.cols.length > 0;
+  }
+
+  if (isKnowledgeGraphData(model)) {
+    return model.nodes.length > 0 || model.edges.length > 0;
   }
 
   return false;

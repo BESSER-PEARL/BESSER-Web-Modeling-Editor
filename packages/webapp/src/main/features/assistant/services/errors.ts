@@ -73,11 +73,11 @@ export function formatErrorForUser(error: unknown): string {
     return String(error);
 }
 
-/** Sanitize error text for safe display (strip stack traces, long objects). */
+/**
+ * Escape angle brackets so an error/message string renders as literal text
+ * instead of being interpreted as markup. Shared home for the sanitizer that
+ * the assistant hooks use; re-exported from the services barrel.
+ */
 export function sanitizeForDisplay(text: string): string {
-    // Truncate very long messages
-    if (text.length > 300) {
-        return text.slice(0, 297) + '...';
-    }
-    return text;
+    return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

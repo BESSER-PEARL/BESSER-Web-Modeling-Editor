@@ -7,9 +7,12 @@ import { GateType } from '../types';
 
 interface GatePaletteProps {
     onDragStart?: (gate: GateType, e: React.MouseEvent) => void;
+    /** Gate armed for click-to-place, if any. */
+    armedGate?: GateType | null;
+    onArmGate?: (gate: GateType | null) => void;
 }
 
-export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
+export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart, armedGate, onArmGate }) => {
     const { t } = useTranslation();
     const [selectedToolbox, setSelectedToolbox] = useState('Toolbox');
     const getGate = (type: string) => GATES.find(g => g.type === type);
@@ -29,6 +32,7 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                 <div className="quantum-editor-select-wrapper relative w-full">
                     <select
                         id="toolbox-select"
+                        aria-label={t('editors.quantum.toolboxLabel')}
                         value={selectedToolbox}
                         onChange={(e) => setSelectedToolbox(e.target.value)}
                         className={cn(
@@ -36,7 +40,7 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                             'border border-[var(--quantum-editor-border,#d5dde8)]',
                             'bg-[var(--quantum-editor-bg,#ffffff)]',
                             'text-[var(--quantum-editor-text,#0f172a)]',
-                            'transition-all duration-200 ease-in-out',
+                            'transition-colors duration-150 ease-out',
                             'hover:border-[var(--quantum-editor-muted-text,#64748b)]',
                             'hover:bg-[var(--quantum-editor-surface,#f8fafc)]',
                             'focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)]',
@@ -49,6 +53,11 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                         <option value="Toolbox2">{t('editors.quantum.toolbox2')}</option>
                     </select>
                 </div>
+                {armedGate && (
+                    <p role="status" className="mt-2 text-xs text-[var(--quantum-editor-muted-text,#64748b)]">
+                        {t('editors.quantum.armedHint', { gate: getGate(armedGate)?.label || armedGate })}
+                    </p>
+                )}
             </div>
 
             <div className="quantum-editor-palette-content flex-1 overflow-y-auto p-3">
@@ -72,12 +81,24 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                             {group.gates.map(gateType => {
                                 const gate = getGate(gateType);
                                 if (!gate) return null;
+                                const isArmed = armedGate === gate.type;
                                 return (
-                                    <Gate
+                                    <button
                                         key={gate.id}
-                                        gate={gate}
-                                        onMouseDown={(e) => onDragStart && onDragStart(gate.type, e)}
-                                    />
+                                        type="button"
+                                        aria-label={t('editors.quantum.placeGateLabel', { gate: gate.label || gate.type })}
+                                        aria-pressed={isArmed}
+                                        onClick={() => onArmGate?.(isArmed ? null : gate.type)}
+                                        className={cn(
+                                            'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--quantum-editor-primary,#0284c7)] focus-visible:ring-offset-1',
+                                            isArmed && 'ring-2 ring-[var(--quantum-editor-primary,#0284c7)] ring-offset-1',
+                                        )}
+                                    >
+                                        <Gate
+                                            gate={gate}
+                                            onMouseDown={(e) => onDragStart && onDragStart(gate.type, e)}
+                                        />
+                                    </button>
                                 );
                             })}
                         </div>

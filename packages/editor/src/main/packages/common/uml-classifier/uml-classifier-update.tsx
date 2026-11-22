@@ -15,6 +15,7 @@ import { I18nContext } from '../../../components/i18n/i18n-context';
 import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
+import { TraceabilityLink } from '../../../components/traceability/TraceabilityLink';
 import { UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../../utils/actions/actions';
@@ -384,8 +385,10 @@ class ClassifierUpdate extends Component<Props, State> {
                       implementationType={methodMember.implementationType || 'none'}
                       stateMachineId={methodMember.stateMachineId || ''}
                       quantumCircuitId={methodMember.quantumCircuitId || ''}
+                      neuralNetworkId={methodMember.neuralNetworkId || ''}
                       availableStateMachines={diagramBridge.getStateMachineDiagrams()}
                       availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
+                      availableNeuralNetworks={diagramBridge.getNeuralNetworkDiagrams()}
                       onChange={this.props.update}
                       onSubmitKeyUp={() =>
                         index === methods.length - 1
@@ -436,6 +439,7 @@ class ClassifierUpdate extends Component<Props, State> {
             </Section>
           </>
         )}
+        <TraceabilityLink elementId={element.id} />
       </div>
     );
   }
@@ -456,9 +460,9 @@ class ClassifierUpdate extends Component<Props, State> {
       (member as UMLClassifierMember).visibility = parsed.visibility;
       (member as UMLClassifierMember).attributeType = parsed.attributeType;
     } else {
-      member.name = value;
+      member.name = UMLClassMethod.withParentheses(value);
     }
-    
+
     create(member, element.id);
   };
 

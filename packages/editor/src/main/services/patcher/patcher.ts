@@ -88,6 +88,10 @@ export class Patcher<T> {
     return this._snapshot;
   }
 
+  get hasSubscribers(): boolean {
+    return Object.keys(this.subscribers).length > 0;
+  }
+
   /**
    * Updates its snapshots, checks for changes and notifies subscribers.
    * @param nextState The next state of the object.
