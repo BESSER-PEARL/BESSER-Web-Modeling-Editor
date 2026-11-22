@@ -27,6 +27,7 @@ import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
+import museumAgentGuiProject from '../../../templates/pattern/project/museum_agent_gui.json';
 import multiAgentBugFixingProject from '../../../templates/pattern/multi-agent/bug_fixing.json';
 /* eslint-disable no-restricted-imports -- not in editors/index.ts: a re-export there moves the example circuits into the main chunk */
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
@@ -269,6 +270,14 @@ export class TemplateFactory {
           softwarePatternType,
           FULL_PROJECT_DIAGRAM_TYPE,
           personalizedGymAgentProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.MUSEUM_AGENT_GUI:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          museumAgentGuiProject as object,
           SoftwarePatternCategory.FULL_PROJECT,
           false,
         );

@@ -52,6 +52,7 @@ export enum SoftwarePatternType {
   // Full Project patterns (multi-diagram bundles imported as new projects)
   LIBRARY_FULL_STACK = 'Library (Full Stack)',
   PERSONALIZED_GYM_AGENT = 'Personalized Gym Agent',
+  MUSEUM_AGENT_GUI = 'Museum Agent and GUI',
   MULTI_AGENT_BUG_FIXING = 'Multi-agent Bug Fixing',
 }
 

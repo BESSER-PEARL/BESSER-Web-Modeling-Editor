@@ -6,7 +6,7 @@ This branch incorporates `develop` at `1f383506`. This record describes the bran
 
 - Study website deployment server, deployment hook and dialogs, configuration, Docker Compose deployment, study-site setup, and deployment instructions.
 - Automatic study project bootstrap, participant identifiers, welcome/consent dialog, model upload, questionnaire links, sidebar controls, and study deployment menu action.
-- Study and museum project templates, museum example GUI, and template-library entries.
+- Study-only templates and the standalone museum example GUI were removed. The combined museum agent, GUI, and class-diagram project was restored as the general-purpose ?Museum Agent and GUI? template, with study-specific text removed.
 - Participant-linked PostHog provider, study-mode recording options, model-edit middleware, personalization and read-aloud event captures, and related analytics and consent tests and documentation. Develop's consent-controlled product analytics remain.
 - Study-specific translations, environment variables and Vite substitutions. Normal backend and PostHog build-time configuration follows develop.
 
