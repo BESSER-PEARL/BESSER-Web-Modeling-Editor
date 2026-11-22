@@ -17,7 +17,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { recommendAgentConfigLlm, recommendAgentConfigMapping } from '../../../shared/api/generation';
+import { useGitHubAuth } from '../../../shared/hooks/useGitHubAuth';
 import {
   splitUserDiagramIntoProfiles,
   mergeSingletonBoxes,
@@ -118,6 +119,7 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
 }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
+  const { githubSession } = useGitHubAuth();
   const activeDiagram = useAppSelector(selectActiveDiagram);
 
   const [step, setStep] = useState<Step>('method');
@@ -164,6 +166,10 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
 
   const handleFetchRecommendations = useCallback(async () => {
     if (!activeDiagram?.model) return;
+    if (!githubSession) {
+      toast.error(t('agentConfig.toasts.signInGitHub'));
+      return;
+    }
     if (selectedBoxIds.size === 0) {
       toast.error(t('recommendPersonalization.noProfilesSelected'));
       return;
@@ -185,26 +191,12 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
         };
         if (method === 'llm') body.model = 'gpt-4o';
 
-        const endpoint =
-          method === 'llm'
-            ? `${BACKEND_URL}/recommend-agent-config-llm`
-            : `${BACKEND_URL}/recommend-agent-config-mapping`;
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => String(response.status));
-          throw new Error(errorText);
-        }
-
-        const data = await response.json() as {
-          config?: Record<string, unknown>;
-          recommendedChanges?: Array<{ field: string; from: unknown; to: unknown }>;
-        };
+        const data = await (method === 'llm'
+          ? recommendAgentConfigLlm(body, githubSession)
+          : recommendAgentConfigMapping(body, githubSession)) as {
+            config?: Record<string, unknown>;
+            recommendedChanges?: Array<{ field: string; from: unknown; to: unknown }>;
+          };
 
         if (!data.config) throw new Error(t('recommendPersonalization.invalidResponse'));
 
@@ -225,7 +217,7 @@ export const RecommendPersonalizationDialog: React.FC<RecommendPersonalizationDi
     } finally {
       setIsFetching(false);
     }
-  }, [activeDiagram, profiles, selectedBoxIds, method, t]);
+  }, [activeDiagram, profiles, selectedBoxIds, method, githubSession, t]);
 
   const toggleChange = (profileIdx: number, changeIdx: number) => {
     setProfileRecommendations((prev) =>

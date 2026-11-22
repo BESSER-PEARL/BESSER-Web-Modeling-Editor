@@ -20,3 +20,5 @@ This branch incorporates `develop` at `1f383506`. This record describes the bran
 - Removed references to the obsolete onboarding module and checklist, which were not present in develop's tracked files.
 
 Develop already contains a separate opt-in research telemetry feature and an older study instruction PDF. Those pre-existing develop assets remain; they are unrelated to the study deployment and participant-tracking additions removed from this branch.
+
+- Updated the recommendation dialog to use development's authenticated API client and request a GitHub sign-in when no session is available.
