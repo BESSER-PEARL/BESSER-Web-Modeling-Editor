@@ -1774,8 +1774,50 @@
           "generation"
         ],
         "summary": "Personalize Gui Page",
-        "description": "Personalize a GUI page (GrapesJS) for a user profile using an LLM.\n\nOpen endpoint (no GitHub session required). The OpenAI API key is resolved\nfrom the payload or the server's ``OPENAI_API_KEY`` environment variable.\n\nRequest body:\n    guiPage: {\"components\": [...], \"css\": [...]}  -- a GrapesJS page snapshot\n    userProfileModel: <UserDiagram UML model JSON>\n    pageName: str (optional)\n    model: str (optional OpenAI model id)\n\nReturns the same ``{components, css}`` shape adapted in style and content,\nready to be imported back into the editor as a page variant.",
+        "description": "Personalize a GUI page (GrapesJS) for a user profile using an LLM.\n\nOpen endpoint (no GitHub session required). The OpenAI API key is resolved\nfrom the payload or the server's ``OPENAI_API_KEY`` environment variable.\n\nRequest body:\n    guiPage: {\"components\": [...], \"css\": [...]}  -- a GrapesJS page snapshot\n    userProfileModel: <UserDiagram UML model JSON>\n    pageName: str (optional)\n    model: str (optional OpenAI model id)\n    guiPersonalization: {presentation: {language: \"french\", languageComplexity: \"simple\", sentenceLength: \"concise\"}, content: {adaptContentToUserProfile: true, summarizeLongContent: true}} (optional)\n    adaptFromProfile: bool (optional, default true). False uses only explicit\n        text rules, without a general LLM rewrite of the page model.\n\nReturns the same ``{components, css}`` shape adapted in style and content,\nready to be imported back into the editor as a page variant.",
         "operationId": "personalize_gui_page_besser_api_personalize_gui_page_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/generate-gui-audio": {
+      "post": {
+        "tags": [
+          "generation"
+        ],
+        "summary": "Generate Gui Audio Endpoint",
+        "description": "Explicit design-time generation; provider and credentials come only from server env.",
+        "operationId": "generate_gui_audio_endpoint_besser_api_generate_gui_audio_post",
         "requestBody": {
           "content": {
             "application/json": {

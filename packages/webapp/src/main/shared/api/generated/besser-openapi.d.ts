@@ -567,11 +567,34 @@ export interface paths {
          *         userProfileModel: <UserDiagram UML model JSON>
          *         pageName: str (optional)
          *         model: str (optional OpenAI model id)
+         *         guiPersonalization: {presentation: {language: "french", languageComplexity: "simple", sentenceLength: "concise"}, content: {adaptContentToUserProfile: true, summarizeLongContent: true}} (optional)
+         *         adaptFromProfile: bool (optional, default true). False uses only explicit
+         *             text rules, without a general LLM rewrite of the page model.
          *
          *     Returns the same ``{components, css}`` shape adapted in style and content,
          *     ready to be imported back into the editor as a page variant.
          */
         post: operations["personalize_gui_page_besser_api_personalize_gui_page_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/generate-gui-audio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Gui Audio Endpoint
+         * @description Explicit design-time generation; provider and credentials come only from server env.
+         */
+        post: operations["generate_gui_audio_endpoint_besser_api_generate_gui_audio_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4839,6 +4862,41 @@ export interface operations {
         };
     };
     personalize_gui_page_besser_api_personalize_gui_page_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_gui_audio_endpoint_besser_api_generate_gui_audio_post: {
         parameters: {
             query?: never;
             header?: never;
