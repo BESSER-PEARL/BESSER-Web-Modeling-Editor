@@ -308,11 +308,7 @@ function AppContentInner() {
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
         jsonSchemaMode={configState.jsonSchemaMode}
         supabaseUserRoot={configState.supabaseUserRoot}
-        // ── Agent config (languages + advanced/personalization) ──────
-        sourceLanguage={configState.sourceLanguage}
-        pendingAgentLanguage={configState.pendingAgentLanguage}
-        selectedAgentLanguages={configState.selectedAgentLanguages}
-        hasSavedAgentConfiguration={configState.hasSavedAgentConfiguration}
+        // ── Agent configuration and personalization ──────
         agentMode={configState.agentMode}
         storedAgentConfigurations={configState.storedAgentConfigurations}
         storedAgentMappings={configState.storedAgentMappings}
@@ -344,9 +340,6 @@ function AppContentInner() {
         onSqlAlchemyDbmsChange={configState.onSqlAlchemyDbmsChange}
         onJsonSchemaModeChange={configState.onJsonSchemaModeChange}
         onSupabaseUserRootChange={configState.onSupabaseUserRootChange}
-        onSourceLanguageChange={configState.onSourceLanguageChange}
-        onPendingAgentLanguageChange={configState.onPendingAgentLanguageChange}
-        onSelectedAgentLanguagesChange={configState.onSelectedAgentLanguagesChange}
         onQiskitBackendChange={configState.onQiskitBackendChange}
         onQiskitShotsChange={configState.onQiskitShotsChange}
         onForecasterConfigChange={configState.onForecasterConfigChange}

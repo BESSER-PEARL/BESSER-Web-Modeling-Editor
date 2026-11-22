@@ -94,14 +94,6 @@ interface GeneratorConfigDialogsProps {
   jsonSchemaMode: JSONSchemaConfig['mode'];
 
   // ── Agent ────────────────────────────────────────────────────────────────
-  /** Source language for the agent (e.g. 'english'). 'none' = not set. */
-  sourceLanguage: string;
-  /** Language currently picked in the dropdown but not yet added. */
-  pendingAgentLanguage: string;
-  /** Languages the agent will be translated to. */
-  selectedAgentLanguages: string[];
-  /** Whether at least one saved agent configuration preset exists. */
-  hasSavedAgentConfiguration: boolean;
   /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
   agentMode: 'original' | 'configuration' | 'personalization';
   /** Stored agent configuration presets. */
@@ -137,9 +129,6 @@ interface GeneratorConfigDialogsProps {
   onSupabaseUserRootChange: (value: string) => void;
   onSqlAlchemyDbmsChange: (value: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (value: JSONSchemaConfig['mode']) => void;
-  onSourceLanguageChange: (value: string) => void;
-  onPendingAgentLanguageChange: (value: string) => void;
-  onSelectedAgentLanguagesChange: (value: string[]) => void;
   onQiskitBackendChange: (value: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (value: number) => void;
   /** Merge a partial update into the forecaster settings. */
@@ -210,13 +199,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   supabaseUserRoot,
   sqlAlchemyDbms,
   jsonSchemaMode,
-  sourceLanguage,
-  pendingAgentLanguage,
-  selectedAgentLanguages,
   qiskitBackend,
   qiskitShots,
   forecasterConfig,
-  hasSavedAgentConfiguration,
   agentMode,
   storedAgentConfigurations,
   storedAgentMappings,
@@ -236,9 +221,6 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onSupabaseUserRootChange,
   onSqlAlchemyDbmsChange,
   onJsonSchemaModeChange,
-  onSourceLanguageChange,
-  onPendingAgentLanguageChange,
-  onSelectedAgentLanguagesChange,
   onQiskitBackendChange,
   onQiskitShotsChange,
   onForecasterConfigChange,
@@ -308,9 +290,19 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   // defaults when the project has no agent diagram (edge case — the agent
   // generator dialog should normally only be reachable when one exists).
   const { currentProject } = useProject();
+  const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+  const agentConfigIsDefault = useMemo(() => {
+    if (!activeAgentDiagram) return false;
+    const config = activeAgentDiagram.config as Record<string, unknown> | undefined;
+    const runtimeKeys = [
+      'agentPlatform', 'agentPlatformUseStreamlit', 'intentRecognitionTechnology',
+      'agentLlmProvider', 'agentLlmModel', 'agentCustomLlmModel', 'agentLlmName', 'llm', 'default_llm_name',
+    ];
+    return !runtimeKeys.some((key) => config?.[key] !== undefined) &&
+      !activeAgentDiagram.agentConfigForm && !activeAgentDiagram.configYaml && !activeAgentDiagram.agentConfigCustomYaml;
+  }, [activeAgentDiagram]);
   const agentSystemConfig = useMemo<AgentRuntimeConfig | null>(() => {
     if (configDialog !== 'agent') return null;
-    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
     const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
     if (!diagramConfig) {
       return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
@@ -330,7 +322,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           ? diagramConfig.agentLlmName
           : (typeof llmBlock?.name === 'string' ? llmBlock.name : undefined),
     });
-  }, [configDialog, currentProject]);
+  }, [configDialog, activeAgentDiagram]);
   const agentPlatformLabel = useMemo(() => {
     switch (agentSystemConfig?.agentPlatform) {
       case 'websocket':
@@ -666,84 +658,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           </DialogHeader>
           <form onSubmit={submitWith(onAgentGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-4">
-            {!hasSavedAgentConfiguration && (
-              <div className="p-3 border rounded bg-muted/30">
-                <div className="text-sm text-muted-foreground mb-2">
-                  {t('generation.agent.noSavedConfig')}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    closeDialog(setConfigDialog);
-                    navigate('/agent-config');
-                  }}
-                >
-                  {t('generation.agent.configureTechnologies')}
-                </Button>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="agent-source-language">{t('generation.agent.sourceLanguage')}</Label>
-              <Select value={sourceLanguage} onValueChange={(value) => value && onSourceLanguageChange(value)}>
-                <SelectTrigger id="agent-source-language">
-                  <SelectValue placeholder={t('generation.agent.selectLanguage')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('generation.agent.selectLanguage')}</SelectItem>
-                  <SelectItem value="english">{t('generation.agent.languages.english')}</SelectItem>
-                  <SelectItem value="french">{t('generation.agent.languages.french')}</SelectItem>
-                  <SelectItem value="german">{t('generation.agent.languages.german')}</SelectItem>
-                  <SelectItem value="luxembourgish">{t('generation.agent.languages.luxembourgish')}</SelectItem>
-                  <SelectItem value="portuguese">{t('generation.agent.languages.portuguese')}</SelectItem>
-                  <SelectItem value="spanish">{t('generation.agent.languages.spanish')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="agent-add-language">{t('generation.agent.addSpokenLanguage')}</Label>
-              <div className="flex gap-2">
-                <Select value={pendingAgentLanguage} onValueChange={(value) => value && onPendingAgentLanguageChange(value)}>
-                  <SelectTrigger id="agent-add-language" className="flex-1">
-                    <SelectValue placeholder={t('generation.agent.selectLanguage')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('generation.agent.selectLanguage')}</SelectItem>
-                    <SelectItem value="english">{t('generation.agent.languages.english')}</SelectItem>
-                    <SelectItem value="french">{t('generation.agent.languages.french')}</SelectItem>
-                    <SelectItem value="german">{t('generation.agent.languages.german')}</SelectItem>
-                    <SelectItem value="luxembourgish">{t('generation.agent.languages.luxembourgish')}</SelectItem>
-                    <SelectItem value="portuguese">{t('generation.agent.languages.portuguese')}</SelectItem>
-                    <SelectItem value="spanish">{t('generation.agent.languages.spanish')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (pendingAgentLanguage === 'none' || selectedAgentLanguages.includes(pendingAgentLanguage)) {
-                      return;
-                    }
-                    onSelectedAgentLanguagesChange([...selectedAgentLanguages, pendingAgentLanguage]);
-                    onPendingAgentLanguageChange('none');
-                  }}
-                >
-                  {t('generation.agent.addLanguage')}
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {t('generation.agent.translatedToAll')}
-              </p>
-              <div className="text-sm text-warning flex items-center gap-1">
-                <AlertTriangle role="img" aria-label={t('generation.agent.warningAriaLabel')} className="size-4 shrink-0" />
-                <span>{t('generation.agent.moreLanguagesWarning')}</span>
-              </div>
-            </div>
-
             <div className="rounded-md border border-border/70 bg-muted/20 p-4">
+              {agentConfigIsDefault && (
+                <p className="mb-3 text-sm text-muted-foreground">{t('generation.agent.usingDefaultConfig')}</p>
+              )}
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">{t('generation.agent.systemConfiguration')}</p>
                 <Button
@@ -874,31 +792,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </div>
             )}
 
-            {selectedAgentLanguages.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <Label>{t('generation.agent.selectedLanguages')}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedAgentLanguages.map((language) => {
-                    const languageLabel = t(`generation.agent.languages.${language}`, {
-                      defaultValue: language.charAt(0).toUpperCase() + language.slice(1),
-                    });
-                    return (
-                      <button
-                        key={language}
-                        type="button"
-                        className="rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs hover:bg-muted/60"
-                        onClick={() =>
-                          onSelectedAgentLanguagesChange(selectedAgentLanguages.filter((entry) => entry !== language))
-                        }
-                        aria-label={t('generation.agent.removeLanguage', { language: languageLabel })}
-                      >
-                        {languageLabel} ✕
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>

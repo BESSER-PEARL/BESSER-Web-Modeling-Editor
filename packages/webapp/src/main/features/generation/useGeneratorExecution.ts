@@ -530,14 +530,6 @@ export interface GeneratorConfigState {
   jsonSchemaMode: JSONSchemaConfig['mode'];
 
   // ── Agent ────────────────────────────────────────────────────────────────
-  /** Source language for the agent (e.g. 'english'). 'none' = not set. */
-  sourceLanguage: string;
-  /** Language currently picked in the dropdown but not yet added. */
-  pendingAgentLanguage: string;
-  /** Languages the agent will be translated to. */
-  selectedAgentLanguages: string[];
-  /** Whether at least one saved agent configuration preset exists. */
-  hasSavedAgentConfiguration: boolean;
   /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
   agentMode: 'original' | 'configuration' | 'personalization';
   /** Stored agent configuration presets. */
@@ -573,9 +565,6 @@ export interface GeneratorConfigState {
   onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (v: JSONSchemaConfig['mode']) => void;
-  onSourceLanguageChange: (v: string) => void;
-  onPendingAgentLanguageChange: (v: string) => void;
-  onSelectedAgentLanguagesChange: (v: string[]) => void;
   onQiskitBackendChange: (v: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (v: number) => void;
   /** Merge a partial update into the forecaster settings. */
@@ -671,13 +660,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<JSONSchemaConfig['mode']>('regular');
-  const [sourceLanguage, setSourceLanguage] = useState('none');
-  const [selectedAgentLanguages, setSelectedAgentLanguages] = useState<string[]>([]);
-  const [pendingAgentLanguage, setPendingAgentLanguage] = useState('none');
   const [qiskitBackend, setQiskitBackend] = useState<QiskitConfig['backend']>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
   const [forecasterConfig, setForecasterConfig] = useState<ForecasterConfig>(DEFAULT_FORECASTER_CONFIG);
-  const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
@@ -735,7 +720,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
     try {
       const allSavedConfigurations = LocalStorageRepository.getAgentConfigurations();
-      setHasSavedAgentConfiguration(allSavedConfigurations.length > 0);
 
       if (SHOW_FULL_AGENT_CONFIGURATION) {
         const usableConfigs = allSavedConfigurations.filter((entry) =>
@@ -1336,12 +1320,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       ...systemConfig,
     };
 
-    if (selectedAgentLanguages.length > 0) {
-      baseConfig = {
-        ...baseConfig,
-        languages: { source: sourceLanguage, target: selectedAgentLanguages },
-      };
-    }
 
     let finalConfig: AgentConfig = baseConfig;
     let agentModelOverride: UMLModel | undefined;
@@ -1544,8 +1522,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     setConfigDialog('none');
   }, [
     currentProject,
-    selectedAgentLanguages,
-    sourceLanguage,
     executeGenerator,
     agentGenerationMode,
     agentVariantOptions,
@@ -1625,13 +1601,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     supabaseUserRoot,
     sqlAlchemyDbms,
     jsonSchemaMode,
-    sourceLanguage,
-    pendingAgentLanguage,
-    selectedAgentLanguages,
     qiskitBackend,
     qiskitShots,
     forecasterConfig,
-    hasSavedAgentConfiguration,
     agentMode,
     storedAgentConfigurations,
     storedAgentMappings,
@@ -1656,9 +1628,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
     onJsonSchemaModeChange: setJsonSchemaMode,
-    onSourceLanguageChange: setSourceLanguage,
-    onPendingAgentLanguageChange: setPendingAgentLanguage,
-    onSelectedAgentLanguagesChange: setSelectedAgentLanguages,
     onQiskitBackendChange: setQiskitBackend,
     onQiskitShotsChange: setQiskitShots,
     onForecasterConfigChange: handleForecasterConfigChange,

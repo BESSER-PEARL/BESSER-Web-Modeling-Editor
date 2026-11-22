@@ -26,3 +26,5 @@ Develop already contains a separate opt-in research telemetry feature and an old
 - The follow-up review gives the feature branch's profile-authored generation priority over legacy mappings, deduplicates saved/project copies by ID, restores development's unrelated agent runtime defaults, and aligns API calls and error reporting with development lint rules.
 
 - Profile JSON generation preserves all original per-element personalization rules before profile boxes are merged, so the backend can include them in each generated document.
+
+- Simplified the Generate Agent dialog: removed separate translation settings and the duplicate configuration link, and show a default-configuration notice only when the active agent has no saved runtime or YAML settings.
