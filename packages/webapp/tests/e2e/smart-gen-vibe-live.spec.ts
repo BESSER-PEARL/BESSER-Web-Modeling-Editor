@@ -29,7 +29,7 @@ test.describe('live: model from a description, then spec-driven free generation'
       try {
         localStorage.setItem(
           'besser_analytics_consent',
-          JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }),
+          JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() }),
         );
       } catch {
         /* ignore */

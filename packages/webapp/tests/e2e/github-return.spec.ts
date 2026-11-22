@@ -45,7 +45,7 @@ async function openLinkedProject(page: Page, link: Record<string, unknown>, rela
   await page.addInitScript(() => {
     localStorage.setItem(
       'besser_analytics_consent',
-      JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }),
+      JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() }),
     );
     // Pinned as applied: the v2 storage migration clears the GitHub username.
     localStorage.setItem('besser_storage_version', '2');
