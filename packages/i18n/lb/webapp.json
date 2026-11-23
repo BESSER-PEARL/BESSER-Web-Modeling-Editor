@@ -5057,7 +5057,13 @@
         "meterTitle": "Wat deng Lab-Leef dëse Mount kaschten",
         "settings": "Astellungen a Verbrauch",
         "signOut": "Ofmellen",
-        "title": "BESSER Lab"
+        "title": "BESSER Lab",
+        "keyOwn": "Äre Schlëssel: {{provider}}",
+        "keyLab": "Schlëssel vum Lab",
+        "keyMissing": "API-Schlëssel derbäisetzen",
+        "keyTitle": "Den API-Schlëssel, mat deem Är Leef bezuelt ginn. Klickt fir en z'änneren.",
+        "keyDialogOptional": "Leef, déi Dir start, gi mat Ärem eegene Schlëssel bezuelt a zielen net fir d'Mountsgrenze vum Lab. Läscht en, fir erëm de Schlëssel vum Lab ze benotzen. De Schlëssel bleift an dësem Browser-Tab.",
+        "keyDialogRequired": "Dëse Lab huet kee eegene Schlëssel: Är Leef gi mat Ärem Schlëssel bezuelt. E bleift an dësem Browser-Tab a gëtt nëmme mat Äre Leef geschéckt."
       },
       "home": {
         "composerLabel": "Beschreif d’Ännerung",

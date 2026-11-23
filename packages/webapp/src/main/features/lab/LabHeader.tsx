@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useMatch, useNavigate } from 'react-router-dom';
-import { ChevronDown, Languages, LogOut, Moon, Settings, Sun } from 'lucide-react';
+import { ChevronDown, KeyRound, Languages, LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,7 +18,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { LanguageRadioItems } from '../../app/shell/LanguageSelector';
 import type { LabBase, LabMeter } from '../../shared/api/lab';
+import { llmProviderLabel } from '../../shared/components/byok/LlmKeyDialog';
 import { useIsDarkTheme } from '../../shared/hooks/useIsDarkTheme';
+import { LLM_KEY_CHANGED_EVENT, readLlmKey } from '../../shared/services/llmKeyStorage';
 import { toggleTheme } from '../../shared/utils/theme-switcher';
 import { useLabShell } from './LabAuthGate';
 import { formatAgo, formatUsd, LabAvatar } from './LabChangeList';
@@ -63,6 +65,69 @@ const MonthMeter: React.FC<{ meter: LabMeter }> = ({ meter }) => {
         <span data-testid="lab-meter-bar" className={cn('block h-full rounded-full', METER_BAR[level])} style={{ width: `${width}%` }} />
       </span>
     </span>
+  );
+};
+
+// The editor's own key dialog, loaded when first opened.
+const LlmKeyDialog = React.lazy(() =>
+  import('../../shared/components/byok/LlmKeyDialog').then((module) => ({ default: module.LlmKeyDialog })),
+);
+
+/**
+ * Which key pays the user's next run, and the editor's key dialog behind it: their own key (kept in this tab
+ * only, as in the editor), else the lab's; on a lab without a key of its own it asks for one.
+ */
+const LabKeyChip: React.FC<{ labKey: boolean }> = ({ labKey }) => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [key, setKey] = useState(readLlmKey);
+  useEffect(() => {
+    const update = () => setKey(readLlmKey());
+    window.addEventListener(LLM_KEY_CHANGED_EVENT, update);
+    return () => window.removeEventListener(LLM_KEY_CHANGED_EVENT, update);
+  }, []);
+  const label = key
+    ? t('lab.app.header.keyOwn', { defaultValue: 'Your key: {{provider}}', provider: llmProviderLabel(key.provider) })
+    : labKey
+      ? t('lab.app.header.keyLab', { defaultValue: "Lab's key" })
+      : t('lab.app.header.keyMissing', { defaultValue: 'Add your API key' });
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="lab-key-chip"
+        onClick={() => setOpen(true)}
+        title={t('lab.app.header.keyTitle', { defaultValue: 'The API key your runs are paid with. Click to change it.' })}
+        className={cn(
+          'inline-flex min-w-0 max-w-[14rem] shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+          key || labKey ? 'border-border/50 bg-background/60 text-muted-foreground' : 'border-warning/50 bg-warning/10 text-foreground',
+        )}
+      >
+        <KeyRound className={cn('size-3 shrink-0', key ? 'text-brand' : 'text-muted-foreground')} aria-hidden />
+        <span className="truncate">{label}</span>
+      </button>
+      {open && (
+        <Suspense fallback={null}>
+          <LlmKeyDialog
+            open
+            onOpenChange={setOpen}
+            preferKeyEntry
+            showRunBudget={false}
+            description={
+              labKey
+                ? t('lab.app.header.keyDialogOptional', {
+                    defaultValue:
+                      "Runs you start are paid with your own key and do not count towards the lab's monthly caps. Remove it to go back to the lab's key. The key stays in this browser tab.",
+                  })
+                : t('lab.app.header.keyDialogRequired', {
+                    defaultValue:
+                      'This lab has no key of its own: your runs are paid with your key. It stays in this browser tab and is sent only with your runs.',
+                  })
+            }
+          />
+        </Suspense>
+      )}
+    </>
   );
 };
 
@@ -151,6 +216,7 @@ export const LabHeader: React.FC = () => {
       </nav>
       <div className="ml-auto flex min-w-0 items-center gap-4">
         <BaseChips bases={home.bases} />
+        <LabKeyChip labKey={home.labKey} />
         <MonthMeter meter={home.meters.user} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

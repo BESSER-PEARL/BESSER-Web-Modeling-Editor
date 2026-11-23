@@ -5057,7 +5057,13 @@
         "meterTitle": "What your lab runs cost this month",
         "settings": "Settings and usage",
         "signOut": "Sign out",
-        "title": "BESSER Lab"
+        "title": "BESSER Lab",
+        "keyOwn": "Your key: {{provider}}",
+        "keyLab": "Lab's key",
+        "keyMissing": "Add your API key",
+        "keyTitle": "The API key your runs are paid with. Click to change it.",
+        "keyDialogOptional": "Runs you start are paid with your own key and do not count towards the lab's monthly caps. Remove it to go back to the lab's key. The key stays in this browser tab.",
+        "keyDialogRequired": "This lab has no key of its own: your runs are paid with your key. It stays in this browser tab and is sent only with your runs."
       },
       "home": {
         "composerLabel": "Describe the change",

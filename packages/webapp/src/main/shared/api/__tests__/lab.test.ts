@@ -26,6 +26,7 @@ import {
   openLabPullRequests,
   refreshLabBases,
   restartLabPreview,
+  labLlmKey,
   startLabRun,
   takeLabPreviewSlot,
   touchLabPreviewSlot,
@@ -156,9 +157,27 @@ describe('startLabRun', () => {
       changeId: CHANGE,
       review: { task: 'fix_ci', repo: 'frontend', commentIds: [] },
       issue: { repo: 'besser', number: 744 },
+      llm: null,
     });
     expect(events.map((event) => event.event)).toEqual(['start', 'phase', 'done']);
     expect(events[2].lab).toEqual(DONE_LAB);
+  });
+
+  it("sends the user's own key in the body, a local server as openai with its URL", async () => {
+    fetchMock.mockResolvedValue(sse([{ event: 'done', lab: DONE_LAB }]));
+    const own = labLlmKey({ provider: 'gateway', apiKey: 'cc-key-0123456789', model: 'model-x' });
+    expect(own).toEqual({ provider: 'gateway', api_key: 'cc-key-0123456789', llm_model: 'model-x', base_url: null });
+    expect(labLlmKey({ provider: 'local', apiKey: 'none', baseUrl: 'http://localhost:11434/v1' })).toEqual({
+      provider: 'openai', api_key: 'none', llm_model: null, base_url: 'http://localhost:11434/v1',
+    });
+    expect(labLlmKey(null)).toBeNull();
+
+    await collect<LabStreamEvent>(startLabRun({ message: 'Go', githubSession: SESSION, changeId: CHANGE, llm: own }).events);
+    const { url, init } = lastCall();
+    expect(JSON.parse(init.body as string).llm).toEqual(own);
+    // Only in the body: never in the URL or a header.
+    expect(url).not.toContain('cc-key');
+    expect(JSON.stringify(init.headers)).not.toContain('cc-key');
   });
 
   it('defaults to the auto action, no project, no review task and no issue', async () => {
@@ -173,6 +192,7 @@ describe('startLabRun', () => {
       changeId: CHANGE,
       review: null,
       issue: null,
+      llm: null,
     });
   });
 

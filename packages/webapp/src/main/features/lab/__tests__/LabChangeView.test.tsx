@@ -114,6 +114,7 @@ const HOME = (login: string, isAdmin = false): LabHomeResponse => ({
   previewSlots: 1,
   linkMode: 'reflink',
   memory: { enabled: true, reason: '', count: 0, max: 60 },
+  labKey: true,
 });
 
 const classModel = (...classNames: string[]) => ({

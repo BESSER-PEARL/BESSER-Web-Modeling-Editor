@@ -9439,6 +9439,10 @@
           },
           "memory": {
             "$ref": "#/components/schemas/LabMemoryInfo"
+          },
+          "labKey": {
+            "type": "boolean",
+            "title": "Labkey"
           }
         },
         "type": "object",
@@ -9449,7 +9453,8 @@
           "meters",
           "previewSlots",
           "linkMode",
-          "memory"
+          "memory",
+          "labKey"
         ],
         "title": "LabHomeResponse",
         "description": "Response of ``GET /lab/home``: who is signed in and what the lab can do now."
@@ -9551,6 +9556,59 @@
         ],
         "title": "LabLimitsView",
         "description": "The lab's limits, as the server is configured."
+      },
+      "LabLlmKey": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai",
+              "mistral",
+              "nebius",
+              "pia",
+              "gateway"
+            ],
+            "title": "Provider"
+          },
+          "api_key": {
+            "type": "string",
+            "format": "password",
+            "title": "Api Key",
+            "writeOnly": true
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "api_key"
+        ],
+        "title": "LabLlmKey",
+        "description": "The signed-in user's own LLM key for one run, as the editor's key dialog stores it.\n\n``api_key`` is a ``SecretStr``: it is passed to the LLM client and nowhere else (not the thread, the audit\nlog or a run record). A run that carries one is paid by its owner and does not count towards the lab's\nmonthly caps. ``pia`` and ``gateway`` take their endpoint from the server's model catalog."
       },
       "LabMemoryInfo": {
         "properties": {
@@ -9655,6 +9713,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/LabIssueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "llm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LabLlmKey"
               },
               {
                 "type": "null"

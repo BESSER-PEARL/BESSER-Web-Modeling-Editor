@@ -11,6 +11,7 @@ import { ApiError, apiClient, GITHUB_SESSION_REJECTED_EVENT, type ApiRequestOpti
 import type { components } from './generated/besser-openapi';
 import { SseHttpError, streamSse } from './sseClient';
 import { LAB_MESSAGE_ENDPOINT } from '../constants/constant';
+import type { LlmKey } from '../services/llmKeyStorage';
 
 type Schemas = components['schemas'];
 
@@ -141,6 +142,21 @@ export interface StartLabRunParams {
   review?: LabReviewTask | null;
   /** The issue the change starts from. */
   issue?: LabIssueRef | null;
+  /** The user's own key ({@link labLlmKey}); null runs on the lab's key. */
+  llm?: LabLlmKey | null;
+}
+
+export type LabLlmKey = components['schemas']['LabLlmKey'];
+
+/**
+ * The stored key as a lab run sends it, or null without one. 'local' is the user's OpenAI-compatible server:
+ * it travels as `openai` plus its URL, as for the Spec-Driven Agent.
+ */
+export function labLlmKey(key: LlmKey | null): LabLlmKey | null {
+  if (!key) return null;
+  const shared = { api_key: key.apiKey, llm_model: key.model ?? null };
+  if (key.provider === 'local') return { ...shared, provider: 'openai', base_url: key.baseUrl ?? null };
+  return { ...shared, provider: key.provider, base_url: null };
 }
 
 /** The backend emits a `cost` event every few seconds, so a minute without a byte is a dead transport. */
@@ -199,6 +215,7 @@ export function startLabRun<E = LabStreamEvent>(params: StartLabRunParams): LabR
     changeId: params.changeId,
     review: params.review ?? null,
     issue: params.issue ?? null,
+    llm: params.llm ?? null,
   };
   const events = streamSse<E>(LAB_MESSAGE_ENDPOINT, body, {
     signal: controller.signal,

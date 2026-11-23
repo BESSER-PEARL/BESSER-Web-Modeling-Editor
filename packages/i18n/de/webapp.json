@@ -5057,7 +5057,13 @@
         "meterTitle": "Was deine Lab-Läufe diesen Monat kosten",
         "settings": "Einstellungen und Verbrauch",
         "signOut": "Abmelden",
-        "title": "BESSER Lab"
+        "title": "BESSER Lab",
+        "keyOwn": "Ihr Schlüssel: {{provider}}",
+        "keyLab": "Schlüssel des Labs",
+        "keyMissing": "API-Schlüssel hinzufügen",
+        "keyTitle": "Der API-Schlüssel, mit dem Ihre Läufe bezahlt werden. Klicken, um ihn zu ändern.",
+        "keyDialogOptional": "Läufe, die Sie starten, werden mit Ihrem eigenen Schlüssel bezahlt und zählen nicht zu den Monatsgrenzen des Labs. Entfernen Sie ihn, um wieder den Schlüssel des Labs zu nutzen. Der Schlüssel bleibt in diesem Browser-Tab.",
+        "keyDialogRequired": "Dieses Lab hat keinen eigenen Schlüssel: Ihre Läufe werden mit Ihrem Schlüssel bezahlt. Er bleibt in diesem Browser-Tab und wird nur mit Ihren Läufen gesendet."
       },
       "home": {
         "composerLabel": "Beschreibe die Änderung",

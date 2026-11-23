@@ -5057,7 +5057,13 @@
         "meterTitle": "Lo que cuestan tus ejecuciones del lab este mes",
         "settings": "Ajustes y consumo",
         "signOut": "Cerrar sesión",
-        "title": "BESSER Lab"
+        "title": "BESSER Lab",
+        "keyOwn": "Su clave: {{provider}}",
+        "keyLab": "Clave del lab",
+        "keyMissing": "Añada su clave de API",
+        "keyTitle": "La clave de API con la que se pagan sus ejecuciones. Haga clic para cambiarla.",
+        "keyDialogOptional": "Las ejecuciones que inicia se pagan con su propia clave y no cuentan para los límites mensuales del lab. Elimínela para volver a la clave del lab. La clave se queda en esta pestaña del navegador.",
+        "keyDialogRequired": "Este lab no tiene clave propia: sus ejecuciones se pagan con su clave. Se queda en esta pestaña del navegador y solo se envía con sus ejecuciones."
       },
       "home": {
         "composerLabel": "Describe el cambio",

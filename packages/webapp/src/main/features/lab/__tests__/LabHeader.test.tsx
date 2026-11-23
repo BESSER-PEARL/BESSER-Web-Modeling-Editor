@@ -1,10 +1,11 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getLabHome, type LabBase, type LabHomeResponse, type LabMeter } from '../../../shared/api/lab';
 import { resetGitHubAuthForTests, signInToGitHubForTests } from '../../../shared/services/github/githubAuth';
 import { LabAuthGate } from '../LabAuthGate';
+import { clearLlmKey, writeLlmKey } from '../../../shared/services/llmKeyStorage';
 import { LabHeader, meterLevel } from '../LabHeader';
 
 vi.mock('../../../shared/services/labConfig', () => ({ resolveLabEnabled: vi.fn(async () => true) }));
@@ -33,6 +34,7 @@ function home(user: LabMeter, bases: LabBase[]): LabHomeResponse {
     previewSlots: 1,
     linkMode: 'reflink',
     memory: { enabled: true, reason: '', count: 0, max: 60 },
+    labKey: true,
   };
 }
 
@@ -59,6 +61,28 @@ beforeEach(() => {
   signInToGitHubForTests('gh-session-0123456789', 'ana');
 });
 afterEach(cleanup);
+
+describe('LabHeader key chip', () => {
+  afterEach(() => clearLlmKey());
+
+  it("says whose key pays the next run: the lab's, the user's own once saved, or none yet", async () => {
+    await renderHeader(home({ spentUsd: 0, reservedUsd: 0, capUsd: 75 }, UPSTREAM_BASES));
+    const chip = screen.getByTestId('lab-key-chip');
+    expect(chip).toHaveTextContent("Lab's key");
+    act(() => {
+      writeLlmKey('anthropic', 'sk-ant-test-0123456789');
+    });
+    expect(chip).toHaveTextContent('Your key: Anthropic');
+    expect(chip.textContent).not.toContain('sk-ant');
+    act(() => clearLlmKey());
+    expect(chip).toHaveTextContent("Lab's key");
+  });
+
+  it('asks for a key on a lab that has none of its own', async () => {
+    await renderHeader({ ...home({ spentUsd: 0, reservedUsd: 0, capUsd: 75 }, UPSTREAM_BASES), labKey: false });
+    expect(screen.getByTestId('lab-key-chip')).toHaveTextContent('Add your API key');
+  });
+});
 
 describe('LabHeader', () => {
   it("shows the lab's name, the base commits and no fork chip for the BESSER-PEARL repositories", async () => {

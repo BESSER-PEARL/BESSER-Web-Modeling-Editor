@@ -3735,6 +3735,8 @@ export interface components {
              */
             linkMode: "reflink" | "hardlink";
             memory: components["schemas"]["LabMemoryInfo"];
+            /** Labkey */
+            labKey: boolean;
         };
         /**
          * LabIssue
@@ -3785,6 +3787,30 @@ export interface components {
             baseRefreshMinutes: number;
         };
         /**
+         * LabLlmKey
+         * @description The signed-in user's own LLM key for one run, as the editor's key dialog stores it.
+         *
+         *     ``api_key`` is a ``SecretStr``: it is passed to the LLM client and nowhere else (not the thread, the audit
+         *     log or a run record). A run that carries one is paid by its owner and does not count towards the lab's
+         *     monthly caps. ``pia`` and ``gateway`` take their endpoint from the server's model catalog.
+         */
+        LabLlmKey: {
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "anthropic" | "openai" | "mistral" | "nebius" | "pia" | "gateway";
+            /**
+             * Api Key
+             * Format: password
+             */
+            api_key: string;
+            /** Llm Model */
+            llm_model?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+        };
+        /**
          * LabMemoryInfo
          * @description Whether the team memory is on, and how full it is.
          */
@@ -3828,6 +3854,7 @@ export interface components {
             changeId: string;
             review?: components["schemas"]["LabReviewTask"] | null;
             issue?: components["schemas"]["LabIssueRef"] | null;
+            llm?: components["schemas"]["LabLlmKey"] | null;
         };
         /**
          * LabMeter

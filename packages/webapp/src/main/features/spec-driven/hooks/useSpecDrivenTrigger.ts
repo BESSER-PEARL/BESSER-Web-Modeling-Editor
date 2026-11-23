@@ -113,6 +113,7 @@ import {
   readFreeTierModel,
   readFreeTierSelected,
   readLlmBudget,
+  readLlmKey,
   writeFreeTierSelected,
 } from '../../../shared/services/llmKeyStorage';
 import {
@@ -1904,6 +1905,8 @@ export function useSpecDrivenTrigger(
             changeId,
             review,
             issue,
+            // The user's own key when one is saved; without one the run is on the lab's key.
+            llm: labApi.labLlmKey(readLlmKey()),
           });
           return {
             ...handle,

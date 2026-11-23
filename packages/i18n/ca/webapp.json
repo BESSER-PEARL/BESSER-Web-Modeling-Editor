@@ -5057,7 +5057,13 @@
         "meterTitle": "El que costen aquest mes les teves execucions del lab",
         "settings": "Configuració i consum",
         "signOut": "Tanca la sessió",
-        "title": "BESSER Lab"
+        "title": "BESSER Lab",
+        "keyOwn": "La vostra clau: {{provider}}",
+        "keyLab": "Clau del lab",
+        "keyMissing": "Afegiu la vostra clau d'API",
+        "keyTitle": "La clau d'API amb què es paguen les vostres execucions. Feu clic per canviar-la.",
+        "keyDialogOptional": "Les execucions que inicieu es paguen amb la vostra clau i no compten per als límits mensuals del lab. Suprimiu-la per tornar a la clau del lab. La clau es queda en aquesta pestanya del navegador.",
+        "keyDialogRequired": "Aquest lab no té clau pròpia: les vostres execucions es paguen amb la vostra clau. Es queda en aquesta pestanya del navegador i només s'envia amb les vostres execucions."
       },
       "home": {
         "composerLabel": "Descriu el canvi",

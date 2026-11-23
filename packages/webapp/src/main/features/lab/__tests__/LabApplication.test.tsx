@@ -26,6 +26,7 @@ const HOME: LabHomeResponse = {
   previewSlots: 1,
   linkMode: 'reflink',
   memory: { enabled: true, reason: '', count: 0, max: 60 },
+  labKey: true,
 };
 
 /** A promise and the function that settles it. */
