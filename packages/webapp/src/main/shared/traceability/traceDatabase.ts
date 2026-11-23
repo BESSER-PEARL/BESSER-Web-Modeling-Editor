@@ -100,7 +100,15 @@ export function indexedDbTraceStorage(factory: IDBFactory = indexedDB): TraceSto
             transaction.abort();
           });
           transaction.oncomplete = () => resolve(result());
-          transaction.onerror = transaction.onabort = () => reject(failure ?? transaction.error);
+          // A failed request (a put over the quota) reaches `onerror` before the transaction has its error:
+          // take the request's, so the caller can tell a full storage from other failures.
+          transaction.onerror = transaction.onabort = (event) =>
+            reject(
+              failure ??
+                transaction.error ??
+                (event.target as IDBRequest | null)?.error ??
+                new DOMException('The trace storage transaction failed.', 'AbortError'),
+            );
         }),
     );
 
