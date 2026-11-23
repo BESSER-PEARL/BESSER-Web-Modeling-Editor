@@ -315,6 +315,22 @@ describe('the end of a run, seen from a hidden tab', () => {
     expect(document.title).toBe('(Done) BESSER');
   });
 
+  it('marks a run that finished with real blockers as such, not as done', async () => {
+    const id = '4'.repeat(32);
+    await runWith(
+      [
+        start(id),
+        async () => {
+          visibility = 'hidden';
+        },
+        done({ incomplete: false, blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 1 }, id),
+      ],
+      'Build a task board.',
+      id,
+    );
+    expect(document.title).toBe('(Blockers remain) BESSER');
+  });
+
   it('marks a failed run too', async () => {
     const id = '3'.repeat(32);
     await runWith(
@@ -517,6 +533,23 @@ describe('the summary after a run that could not show it works', () => {
       '⚠️ Generated **40** files, but **2 unresolved implementation or verification issues** remain. '
       + '3 checks could not be confirmed. Use the **Download** button on the run card to save the code as-is.',
     );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith(
+      'Generation finished with 2 unresolved blockers — output available to inspect',
+    );
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
+  });
+
+  it('warns of the real blocker of an edit, not that it is ready', async () => {
+    const id = '8'.repeat(32);
+    await runWith(
+      [start(id), done({ mode: 'modify', changedFileCount: 2, incomplete: false, blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 1 }, id)],
+      'Fix the save button.',
+      id,
+    );
+    expect(vi.mocked(toast.warning)).toHaveBeenCalledWith(
+      'Update finished with 1 unresolved blocker — output available to inspect',
+    );
+    expect(vi.mocked(toast.success)).not.toHaveBeenCalled();
   });
 
   it('reads an older backend exactly as before', async () => {

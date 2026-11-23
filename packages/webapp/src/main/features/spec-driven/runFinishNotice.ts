@@ -7,7 +7,7 @@
 import i18n from '../../shared/i18n';
 import { readNotifyOnFinish, writeNotifyOnFinish } from './storage';
 
-export type RunFinishOutcome = 'success' | 'incomplete' | 'failed';
+export type RunFinishOutcome = 'success' | 'incomplete' | 'unresolved' | 'failed';
 
 function notificationApi(): typeof Notification | null {
   return typeof window !== 'undefined' && typeof window.Notification === 'function' ? window.Notification : null;

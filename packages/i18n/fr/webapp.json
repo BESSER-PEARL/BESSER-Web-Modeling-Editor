@@ -1661,6 +1661,10 @@
       "signInHint": "Connectez GitHub dans cet onglet pour pousser le code généré dans le dépôt.",
       "connectFirst": "Connectez GitHub dans cet onglet pour pousser le code généré ; la carte de l'exécution peut le pousser plus tard.",
       "commitMessage": "Ajouter le code généré par le Spec-Driven Agent de BESSER"
+    },
+    "generatedCode": {
+      "offer": "Conserver aussi ce code sur GitHub ?",
+      "save": "Enregistrer sur GitHub"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Génération terminée avec succès.",
     "exportingProject": "Exportation du projet au format {{format}}…",
     "startingDeployment": "Démarrage du déploiement…",
+    "openingGitHubSave": "Ouverture de « Enregistrer sur GitHub ».",
     "generatingGui": "Génération de l'interface à partir de votre diagramme de classes…",
     "guiGenerated": "✓ Interface générée avec succès à partir de votre diagramme de classes !",
     "convertThisFile": "Convertir ce fichier",
@@ -1948,16 +1953,19 @@
       "titleMarker": {
         "success": "(Terminé)",
         "incomplete": "(Incomplet)",
+        "unresolved": "(Blocages restants)",
         "failed": "(Échec)"
       },
       "notificationTitle": {
         "success": "Génération terminée",
         "incomplete": "Génération incomplète",
+        "unresolved": "Génération terminée avec des blocages",
         "failed": "Échec de la génération"
       },
       "notificationBody": {
         "success": "{{project}} : l'application est prête à être téléchargée.",
         "incomplete": "{{project}} : l'exécution s'est arrêtée avant la fin. Son résultat peut être examiné.",
+        "unresolved": "{{project}} : l'exécution s'est terminée avec des blocages non résolus. Son résultat peut être examiné.",
         "failed": "{{project}} : l'exécution a échoué. Ouvrez l'onglet pour les détails."
       },
       "untitledProject": "Votre projet"

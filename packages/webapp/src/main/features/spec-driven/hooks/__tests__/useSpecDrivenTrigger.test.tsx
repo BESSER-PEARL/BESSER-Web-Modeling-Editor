@@ -439,6 +439,33 @@ describe('useSpecDrivenTrigger — run ownership across tabs', () => {
     expect(window.localStorage.getItem(localStorageSpecDrivenActiveRunV1)).not.toBeNull();
   });
 
+  it('does not adopt its own run after a reload when another tab started one on this project meanwhile', async () => {
+    // Before: the reloaded tab adopted its run anyway, so two runs were the project's base.
+    const runId = 'c'.repeat(32);
+    installFakeLocks(['besser_spec_driven_project_test-project']);
+    window.localStorage.setItem(
+      localStorageSpecDrivenActiveRunV1,
+      JSON.stringify({
+        version: 1,
+        runId,
+        projectId: 'test-project',
+        lastSequence: 0,
+        startedAt: Date.now() - 1_000,
+      }),
+    );
+    _mockController.followEvents = [{ event: 'phase', phase: 'generate', message: 'x', sequence: 1 }];
+
+    const { apiRef, store } = renderHarness();
+    await waitFor(() =>
+      expect((apiRef.current!.getMessages() as any[]).some((m) => m.isError && m.content?.includes('in another tab'))).toBe(true),
+    );
+
+    const client = await import('../../services/specDrivenSseClient');
+    expect(vi.mocked(client.followSpecDrivenRun)).not.toHaveBeenCalled();
+    expect((apiRef.current!.getMessages() as any[]).some((m) => m.specDriven)).toBe(false);
+    expect(store.getState().specDriven.runStatus).toBe('idle');
+  });
+
   it('holds ownership of its own run until the run ends', async () => {
     const runId = 'a'.repeat(32);
     const { held, requests } = installFakeLocks();

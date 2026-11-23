@@ -368,9 +368,16 @@ describe('run card — not verified, not confirmed and real blockers', () => {
 
   it('shows the real blockers as blockers and the rest as not confirmed', () => {
     renderCard(finished({ blockerCount: 5, notConfirmedCount: 3, unresolvedBlockerCount: 2 }));
-    expect(headline(/Application ready/)).toBe(
-      'Application ready· 2 unresolved blockers· 3 could not be confirmed',
+    expect(headline(/— blockers remain/)).toBe(
+      'Generated — blockers remain· 2 unresolved blockers· 3 could not be confirmed',
     );
+    expect(screen.queryByText('Application ready')).toBeNull();
+  });
+
+  it('never heads a complete run with real blockers as ready, for an edit either', () => {
+    renderCard(finished({ runMode: 'modify', blockerCount: 1, notConfirmedCount: 0, unresolvedBlockerCount: 1 }));
+    expect(headline(/— blockers remain/)).toBe('Updated — blockers remain· 1 unresolved blocker');
+    expect(screen.queryByText('Application ready')).toBeNull();
   });
 
   it('takes the real blockers from the count when the server sends it, not from blockerCount', () => {

@@ -1661,6 +1661,10 @@
       "signInHint": "Conecta GitHub en esta pestaña para enviar el código generado al repositorio.",
       "connectFirst": "Conecta GitHub en esta pestaña para enviar el código generado; la tarjeta de la ejecución puede enviarlo más tarde.",
       "commitMessage": "Añadir el código generado por el Spec-Driven Agent de BESSER"
+    },
+    "generatedCode": {
+      "offer": "¿Guardar también este código en GitHub?",
+      "save": "Guardar en GitHub"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generación completada correctamente.",
     "exportingProject": "Exportando el proyecto como {{format}}…",
     "startingDeployment": "Iniciando el despliegue…",
+    "openingGitHubSave": "Abriendo «Guardar en GitHub».",
     "generatingGui": "Generando la interfaz a partir de tu diagrama de clases…",
     "guiGenerated": "✓ ¡Interfaz generada correctamente a partir de tu diagrama de clases!",
     "convertThisFile": "Convertir este archivo",
@@ -1948,16 +1953,19 @@
       "titleMarker": {
         "success": "(Listo)",
         "incomplete": "(Incompleto)",
+        "unresolved": "(Bloqueos pendientes)",
         "failed": "(Error)"
       },
       "notificationTitle": {
         "success": "Generación terminada",
         "incomplete": "Generación incompleta",
+        "unresolved": "Generación terminada con bloqueos",
         "failed": "La generación falló"
       },
       "notificationBody": {
         "success": "{{project}}: la aplicación está lista para descargar.",
         "incomplete": "{{project}}: la ejecución se detuvo antes de tiempo. Su resultado se puede revisar.",
+        "unresolved": "{{project}}: la ejecución terminó con bloqueos sin resolver. Su resultado se puede revisar.",
         "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
       },
       "untitledProject": "Tu proyecto"

@@ -319,7 +319,13 @@ export function useSpecDrivenTrigger(
     if (result.errorCode !== 'CANCELLED' && !result.stoppedByUser) {
       announceRunFinished(
         runProjectNameRef.current,
-        result.ok ? (result.incomplete ? 'incomplete' : 'success') : 'failed',
+        !result.ok
+          ? 'failed'
+          : result.incomplete
+            ? 'incomplete'
+            : (result.unresolvedBlockerCount ?? 0) > 0
+              ? 'unresolved'
+              : 'success',
       );
     }
     try {
@@ -828,6 +834,10 @@ export function useSpecDrivenTrigger(
               toast.warning(`${edited ? 'Update' : 'Generation'} not verified — output available to inspect`);
             } else if (incomplete) {
               toast.warning(`${edited ? 'Update' : 'Generation'} incomplete — output available to inspect`);
+            } else if (realBlockerCount !== undefined && unresolved > 0) {
+              toast.warning(
+                `${edited ? 'Update' : 'Generation'} finished with ${unresolved} unresolved blocker${unresolved === 1 ? '' : 's'} — output available to inspect`,
+              );
             } else {
               toast.success('Spec-Driven Agent finished -- ready to download');
             }
@@ -989,14 +999,24 @@ export function useSpecDrivenTrigger(
       });
       if (!releaseOwnership) return;
       // The adopted run is this project's run: no other tab starts one meanwhile.
-      const releaseProject = (await claimSpecDrivenProjectRun(saved.projectId)) ?? (() => {});
+      const releaseProject = await claimSpecDrivenProjectRun(saved.projectId);
       if (
         isRunningRef.current ||
         currentProjectRef.current?.id !== saved.projectId ||
         !dispatch(tryClaimRunSlot())
       ) {
         releaseOwnership();
-        releaseProject();
+        releaseProject?.();
+        return;
+      }
+      // Another tab started a run on this project while this one reloaded:
+      // adopting this run too would make two runs the project's base.
+      if (!releaseProject) {
+        dispatch(releaseRunSlot());
+        releaseOwnership();
+        appendErrorToChat(
+          'Spec-Driven Agent is already running on this project in another tab — please wait for it to finish there.',
+        );
         return;
       }
 

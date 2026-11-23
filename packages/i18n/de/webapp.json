@@ -1661,6 +1661,10 @@
       "signInHint": "Verbinde GitHub in diesem Tab, um generierten Code in das Repository zu pushen.",
       "connectFirst": "Verbinde GitHub in diesem Tab, um den generierten Code zu pushen; die Laufkarte kann ihn später pushen.",
       "commitMessage": "Vom BESSER Spec-Driven Agent generierten Code hinzufügen"
+    },
+    "generatedCode": {
+      "offer": "Diesen Code auch auf GitHub sichern?",
+      "save": "Auf GitHub speichern"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generierung erfolgreich abgeschlossen.",
     "exportingProject": "Projekt wird als {{format}} exportiert…",
     "startingDeployment": "Bereitstellung wird gestartet…",
+    "openingGitHubSave": "„Auf GitHub speichern“ wird geöffnet.",
     "generatingGui": "GUI wird aus Ihrem Klassendiagramm generiert…",
     "guiGenerated": "✓ GUI erfolgreich aus Ihrem Klassendiagramm generiert!",
     "convertThisFile": "Diese Datei umwandeln",
@@ -1948,16 +1953,19 @@
       "titleMarker": {
         "success": "(Fertig)",
         "incomplete": "(Unvollständig)",
+        "unresolved": "(Blocker offen)",
         "failed": "(Fehlgeschlagen)"
       },
       "notificationTitle": {
         "success": "Generierung abgeschlossen",
         "incomplete": "Generierung unvollständig",
+        "unresolved": "Generierung mit offenen Blockern abgeschlossen",
         "failed": "Generierung fehlgeschlagen"
       },
       "notificationBody": {
         "success": "{{project}}: Die Anwendung steht zum Herunterladen bereit.",
         "incomplete": "{{project}}: Der Lauf wurde vorzeitig beendet. Das Ergebnis kann geprüft werden.",
+        "unresolved": "{{project}}: Der Lauf endete mit ungelösten Blockern. Das Ergebnis kann geprüft werden.",
         "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
       },
       "untitledProject": "Ihr Projekt"

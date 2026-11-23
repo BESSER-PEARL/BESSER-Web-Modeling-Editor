@@ -103,13 +103,18 @@ export interface AnalyticsEvents {
   /** Output is available; `outcome` says whether it is fully verified. */
   spec_run_completed: SpecRunProperties &
     SpecRunOutcome & {
-      outcome: 'success' | 'incomplete' | 'unenforced';
+      outcome: 'success' | 'incomplete' | 'unenforced' | 'unverified' | 'unresolved';
       generator_used?: string;
       file_count?: number;
       changed_file_count?: number;
       tokens_used?: number;
       is_zip?: boolean;
+      /** The server's padded count, kept for continuity: use `unresolved_blocker_count`. */
       blocker_count: number;
+      unverified: boolean;
+      not_confirmed_count?: number;
+      /** Undefined when an older backend sends too little to tell. */
+      unresolved_blocker_count?: number;
       /** Exercised by a call to the running app (before `found_in_code` existed, also source citations). */
       verified?: number;
       /** Implemented with a cited source that nothing ran. */

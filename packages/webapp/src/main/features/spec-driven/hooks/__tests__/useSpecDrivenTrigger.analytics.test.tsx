@@ -181,6 +181,51 @@ describe('Spec-Driven run analytics', () => {
     expect((completed as { found_in_code?: number }).found_in_code).toBeUndefined();
   });
 
+  const doneWith = (fields: string) =>
+    `event: done\ndata: {"event":"done","runId":"${RUN_ID}",` +
+    `"downloadUrl":"/besser_api/spec-driven/download/${RUN_ID}",` +
+    `"fileName":"out.zip","isZip":true,"recipe":{},${fields}}\n\n`;
+
+  it('tells a run that is not verified apart from a success, with the real counts', async () => {
+    await runOnce(streamOf([START_FRAME, doneWith(
+      '"incomplete":false,"blockerCount":3,"notConfirmedCount":2,"unresolvedBlockerCount":0,' +
+      '"unverified":true,"unverifiedReason":"Acme app never started"',
+    )]));
+
+    const completed = sent('spec_run_completed')[0];
+    expect(completed).toMatchObject({
+      outcome: 'unverified',
+      unverified: true,
+      not_confirmed_count: 2,
+      unresolved_blocker_count: 0,
+      blocker_count: 3,
+    });
+    expect(JSON.stringify(completed)).not.toMatch(/Acme/);
+  });
+
+  it('tells a run left with real blockers apart from a success', async () => {
+    await runOnce(streamOf([START_FRAME, doneWith(
+      '"incomplete":false,"blockerCount":5,"notConfirmedCount":3,"unresolvedBlockerCount":2',
+    )]));
+
+    expect(sent('spec_run_completed')[0]).toMatchObject({
+      outcome: 'unresolved',
+      unverified: false,
+      not_confirmed_count: 3,
+      unresolved_blocker_count: 2,
+      blocker_count: 5,
+    });
+  });
+
+  it('keeps a run from an older backend a success, with no counts it cannot know', async () => {
+    await runOnce(streamOf([START_FRAME, doneWith('"incomplete":false,"blockerCount":2')]));
+
+    const completed = sent('spec_run_completed')[0] as Record<string, unknown>;
+    expect(completed).toMatchObject({ outcome: 'success', unverified: false, blocker_count: 2 });
+    expect(completed.not_confirmed_count).toBeUndefined();
+    expect(completed.unresolved_blocker_count).toBeUndefined();
+  });
+
   it('reports a server error as failed at the server stage, without its message', async () => {
     await runOnce(streamOf([START_FRAME, ERROR_FRAME]));
 
