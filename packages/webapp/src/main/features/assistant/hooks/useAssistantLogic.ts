@@ -106,6 +106,7 @@ import {
   unresolvedBlockerCount,
 } from '../../spec-driven';
 import type { TriggerSpecDrivenPayload } from '../../spec-driven';
+import { openSaveToGitHub } from '../../github';
 import {
   continueFromGithubRepo,
   describeOpenedRepo,
@@ -1221,6 +1222,15 @@ export function useAssistantLogic({
           config: payload.config ?? {},
         },
       }));
+      return;
+    }
+
+    if (payload.action === 'trigger_github_save') {
+      const msg = typeof payload.message === 'string' && payload.message.trim()
+        ? payload.message
+        : t('assistant.openingGitHubSave', { defaultValue: 'Opening Save to GitHub.' });
+      setMessages((prev) => [...prev, toKitMessage('assistant', msg)]);
+      openSaveToGitHub(dispatch, selectProjectId(store.getState()) ?? null);
       return;
     }
 
