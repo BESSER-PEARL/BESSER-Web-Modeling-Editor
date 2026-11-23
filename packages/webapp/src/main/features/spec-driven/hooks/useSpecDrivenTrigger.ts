@@ -999,14 +999,24 @@ export function useSpecDrivenTrigger(
       });
       if (!releaseOwnership) return;
       // The adopted run is this project's run: no other tab starts one meanwhile.
-      const releaseProject = (await claimSpecDrivenProjectRun(saved.projectId)) ?? (() => {});
+      const releaseProject = await claimSpecDrivenProjectRun(saved.projectId);
       if (
         isRunningRef.current ||
         currentProjectRef.current?.id !== saved.projectId ||
         !dispatch(tryClaimRunSlot())
       ) {
         releaseOwnership();
-        releaseProject();
+        releaseProject?.();
+        return;
+      }
+      // Another tab started a run on this project while this one reloaded:
+      // adopting this run too would make two runs the project's base.
+      if (!releaseProject) {
+        dispatch(releaseRunSlot());
+        releaseOwnership();
+        appendErrorToChat(
+          'Spec-Driven Agent is already running on this project in another tab — please wait for it to finish there.',
+        );
         return;
       }
 
