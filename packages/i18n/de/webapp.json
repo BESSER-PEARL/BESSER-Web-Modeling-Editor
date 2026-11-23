@@ -5103,7 +5103,7 @@
         "publicEditor": "Den öffentlichen Editor öffnen"
       },
       "signIn": {
-        "body": "Für das BESSER-Team. Melde dich mit GitHub an; das Lab prüft, ob dein Login auf seiner Liste steht.",
+        "body": "Für das BESSER-Team. Melden Sie sich mit GitHub an; das Lab prüft, ob Sie auf seiner Liste stehen oder Mitglied seiner Organisation sind.",
         "button": "Mit GitHub anmelden",
         "heading": "<em>BESSER</em> aus BESSER heraus ändern.",
         "kicker": "BESSER LAB",

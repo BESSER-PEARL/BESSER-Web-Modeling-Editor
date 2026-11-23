@@ -5103,7 +5103,7 @@
         "publicEditor": "Obre l’editor públic"
       },
       "signIn": {
-        "body": "Per a l’equip de BESSER. Inicia la sessió amb GitHub; el lab comprova que el teu login és a la seva llista.",
+        "body": "Per a l'equip de BESSER. Inicieu la sessió amb GitHub; el lab comprova que sou a la seva llista o membre de la seva organització.",
         "button": "Inicia la sessió amb GitHub",
         "heading": "Canvia <em>BESSER</em> des de dins de BESSER.",
         "kicker": "BESSER LAB",

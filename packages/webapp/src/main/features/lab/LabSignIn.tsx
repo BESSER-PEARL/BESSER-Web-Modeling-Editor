@@ -44,7 +44,7 @@ export const LabSignIn: React.FC = () => {
       </h1>
       <p className="lab-rise lab-d3 mt-4 text-muted-foreground">
         {t('lab.app.signIn.body', {
-          defaultValue: 'For the BESSER team. Sign in with GitHub; the lab checks that your login is on its list.',
+          defaultValue: 'For the BESSER team. Sign in with GitHub; the lab checks that you are on its list or a member of its organization.',
         })}
       </p>
       <div className="lab-rise lab-d4 mt-7">

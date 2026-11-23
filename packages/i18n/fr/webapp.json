@@ -5103,7 +5103,7 @@
         "publicEditor": "Ouvrir l’éditeur public"
       },
       "signIn": {
-        "body": "Pour l’équipe BESSER. Connectez-vous avec GitHub ; le lab vérifie que votre identifiant figure sur sa liste.",
+        "body": "Pour l'équipe BESSER. Connectez-vous avec GitHub ; le lab vérifie que vous êtes sur sa liste ou membre de son organisation.",
         "button": "Se connecter avec GitHub",
         "heading": "Modifier <em>BESSER</em> depuis BESSER.",
         "kicker": "BESSER LAB",
