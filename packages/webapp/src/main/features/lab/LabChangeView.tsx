@@ -6,11 +6,15 @@ import type { ApollonEditor } from '@besser/wme';
 import {
   CircleAlert,
   Copy,
+  FileDiff,
   GitBranch,
   GitPullRequest,
+  LayoutList,
   Loader2,
+  MessageSquare,
   MoreHorizontal,
   Play,
+  Shapes,
   RefreshCw,
   Trash2,
   Upload,
@@ -27,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { navButtonClass, SidebarToggleIcon } from '../../app/shell/workspace-navigation';
 import { useAppSelector } from '../../app/store/hooks';
 import {
   dropLabChange,
@@ -36,6 +41,7 @@ import {
 } from '../../shared/api/lab';
 import { cancelSpecDrivenRun } from '../../shared/api/specDriven';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import { useIsDarkTheme } from '../../shared/hooks/useIsDarkTheme';
 import { reportError } from '../../shared/services/errors/reportError';
 import {
   getOpenLabChange,
@@ -61,6 +67,12 @@ export type LabChangeTab = 'model' | 'changes' | 'try';
 const TABS: readonly LabChangeTab[] = ['model', 'changes', 'try'];
 /** Width from which chat and tabs sit side by side (Tailwind `lg`); below it one segmented control switches. */
 const WIDE_QUERY = '(min-width: 1024px)';
+
+const TAB_ICON: Record<LabChangeTab, React.ComponentType<{ className?: string }>> = {
+  model: Shapes,
+  changes: FileDiff,
+  try: Play,
+};
 
 const isTab = (value: string | null): value is LabChangeTab => TABS.includes(value as LabChangeTab);
 
@@ -127,9 +139,9 @@ const LabModelTab: React.FC<{ changeId: string }> = ({ changeId }) => {
 };
 
 /**
- * The change at `/c/:changeId`: its header (title, kind, phase, owner, branch, the pull-request action and the
- * overflow menu), the "development moved" strip, the chat of its thread, and the tabs Model, Changes and Try it
- * (`?tab=model|changes|try`). It is the tab's open change while mounted; cards in the chat open its views through
+ * The change at `/c/:changeId`, laid out like the editor: a sidebar that switches between Model, Changes and Try it
+ * (`?tab=model|changes|try`), the view itself under a strip with the change's title, state, branch and pull-request
+ * action, and the conversation docked on the right. It is the tab's open change while mounted; cards in the chat open its views through
  * `requestLabView`, and the home's first message (`labStart`) is sent once.
  */
 export const LabChangeView: React.FC = () => {
@@ -152,6 +164,9 @@ export const LabChangeView: React.FC = () => {
   const [pullRequestOpen, setPullRequestOpen] = useState(false);
   const [diff, setDiff] = useState<{ open: boolean; file?: LabDiffFileRef }>({ open: false });
   const [busy, setBusy] = useState<string | null>(null);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [chatOpen, setChatOpen] = useState(true);
+  const dark = useIsDarkTheme();
 
   const hasModel = projectHasModel || (change ? latestThreadModel(change.thread) !== null : false);
   const defaultTab: LabChangeTab =
@@ -366,116 +381,136 @@ export const LabChangeView: React.FC = () => {
         : t('lab.change.tab.try', { defaultValue: 'Try it' });
   const rightPaneShown = wide || !narrowShowsChat;
 
-  return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-            <h1 className="max-w-[40ch] truncate font-display text-2xl leading-tight text-foreground" title={ready.title}>
-              {ready.title || t('lab.change.newChange', { defaultValue: 'New change' })}
-            </h1>
-            <Pill className="border-border bg-background font-mono text-muted-foreground">
-              {t(`lab.kinds.${ready.kind}`, { defaultValue: ready.kind.replace('_', ' ') })}
-            </Pill>
-            <Pill className={PHASE_TONE[ready.phase]}>{phaseLabel(ready.phase)}</Pill>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <LabAvatar login={ready.owner} />
-              {t('lab.change.startedBy', { defaultValue: 'Started by @{{login}}', login: ready.owner })}
+  // The strip above the view, where the editor has its diagram tabs: what the change is and what to do with it.
+  const strip = (
+    <div className="shrink-0 border-b border-brand/12 bg-card/80 px-3 py-1.5 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+          <h1 className="max-w-[44ch] truncate text-sm font-medium text-foreground" title={ready.title}>
+            {ready.title || t('lab.change.newChange', { defaultValue: 'New change' })}
+          </h1>
+          <Pill className="border-border bg-background font-mono text-muted-foreground">
+            {t(`lab.kinds.${ready.kind}`, { defaultValue: ready.kind.replace('_', ' ') })}
+          </Pill>
+          <Pill className={PHASE_TONE[ready.phase]}>{phaseLabel(ready.phase)}</Pill>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <LabAvatar login={ready.owner} />
+            {t('lab.change.startedBy', { defaultValue: 'Started by @{{login}}', login: ready.owner })}
+          </span>
+          {branch && (
+            <span className="inline-flex min-w-0 items-center gap-1 font-mono text-xs text-muted-foreground">
+              <GitBranch className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{branch}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                aria-label={t('lab.change.copyBranch', { defaultValue: 'Copy the branch name' })}
+                onClick={copyBranch}
+              >
+                <Copy className="size-3.5" aria-hidden />
+              </Button>
             </span>
-            {branch && (
-              <span className="inline-flex min-w-0 items-center gap-1 font-mono text-xs text-muted-foreground">
-                <GitBranch className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate">{branch}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-6"
-                  aria-label={t('lab.change.copyBranch', { defaultValue: 'Copy the branch name' })}
-                  onClick={copyBranch}
-                >
-                  <Copy className="size-3.5" aria-hidden />
-                </Button>
-              </span>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {pushed ? (
-              <Button size="sm" disabled={prBlocked} onClick={() => void pushPullRequests()}>
-                {busy === 'push' ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
-                {t('lab.change.pushPullRequests', { defaultValue: 'Push to the pull requests' })}
-              </Button>
-            ) : (
-              <Button size="sm" disabled={prBlocked} onClick={() => setPullRequestOpen(true)}>
-                <GitPullRequest aria-hidden />
-                {t('lab.change.openPullRequest', { defaultValue: 'Open pull request' })}
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="size-8" aria-label={t('lab.change.more', { defaultValue: 'More actions' })}>
-                  <MoreHorizontal aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => selectTab('try')}>
-                  <Play aria-hidden />
-                  {t('lab.change.tryThisChange', { defaultValue: 'Try this change' })}
-                </DropdownMenuItem>
-                {behind.map((base) => (
-                  <DropdownMenuItem key={base.repo} disabled={busy !== null} onSelect={() => void updateFromBase(base.repo)}>
-                    <RefreshCw aria-hidden />
-                    {t('lab.change.updateFrom', {
-                      defaultValue: 'Update {{repo}} from {{branch}}',
-                      repo: labRepoName(t, base.repo),
-                      branch: base.branch,
-                    })}
-                  </DropdownMenuItem>
-                ))}
-                {canDrop && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => void drop()}>
-                      <Trash2 aria-hidden />
-                      {t('lab.change.drop', { defaultValue: 'Drop change...' })}
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          )}
         </div>
-        {behind.length > 0 && (
-          <div data-testid="lab-change-behind" className="mt-3 space-y-1.5 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground">
-            {behind.map((base) => (
-              <p key={base.repo} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {t('lab.change.behind', {
-                    defaultValue: '{{branch}} of {{repo}} moved {{count}} commits since this change started.',
-                    defaultValue_one: '{{branch}} of {{repo}} moved 1 commit since this change started.',
-                    branch: base.branch,
+        <div className="flex shrink-0 items-center gap-1.5">
+          {pushed ? (
+            <Button size="sm" disabled={prBlocked} onClick={() => void pushPullRequests()}>
+              {busy === 'push' ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
+              {t('lab.change.pushPullRequests', { defaultValue: 'Push to the pull requests' })}
+            </Button>
+          ) : (
+            <Button size="sm" disabled={prBlocked} onClick={() => setPullRequestOpen(true)}>
+              <GitPullRequest aria-hidden />
+              {t('lab.change.openPullRequest', { defaultValue: 'Open pull request' })}
+            </Button>
+          )}
+          {wide && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('size-8', chatOpen && 'bg-foreground/[0.06] text-foreground')}
+              aria-pressed={chatOpen}
+              aria-label={
+                chatOpen
+                  ? t('lab.change.hideChat', { defaultValue: 'Hide the conversation' })
+                  : t('lab.change.showChat', { defaultValue: 'Show the conversation' })
+              }
+              onClick={() => setChatOpen((open) => !open)}
+            >
+              <MessageSquare aria-hidden />
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8" aria-label={t('lab.change.more', { defaultValue: 'More actions' })}>
+                <MoreHorizontal aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => selectTab('try')}>
+                <Play aria-hidden />
+                {t('lab.change.tryThisChange', { defaultValue: 'Try this change' })}
+              </DropdownMenuItem>
+              {behind.map((base) => (
+                <DropdownMenuItem key={base.repo} disabled={busy !== null} onSelect={() => void updateFromBase(base.repo)}>
+                  <RefreshCw aria-hidden />
+                  {t('lab.change.updateFrom', {
+                    defaultValue: 'Update {{repo}} from {{branch}}',
                     repo: labRepoName(t, base.repo),
-                    count: base.behind,
+                    branch: base.branch,
                   })}
-                </span>
-                <Button variant="outline" size="xs" disabled={busy !== null} onClick={() => void updateFromBase(base.repo)}>
-                  {busy === `update:${base.repo}` ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />}
-                  {t('lab.change.updateFromBranch', { defaultValue: 'Update from {{branch}}', branch: base.branch })}
-                </Button>
-              </p>
-            ))}
-          </div>
-        )}
-        {state.error !== null && (
-          <p role="alert" className="mt-2 text-xs text-destructive">
-            {t('lab.change.refreshFailed', {
-              defaultValue: 'The change could not be read again: {{error}}. It is shown as last read.',
-              error: describeNetworkError(state.error),
-            })}
-          </p>
-        )}
+                </DropdownMenuItem>
+              ))}
+              {canDrop && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => void drop()}>
+                    <Trash2 aria-hidden />
+                    {t('lab.change.drop', { defaultValue: 'Drop change...' })}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+      {behind.length > 0 && (
+        <div data-testid="lab-change-behind" className="mt-1.5 space-y-1.5 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground">
+          {behind.map((base) => (
+            <p key={base.repo} className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {t('lab.change.behind', {
+                  defaultValue: '{{branch}} of {{repo}} moved {{count}} commits since this change started.',
+                  defaultValue_one: '{{branch}} of {{repo}} moved 1 commit since this change started.',
+                  branch: base.branch,
+                  repo: labRepoName(t, base.repo),
+                  count: base.behind,
+                })}
+              </span>
+              <Button variant="outline" size="xs" disabled={busy !== null} onClick={() => void updateFromBase(base.repo)}>
+                {busy === `update:${base.repo}` ? <Loader2 className="animate-spin" aria-hidden /> : <RefreshCw aria-hidden />}
+                {t('lab.change.updateFromBranch', { defaultValue: 'Update from {{branch}}', branch: base.branch })}
+              </Button>
+            </p>
+          ))}
+        </div>
+      )}
+      {state.error !== null && (
+        <p role="alert" className="mt-1.5 text-xs text-destructive">
+          {t('lab.change.refreshFailed', {
+            defaultValue: 'The change could not be read again: {{error}}. It is shown as last read.',
+            error: describeNetworkError(state.error),
+          })}
+        </p>
+      )}
+    </div>
+  );
 
-      {/* Below 1024 px one segmented control switches between the chat and the tabs. */}
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Below 1024 px the strip spans the page and one segmented control switches between the chat and the views. */}
+      {!wide && strip}
       {!wide && (
         <div role="tablist" aria-label={t('lab.change.panes', { defaultValue: 'Views of the change' })} className="flex shrink-0 gap-0.5 border-b border-border bg-muted/40 p-1 text-xs">
           <button
@@ -502,38 +537,78 @@ export const LabChangeView: React.FC = () => {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1">
-        <LabChatPane
-          change={ready}
-          viewer={user.login}
-          logic={logic}
-          onNewChange={() => navigate('/')}
-          onStopRun={stopRun}
-          className={cn(wide ? 'w-[440px] shrink-0 border-r border-border' : 'w-full', !wide && !narrowShowsChat && 'hidden')}
-        />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* The editor's sidebar, switching the change's views where the editor switches diagram types. */}
+        {wide && (
+          <aside
+            data-testid="lab-change-sidebar"
+            className={cn(
+              'flex shrink-0 flex-col gap-0.5 border-r border-border/50 bg-card p-2.5 dark:border-border/70',
+              sidebarExpanded ? 'w-48' : 'w-[72px]',
+            )}
+          >
+            {sidebarExpanded && (
+              <p className="px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
+                {t('lab.change.sidebarTitle', { defaultValue: 'This change' })}
+              </p>
+            )}
+            <div role="tablist" aria-orientation="vertical" aria-label={t('lab.change.tabsLabel', { defaultValue: 'Model, changes and preview' })} className="flex flex-col gap-0.5">
+              {TABS.map((name) => {
+                const Icon = TAB_ICON[name];
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === name}
+                    aria-label={tabLabel(name)}
+                    title={sidebarExpanded ? undefined : tabLabel(name)}
+                    onClick={() => selectTab(name)}
+                    className={navButtonClass(tab === name, sidebarExpanded, dark)}
+                  >
+                    <Icon className="size-4 shrink-0" aria-hidden />
+                    {sidebarExpanded && <span className="min-w-0 truncate">{tabLabel(name)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="my-2 border-t border-border/60" />
+            <Link
+              to="/"
+              aria-label={t('lab.change.allChanges', { defaultValue: 'All changes' })}
+              title={sidebarExpanded ? undefined : t('lab.change.allChanges', { defaultValue: 'All changes' })}
+              className={navButtonClass(false, sidebarExpanded, dark)}
+            >
+              <LayoutList className="size-4 shrink-0" aria-hidden />
+              {sidebarExpanded && <span className="min-w-0 truncate">{t('lab.change.allChanges', { defaultValue: 'All changes' })}</span>}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSidebarExpanded((expanded) => !expanded)}
+              aria-expanded={sidebarExpanded}
+              aria-label={
+                sidebarExpanded
+                  ? t('nav.collapseSidebar', { defaultValue: 'Collapse sidebar' })
+                  : t('nav.expandSidebar', { defaultValue: 'Expand sidebar' })
+              }
+              className={cn(
+                'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+                sidebarExpanded ? 'justify-start gap-2.5' : 'justify-center',
+              )}
+            >
+              <span className="inline-flex">
+                <SidebarToggleIcon expanded={sidebarExpanded} />
+              </span>
+              {sidebarExpanded && <span className="truncate">{t('nav.collapseSidebar', { defaultValue: 'Collapse sidebar' })}</span>}
+            </button>
+          </aside>
+        )}
+
         <section
           aria-label={t('lab.change.tabsLabel', { defaultValue: 'Model, changes and preview' })}
           className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !rightPaneShown && 'hidden')}
         >
-          {wide && (
-            <div role="tablist" aria-label={t('lab.change.tabsLabel', { defaultValue: 'Model, changes and preview' })} className="flex shrink-0 gap-1 border-b border-border px-4">
-              {TABS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === name}
-                  onClick={() => selectTab(name)}
-                  className={cn(
-                    '-mb-px border-b-2 px-3 py-2.5 text-sm font-medium transition-colors duration-150',
-                    tab === name ? 'border-brand text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {tabLabel(name)}
-                </button>
-              ))}
-            </div>
-          )}
+          {wide && strip}
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
             {tab === 'model' && <LabModelTab changeId={ready.changeId} />}
             {tab === 'changes' && (
@@ -557,6 +632,19 @@ export const LabChangeView: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* The conversation, docked beside the view as the editor's assistant is. */}
+        <LabChatPane
+          change={ready}
+          viewer={user.login}
+          logic={logic}
+          onNewChange={() => navigate('/')}
+          onStopRun={stopRun}
+          className={cn(
+            wide ? 'w-[420px] shrink-0 border-l border-border/50 bg-card dark:border-border/70' : 'w-full',
+            wide ? !chatOpen && 'hidden' : !narrowShowsChat && 'hidden',
+          )}
+        />
       </div>
 
       <LabPullRequestDialog

@@ -293,7 +293,8 @@ describe('LabChangeView chat', () => {
     });
     await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
     expect(startLabRun).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('New change');
+    // The diff dialog that request opened hides the page behind it from the accessibility tree.
+    expect(screen.getByRole('heading', { level: 1, hidden: true })).toHaveTextContent('New change');
   });
 });
 
@@ -393,6 +394,38 @@ describe('LabChangeView tabs and views', () => {
     );
     expect(await screen.findByTestId('lab-change-not-found')).toHaveTextContent('It may have been dropped.');
     expect(screen.getByRole('link', { name: 'Back to changes' })).toHaveAttribute('href', '/');
+  });
+});
+
+describe('LabChangeView editor layout', () => {
+  it("switches views from the editor's sidebar and keeps the title and the pull-request action above the view", async () => {
+    await renderView(change());
+    const sidebar = screen.getByTestId('lab-change-sidebar');
+    const views = within(sidebar).getByRole('tablist', { name: 'Model, changes and preview' });
+    expect(within(views).getAllByRole('tab').map((tab) => tab.getAttribute('aria-label'))).toEqual(['Model', 'Changes', 'Try it']);
+    fireEvent.click(within(views).getByRole('tab', { name: 'Try it' }));
+    expect(within(views).getByRole('tab', { name: 'Try it', selected: true })).toBeTruthy();
+    expect(within(sidebar).getByRole('link', { name: 'All changes' })).toHaveAttribute('href', '/');
+    // The conversation sits after the view in the page, and the strip with the title is inside the view's column.
+    const view = screen.getByRole('region', { name: 'Model, changes and preview' });
+    const chat = screen.getByRole('region', { name: 'Conversation' });
+    expect(view.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(view).getByRole('heading', { level: 1 })).toBeTruthy();
+    expect(within(view).getByRole('button', { name: 'Open pull request' })).toBeTruthy();
+  });
+
+  it('collapses the sidebar to icons and hides and shows the conversation', async () => {
+    await renderView(change());
+    const sidebar = screen.getByTestId('lab-change-sidebar');
+    fireEvent.click(within(sidebar).getByRole('button', { name: 'Collapse sidebar' }));
+    expect(sidebar.className).toContain('w-[72px]');
+    expect(within(sidebar).getByRole('tab', { name: 'Changes' })).toHaveAttribute('title', 'Changes');
+    // Hidden, not unmounted: the conversation keeps its scroll position and its draft.
+    const chat = screen.getByRole('region', { name: 'Conversation' });
+    fireEvent.click(screen.getByRole('button', { name: 'Hide the conversation' }));
+    expect(chat.className.split(' ')).toContain('hidden');
+    fireEvent.click(screen.getByRole('button', { name: 'Show the conversation' }));
+    expect(chat.className.split(' ')).not.toContain('hidden');
   });
 });
 

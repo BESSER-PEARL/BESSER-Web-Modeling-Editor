@@ -5162,7 +5162,11 @@
       "updateFrom": "{{repo}} von {{branch}} aktualisieren",
       "updateFromBranch": "Von {{branch}} aktualisieren",
       "updated": "Die Änderung ist auf dem Stand ihrer Basis.",
-      "viewChanges": "Änderungen ansehen"
+      "viewChanges": "Änderungen ansehen",
+      "sidebarTitle": "Diese Änderung",
+      "allChanges": "Alle Änderungen",
+      "hideChat": "Unterhaltung ausblenden",
+      "showChat": "Unterhaltung einblenden"
     },
     "chat": {
       "addressCommentsMessage_one": "Bearbeite den ausgewählten Review-Kommentar im {{repo}}-Pull-Request.",

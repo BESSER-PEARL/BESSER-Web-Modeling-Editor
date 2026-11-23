@@ -5162,7 +5162,11 @@
       "updateFrom": "Update {{repo}} from {{branch}}",
       "updateFromBranch": "Update from {{branch}}",
       "updated": "The change is up to date with its base.",
-      "viewChanges": "View changes"
+      "viewChanges": "View changes",
+      "sidebarTitle": "This change",
+      "allChanges": "All changes",
+      "hideChat": "Hide the conversation",
+      "showChat": "Show the conversation"
     },
     "chat": {
       "addressCommentsMessage_one": "Address the selected review comment on the {{repo}} pull request.",

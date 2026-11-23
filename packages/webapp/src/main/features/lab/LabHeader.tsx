@@ -124,17 +124,18 @@ export const LabHeader: React.FC = () => {
       : null;
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-background px-4 sm:px-6">
+    <header className="relative z-20 flex shrink-0 items-center gap-2 border-b border-brand/10 bg-background/60 px-3 py-2 sm:gap-3 sm:px-6 dark:border-border/70">
       <Link
         to="/"
         className="flex shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <img src="/images/logo.png" alt="BESSER" width={151} height={40} className="h-6 w-auto brightness-0 dark:invert" />
-        <span className="font-display text-xl leading-none text-foreground">
+        {/* The editor's own logo, at its size, with the lab named beside it. */}
+        <img src="/images/logo.png" alt="BESSER" width={151} height={40} className="h-8 w-auto brightness-0 dark:invert sm:h-10" />
+        <span className="rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-brand-dark dark:text-brand">
           {t('lab.app.header.title', { defaultValue: 'BESSER Lab' })}
         </span>
       </Link>
-      <nav aria-label={t('lab.app.header.breadcrumb', { defaultValue: 'Breadcrumb' })} className="flex min-w-0 items-center gap-2 text-sm">
+      <nav aria-label={t('lab.app.header.breadcrumb', { defaultValue: 'Breadcrumb' })} className="hidden min-w-0 items-center gap-2 text-sm sm:flex">
         <span aria-hidden className="text-muted-foreground/60">/</span>
         <Link to="/" className="shrink-0 text-muted-foreground hover:text-foreground">
           {t('lab.app.header.changes', { defaultValue: 'Changes' })}

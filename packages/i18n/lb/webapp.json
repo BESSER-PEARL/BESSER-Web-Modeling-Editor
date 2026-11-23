@@ -5162,7 +5162,11 @@
       "updateFrom": "{{repo}} vun {{branch}} aktualiséieren",
       "updateFromBranch": "Vun {{branch}} aktualiséieren",
       "updated": "D’Ännerung ass um Stand vun hirer Basis.",
-      "viewChanges": "Ännerunge weisen"
+      "viewChanges": "Ännerunge weisen",
+      "sidebarTitle": "Dës Ännerung",
+      "allChanges": "All Ännerungen",
+      "hideChat": "Gespréich verstoppen",
+      "showChat": "Gespréich weisen"
     },
     "chat": {
       "addressCommentsMessage_one": "Beaarbecht de gewielte Review-Kommentar am {{repo}}-Pull-Request.",

@@ -34,9 +34,10 @@ export const LabApplication: React.FC = () => (
   <BrowserRouter>
     <style>{LAB_MOTION_CSS}</style>
     <LabAuthGate>
-      <div className="flex min-h-screen flex-col bg-background">
+      {/* The editor's frame: a fixed-height page whose main area scrolls, so a change can fill it with its canvas. */}
+      <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
         <LabHeader />
-        <main className="flex min-h-0 flex-1 flex-col">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <Suspense fallback={<SuspenseFallback />}>
             <Routes>
               <Route path="/" element={<LabHome />} />
