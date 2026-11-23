@@ -369,6 +369,21 @@ describe('openLabChangeProject', () => {
     expect(classNamesOf(stored().diagrams.ClassDiagram[0].model)).toEqual(['Note', 'Edited']);
   });
 
+  it('draws a plan made elsewhere after this browser opened the change, but not a proposal discarded here', async () => {
+    // Opened as a draft: an empty project, saved before any plan.
+    await openLabChangeProject(CHANGE, []);
+    expect(classNamesOf(stored().diagrams.ClassDiagram[0].model)).toEqual([]);
+    const later = Date.now() / 1000 + 60;
+    await openLabChangeProject(CHANGE, [planRun(later, 'Note')]);
+    const diagram = stored().diagrams.ClassDiagram[0];
+    expect(classNamesOf(diagram.model)).toEqual(['Note']);
+    expect(labProposalChangeId(diagram)).toBe('c1');
+    // Discarded here: the same thread does not bring it back.
+    await discardLabProposal(diagram.id);
+    await openLabChangeProject(CHANGE, [planRun(later - 3600, 'Note')]);
+    expect(classNamesOf(stored().diagrams.ClassDiagram[0].model)).toEqual([]);
+  });
+
   it('opens an empty project for a change whose thread has no model', async () => {
     await openLabChangeProject(CHANGE, []);
     const project = ProjectStorageRepository.loadProject(labProjectId('c1'))!;

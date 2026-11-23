@@ -242,27 +242,31 @@ export async function openLabChangeProject(
   thread: LabThreadItem[],
 ): Promise<void> {
   let project = loadLabProject(change.changeId);
-  const created = !project;
-  if (!project) {
-    project = createLabProject(change.changeId, change.title, change.owner);
-    const found = latestThreadModel(thread);
-    if (found) {
-      const blank = project.diagrams.ClassDiagram[0];
-      project.diagrams.ClassDiagram[0] =
-        found.source === 'proposal'
-          ? placed(blank, found.proposal, change.changeId)
-          : {
-              ...blank,
-              title: change.title || blank.title,
-              model: found.model as ProjectDiagram['model'],
-              config: { [KEPT_MARKER]: change.changeId },
-              lastUpdate: new Date().toISOString(),
-            };
-      const saved = project;
-      ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(saved));
-      // A proposal has no layout of its own; a message's model keeps the user's.
-      if (found.source === 'proposal') requestAutoLayoutOnNextSetup();
-    }
+  const isNew = !project;
+  let created = isNew;
+  if (!project) project = createLabProject(change.changeId, change.title, change.owner);
+  const blank = project.diagrams.ClassDiagram[0];
+  // A project this browser already has takes the thread's model only into an empty first diagram that is older
+  // than that model: the change was opened here before a plan made elsewhere. A diagram the user drew in, or
+  // emptied by discarding a proposal (stamped when the proposal was placed), is left alone.
+  const empty = Object.keys((blank?.model as { elements?: object } | undefined)?.elements ?? {}).length === 0;
+  const found = blank && empty && !changeDiagram(project, change.changeId) ? latestThreadModel(thread) : null;
+  if (blank && found && (isNew || found.at * 1000 > Date.parse(blank.lastUpdate ?? ''))) {
+    created = true;
+    project.diagrams.ClassDiagram[0] =
+      found.source === 'proposal'
+        ? placed(blank, found.proposal, change.changeId)
+        : {
+            ...blank,
+            title: change.title || blank.title,
+            model: found.model as ProjectDiagram['model'],
+            config: { [KEPT_MARKER]: change.changeId },
+            lastUpdate: new Date().toISOString(),
+          };
+    const saved = project;
+    ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(saved));
+    // A proposal has no layout of its own; a message's model keeps the user's.
+    if (found.source === 'proposal') requestAutoLayoutOnNextSetup();
   }
   if (created || store.getState().workspace.project?.id !== project.id) {
     await store.dispatch(loadProjectThunk(project.id)).unwrap();
