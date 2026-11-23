@@ -189,6 +189,32 @@ describe('reviveStoredConversation drops what the renderers would crash on', () 
     expect(revived!.messages[1].specDriven!.verification).toBeUndefined();
   });
 
+  it('keeps only the validation rounds of the right shape', () => {
+    const round = { attempt: 0, blockers: ['Login fails'], blockerCount: 1, issueCount: 2, restored: false, afterToolCalls: 3 };
+    const phase = (findings: unknown) => ({ phase: 'validate', label: 'Validate', message: '', toolCalls: [], findings });
+    const revived = reviveStoredConversation(
+      stored([{
+        id: 'card',
+        role: 'assistant',
+        content: '',
+        specDriven: {
+          status: 'done',
+          text: '',
+          warnings: [],
+          phases: [
+            phase([round, { ...round, blockers: 'Login fails' }, null, { ...round, attempt: '1' }]),
+            phase('not a list'),
+            { phase: 'generate', label: 'Generate', message: '', toolCalls: [] },
+          ],
+        },
+      }]),
+    );
+    const phases = revived!.messages[0].specDriven!.phases;
+    expect(phases[0].findings).toEqual([round]);
+    expect(phases[1].findings).toEqual([]);
+    expect(phases[2]).not.toHaveProperty('findings');
+  });
+
   it('keeps only message details of the right type', () => {
     const revived = reviveStoredConversation(
       stored([{ id: 'a', role: 'assistant', content: 'hi' }], {
