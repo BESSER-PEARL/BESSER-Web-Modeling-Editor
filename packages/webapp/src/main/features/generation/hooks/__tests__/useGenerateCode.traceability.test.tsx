@@ -111,13 +111,16 @@ describe('traced generation', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it.each([
+  // The 400 texts are BESSER's traced_generation.py verbatim, the last 422 its handler's body as sent:
+  // TRACE_ONLY_REFUSAL matches their wording, so a change of it on either side must break here.
+  it.each<[number, unknown]>([
     [405, 'Method Not Allowed'],
     [501, 'Not Implemented'],
     [400, 'A traced generation needs the diagram id: the trace refers to the model by it.'],
     [400, 'A traced generation needs the id of every diagram it reads: the trace refers to each model by it. Without an id: GUI.'],
     [422, 'actorName: String should have at most 200 characters'],
-  ])('falls back on %s %s, which only the traced endpoint answers', async (status, detail) => {
+    [422, [{ type: 'string_too_long', loc: ['body', 'actorName'], msg: 'String should have at most 200 characters' }]],
+  ])('falls back on %s %j, which only the traced endpoint answers', async (status, detail) => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ detail }), { status }))
       .mockResolvedValueOnce(plainResponse());
