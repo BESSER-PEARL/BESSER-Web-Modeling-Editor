@@ -1661,6 +1661,10 @@
       "signInHint": "Connecta GitHub en aquesta pestanya per enviar el codi generat al repositori.",
       "connectFirst": "Connecta GitHub en aquesta pestanya per enviar el codi generat; la targeta de l'execució el pot enviar més tard.",
       "commitMessage": "Afegeix el codi generat pel Spec-Driven Agent de BESSER"
+    },
+    "generatedCode": {
+      "offer": "Vols desar també aquest codi a GitHub?",
+      "save": "Desa a GitHub"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generació completada correctament.",
     "exportingProject": "S'està exportant el projecte com a {{format}}…",
     "startingDeployment": "S'està iniciant el desplegament…",
+    "openingGitHubSave": "Obrint «Desa a GitHub».",
     "generatingGui": "S'està generant la interfície a partir del teu diagrama de classes…",
     "guiGenerated": "✓ Interfície generada correctament a partir del teu diagrama de classes!",
     "convertThisFile": "Converteix aquest fitxer",

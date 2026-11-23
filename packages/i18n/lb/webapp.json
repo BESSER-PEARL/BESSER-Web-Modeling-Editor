@@ -1661,6 +1661,10 @@
       "signInHint": "Verbannt GitHub an dësem Tab, fir generéierte Code an de Repository ze pushen.",
       "connectFirst": "Verbannt GitHub an dësem Tab, fir de generéierte Code ze pushen; d'Laf-Kaart kann e méi spéit pushen.",
       "commitMessage": "Code bäifügen, deen de BESSER Spec-Driven Agent generéiert huet"
+    },
+    "generatedCode": {
+      "offer": "Dëse Code och op GitHub halen?",
+      "save": "Op GitHub späicheren"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
     "startingDeployment": "Deployment gëtt gestart…",
+    "openingGitHubSave": "„Op GitHub späicheren“ gëtt opgemaach.",
     "generatingGui": "GUI gëtt aus Ärem Klassendiagramm generéiert…",
     "guiGenerated": "✓ GUI erfollegräich aus Ärem Klassendiagramm generéiert!",
     "convertThisFile": "Dës Datei ëmwandelen",

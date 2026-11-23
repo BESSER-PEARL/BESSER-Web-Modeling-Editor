@@ -1661,6 +1661,10 @@
       "signInHint": "Conecta GitHub en esta pestaña para enviar el código generado al repositorio.",
       "connectFirst": "Conecta GitHub en esta pestaña para enviar el código generado; la tarjeta de la ejecución puede enviarlo más tarde.",
       "commitMessage": "Añadir el código generado por el Spec-Driven Agent de BESSER"
+    },
+    "generatedCode": {
+      "offer": "¿Guardar también este código en GitHub?",
+      "save": "Guardar en GitHub"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generación completada correctamente.",
     "exportingProject": "Exportando el proyecto como {{format}}…",
     "startingDeployment": "Iniciando el despliegue…",
+    "openingGitHubSave": "Abriendo «Guardar en GitHub».",
     "generatingGui": "Generando la interfaz a partir de tu diagrama de clases…",
     "guiGenerated": "✓ ¡Interfaz generada correctamente a partir de tu diagrama de clases!",
     "convertThisFile": "Convertir este archivo",

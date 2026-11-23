@@ -1661,6 +1661,10 @@
       "signInHint": "Verbinde GitHub in diesem Tab, um generierten Code in das Repository zu pushen.",
       "connectFirst": "Verbinde GitHub in diesem Tab, um den generierten Code zu pushen; die Laufkarte kann ihn später pushen.",
       "commitMessage": "Vom BESSER Spec-Driven Agent generierten Code hinzufügen"
+    },
+    "generatedCode": {
+      "offer": "Diesen Code auch auf GitHub sichern?",
+      "save": "Auf GitHub speichern"
     }
   },
   "assistant": {
@@ -1824,6 +1828,7 @@
     "generationCompleted": "Generierung erfolgreich abgeschlossen.",
     "exportingProject": "Projekt wird als {{format}} exportiert…",
     "startingDeployment": "Bereitstellung wird gestartet…",
+    "openingGitHubSave": "„Auf GitHub speichern“ wird geöffnet.",
     "generatingGui": "GUI wird aus Ihrem Klassendiagramm generiert…",
     "guiGenerated": "✓ GUI erfolgreich aus Ihrem Klassendiagramm generiert!",
     "convertThisFile": "Diese Datei umwandeln",
