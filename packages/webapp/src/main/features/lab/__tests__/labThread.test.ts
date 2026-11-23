@@ -89,8 +89,8 @@ describe('threadToMessages', () => {
   it('says how a run without a result ended', () => {
     const messages = threadToMessages([run('f1', 'failed', null, null, 1), run('c1', 'cancelled', null, null, 2)], 'ana');
     expect(messages.map((m) => m.content)).toEqual([
-      '❌ BESSER Lab error (API_ERROR): The provider failed.',
-      '⏹ BESSER Lab run stopped by user.',
+      '❌ BESSER Forge error (API_ERROR): The provider failed.',
+      '⏹ BESSER Forge run stopped by user.',
     ]);
     expect(messages[0].isError).toBe(true);
   });

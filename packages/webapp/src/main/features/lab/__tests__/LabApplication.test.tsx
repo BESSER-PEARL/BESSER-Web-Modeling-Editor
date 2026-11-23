@@ -63,9 +63,9 @@ describe('LabAuthGate', () => {
     const config = deferred<boolean | null>();
     vi.mocked(resolveLabEnabled).mockReturnValue(config.promise);
     render(<LabApplication />);
-    expect(screen.getByText('Opening BESSER Lab…')).toBeInTheDocument();
+    expect(screen.getByText('Opening BESSER Forge…')).toBeInTheDocument();
     await act(async () => config.resolve(false));
-    expect(screen.queryByText('Opening BESSER Lab…')).not.toBeInTheDocument();
+    expect(screen.queryByText('Opening BESSER Forge…')).not.toBeInTheDocument();
   });
 
   it('says the server could not be reached, and tries again on request', async () => {
@@ -73,27 +73,27 @@ describe('LabAuthGate', () => {
     render(<LabApplication />);
     expect(await screen.findByText('The lab server could not be reached.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('This server does not run BESSER Lab.')).toBeInTheDocument();
+    expect(await screen.findByText('This server does not run BESSER Forge.')).toBeInTheDocument();
     expect(resolveLabEnabled).toHaveBeenCalledTimes(2);
   });
 
   it('says when this server does not run the lab, without asking for a sign-in', async () => {
     vi.mocked(resolveLabEnabled).mockResolvedValue(false);
     render(<LabApplication />);
-    expect(await screen.findByText('This server does not run BESSER Lab.')).toBeInTheDocument();
+    expect(await screen.findByText('This server does not run BESSER Forge.')).toBeInTheDocument();
     expect(screen.queryByText('Sign in with GitHub')).not.toBeInTheDocument();
   });
 
   it("names the server's reason when the working copies are not ready (503)", async () => {
     vi.mocked(resolveLabEnabled).mockResolvedValue(true);
     vi.mocked(getLabHome).mockRejectedValue(
-      new ApiError(503, 'x', 'BESSER Lab has no working copy configured (BESSER_LAB_WORKSPACE_ROOT)'),
+      new ApiError(503, 'x', 'BESSER Forge has no working copy configured (BESSER_LAB_WORKSPACE_ROOT)'),
     );
     signInToGitHubForTests('gh-session-0123456789', 'ana');
     render(<LabApplication />);
     expect(
       await screen.findByText(
-        "The lab's working copies are not ready: BESSER Lab has no working copy configured (BESSER_LAB_WORKSPACE_ROOT). An administrator needs to run the lab setup.",
+        "The lab's working copies are not ready: BESSER Forge has no working copy configured (BESSER_LAB_WORKSPACE_ROOT). An administrator needs to run the lab setup.",
       ),
     ).toBeInTheDocument();
   });
@@ -120,7 +120,7 @@ describe('LabAuthGate', () => {
     render(<LabApplication />);
     await screen.findByTestId('lab-open-changes');
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What do you want to change in BESSER?');
-    expect(screen.getByText('BESSER Lab')).toBeInTheDocument();
+    expect(screen.getByText('BESSER Forge')).toBeInTheDocument();
     expect(getLabHome).toHaveBeenCalledWith('gh-session-0123456789');
   });
 

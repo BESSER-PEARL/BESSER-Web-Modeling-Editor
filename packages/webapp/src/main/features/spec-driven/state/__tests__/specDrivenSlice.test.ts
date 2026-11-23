@@ -373,7 +373,7 @@ describe('specDrivenSlice — applySpecDrivenEvent (pure card reducer)', () => {
     expect(late.warnings[0].severity).toBe('warning');
   });
 
-  it('labels the BESSER Lab steps instead of showing their raw names', () => {
+  it('labels the BESSER Forge steps instead of showing their raw names', () => {
     let card = applySpecDrivenEvent(CARD, { event: 'phase', phase: 'plan', message: '' });
     card = applySpecDrivenEvent(card, { event: 'phase', phase: 'build', message: '' });
     card = applySpecDrivenEvent(card, { event: 'phase', phase: 'check', message: '' });

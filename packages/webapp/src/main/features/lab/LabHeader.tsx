@@ -197,7 +197,7 @@ export const LabHeader: React.FC = () => {
         {/* The editor's own logo, at its size, with the lab named beside it. */}
         <img src="/images/logo.png" alt="BESSER" width={151} height={40} className="h-8 w-auto brightness-0 dark:invert sm:h-10" />
         <span className="rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-brand-dark dark:text-brand">
-          {t('lab.app.header.title', { defaultValue: 'BESSER Lab' })}
+          {t('lab.app.header.title', { defaultValue: 'BESSER Forge' })}
         </span>
       </Link>
       <nav aria-label={t('lab.app.header.breadcrumb', { defaultValue: 'Breadcrumb' })} className="hidden min-w-0 items-center gap-2 text-sm sm:flex">

@@ -1920,12 +1920,12 @@ function SpecDrivenCard({
           )}
           {lab ? (
             <span className="text-[11px] text-muted-foreground">
-              {t("lab.title", { defaultValue: "BESSER Lab" })} ·
+              {t("lab.title", { defaultValue: "BESSER Forge" })} ·
             </span>
           ) : null}
           <span className="text-sm font-medium text-foreground">
             {lab ? (
-              <Suspense fallback={t("lab.title", { defaultValue: "BESSER Lab" })}>
+              <Suspense fallback={t("lab.title", { defaultValue: "BESSER Forge" })}>
                 <LabRunTitle lab={lab} />
               </Suspense>
             ) : unenforcedCount > 0
@@ -2264,7 +2264,7 @@ function SpecDrivenCard({
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
         <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="font-medium text-foreground">
-          {isLabRun || lab ? t("lab.title", { defaultValue: "BESSER Lab" }) : "Spec-Driven Agent"}
+          {isLabRun || lab ? t("lab.title", { defaultValue: "BESSER Forge" }) : "Spec-Driven Agent"}
         </span>
         {runId ? (
           <span className="font-mono text-[11px] text-muted-foreground">

@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "The lab could not be opened: {{error}}",
-        "loading": "Opening BESSER Lab…",
+        "loading": "Opening BESSER Forge…",
         "notReady": "The lab's working copies are not ready: {{detail}}. An administrator needs to run the lab setup.",
-        "off": "This server does not run BESSER Lab.",
+        "off": "This server does not run BESSER Forge.",
         "retry": "Try again",
         "unreachable": "The lab server could not be reached."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "What your lab runs cost this month",
         "settings": "Settings and usage",
         "signOut": "Sign out",
-        "title": "BESSER Lab",
+        "title": "BESSER Forge",
         "keyOwn": "Your key: {{provider}}",
         "keyLab": "Lab's key",
         "keyMissing": "Add your API key",
@@ -5106,7 +5106,7 @@
         "body": "For the BESSER team. Sign in with GitHub; the lab checks that you are on its list or a member of its organization.",
         "button": "Sign in with GitHub",
         "heading": "Change <em>BESSER</em> from inside BESSER.",
-        "kicker": "BESSER LAB",
+        "kicker": "BESSER FORGE",
         "note": "Changes are made on lab branches and opened as draft pull requests. Nothing is merged without a person."
       }
     },
@@ -5173,34 +5173,34 @@
       "allChanges": "All changes",
       "hideChat": "Hide the conversation",
       "showChat": "Show the conversation",
-      "notInTheLab": "This belongs to the public editor. In BESSER Lab, describe the change in the conversation."
+      "notInTheLab": "This belongs to the public editor. In BESSER Forge, describe the change in the conversation."
     },
     "chat": {
       "addressCommentsMessage_one": "Address the selected review comment on the {{repo}} pull request.",
       "addressCommentsMessage_other": "Address the {{count}} selected review comments on the {{repo}} pull request.",
-      "alreadyRunning": "BESSER Lab is already running — please wait for it to finish or click Stop.",
+      "alreadyRunning": "BESSER Forge is already running — please wait for it to finish or click Stop.",
       "closeFailed": "The change was merged, but the lab could not close it: {{reason}}",
       "fixCiMessage": "Fix the failing checks of the {{repo}} pull request.",
-      "noAttachments": "BESSER Lab reads text only: describe the change in your message.",
+      "noAttachments": "BESSER Forge reads text only: describe the change in your message.",
       "noOpenChange": "Open a change or start a new one first.",
       "noPullRequests": "No pull request was opened: the change has no changed files.",
       "pullRequestsBy": "@{{login}} opened or updated the draft pull requests:",
       "refused": {
-        "busy": "BESSER Lab is busy with another run or change action. Send your message again when it has finished.",
-        "notAllowed": "Your GitHub login is not allowed to use BESSER Lab on this instance.",
+        "busy": "BESSER Forge is busy with another run or change action. Send your message again when it has finished.",
+        "notAllowed": "Your GitHub login is not allowed to use BESSER Forge on this instance.",
         "sessionExpired": "Your GitHub session has expired. Sign in again, then send your message again.",
-        "unavailable": "BESSER Lab is not available on this server: {{detail}}"
+        "unavailable": "BESSER Forge is not available on this server: {{detail}}"
       },
       "resolveConflictsMessage": "Resolve the merge conflicts in {{repo}}.",
-      "runError": "BESSER Lab error ({{code}}): {{message}}",
-      "signInPrompt": "Sign in with GitHub to use BESSER Lab, then send your message again.",
+      "runError": "BESSER Forge error ({{code}}): {{message}}",
+      "signInPrompt": "Sign in with GitHub to use BESSER Forge, then send your message again.",
       "stalled": "the live progress stream went quiet (no events for {{seconds}} s) and was closed. The run may still be going on the server.",
-      "startFailed": "BESSER Lab failed to start: {{error}}",
-      "stopped": "BESSER Lab run stopped by user.",
+      "startFailed": "BESSER Forge failed to start: {{error}}",
+      "stopped": "BESSER Forge run stopped by user.",
       "streamClosed": "The lab run stream closed before reporting a result.",
-      "streamError": "BESSER Lab stream error: {{error}}",
+      "streamError": "BESSER Forge stream error: {{error}}",
       "threadFailed": "This change's conversation could not be read: {{reason}}",
-      "voiceUnavailable": "BESSER Lab does not take voice messages: type the change instead."
+      "voiceUnavailable": "BESSER Forge does not take voice messages: type the change instead."
     },
     "diff": {
       "addComment": "Add comment",
@@ -5569,6 +5569,6 @@
       "max_turns": "It reached its turn limit. What it did so far is in the working copy.",
       "timeout": "It reached its time limit. What it did so far is in the working copy."
     },
-    "title": "BESSER Lab"
+    "title": "BESSER Forge"
   }
 }

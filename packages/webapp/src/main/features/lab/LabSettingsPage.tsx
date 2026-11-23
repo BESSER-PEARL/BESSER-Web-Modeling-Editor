@@ -584,7 +584,7 @@ export const LabSettingsPage: React.FC = () => {
   return (
     <div className="mx-auto w-full max-w-[56rem] px-6 py-8">
       <header className="lab-rise lab-d1 mb-8">
-        <p className="ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER LAB' })}</p>
+        <p className="ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER FORGE' })}</p>
         <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-tight text-foreground">
           <Trans
             i18nKey="lab.settings.heading"

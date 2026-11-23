@@ -181,14 +181,14 @@ async function labRefusalLine(error: SseHttpError): Promise<string> {
     case 401:
       return labLine('refused.sessionExpired', 'Your GitHub session has expired. Sign in again, then send your message again.');
     case 403:
-      return labLine('refused.notAllowed', 'Your GitHub login is not allowed to use BESSER Lab on this instance.');
+      return labLine('refused.notAllowed', 'Your GitHub login is not allowed to use BESSER Forge on this instance.');
     case 409:
       return labLine(
         'refused.busy',
-        'BESSER Lab is busy with another run or change action. Send your message again when it has finished.',
+        'BESSER Forge is busy with another run or change action. Send your message again when it has finished.',
       );
     case 503:
-      return labLine('refused.unavailable', 'BESSER Lab is not available on this server: {{detail}}', { detail });
+      return labLine('refused.unavailable', 'BESSER Forge is not available on this server: {{detail}}', { detail });
     default:
       return detail;
   }
@@ -1050,7 +1050,7 @@ export function useSpecDrivenTrigger(
             appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
             toast.warning('Generation stopped after the disconnect grace period');
           } else if (run.kind === 'lab') {
-            const line = labLine('runError', 'BESSER Lab error ({{code}}): {{message}}', {
+            const line = labLine('runError', 'BESSER Forge error ({{code}}): {{message}}', {
               code: event.code,
               message: event.message,
             });
@@ -1221,7 +1221,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           if (isLab) {
-            const line = labLine('streamError', 'BESSER Lab stream error: {{error}}', { error: message });
+            const line = labLine('streamError', 'BESSER Forge stream error: {{error}}', { error: message });
             appendErrorToChat(line);
             reportError(line, { error });
           } else {
@@ -1337,7 +1337,7 @@ export function useSpecDrivenTrigger(
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         const message = isLab
-          ? labLine('startFailed', 'BESSER Lab failed to start: {{error}}', { error: reason })
+          ? labLine('startFailed', 'BESSER Forge failed to start: {{error}}', { error: reason })
           : `Spec-Driven Agent failed to start: ${reason}`;
         dispatch(
           liveRunEvent({
@@ -1417,7 +1417,7 @@ export function useSpecDrivenTrigger(
         } else if (isAbort) {
           finalizeLiveRun(liveKey, streamingId);
           appendAssistantMessage(
-            `⏹ ${isLab ? labLine('stopped', 'BESSER Lab run stopped by user.') : 'Spec-Driven Agent run stopped by user.'}`,
+            `⏹ ${isLab ? labLine('stopped', 'BESSER Forge run stopped by user.') : 'Spec-Driven Agent run stopped by user.'}`,
           );
           reportRunFinished({
             ok: false,
@@ -1467,7 +1467,7 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           if (isLab) {
-            const line = refusal ?? labLine('streamError', 'BESSER Lab stream error: {{error}}', { error: msg });
+            const line = refusal ?? labLine('streamError', 'BESSER Forge stream error: {{error}}', { error: msg });
             appendErrorToChat(line);
             reportError(line, { error: err });
           } else {
@@ -1876,7 +1876,7 @@ export function useSpecDrivenTrigger(
       const labApi = await loadLabApi();
       if (isRunningRef.current || !dispatch(tryClaimRunSlot())) {
         appendErrorToChat(
-          labLine('alreadyRunning', 'BESSER Lab is already running — please wait for it to finish or click Stop.'),
+          labLine('alreadyRunning', 'BESSER Forge is already running — please wait for it to finish or click Stop.'),
         );
         return;
       }

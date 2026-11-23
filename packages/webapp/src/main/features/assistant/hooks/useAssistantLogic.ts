@@ -1527,7 +1527,7 @@ export function useAssistantLogic({
         toKitMessage(
           'assistant',
           t('lab.chat.signInPrompt', {
-            defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.',
+            defaultValue: 'Sign in with GitHub to use BESSER Forge, then send your message again.',
           }),
         ),
       ]),
@@ -1593,7 +1593,7 @@ export function useAssistantLogic({
   /** Closes change `changeId` (its pull requests merged or closed); the server writes the notice into its thread. */
   const closeLabChangeNow = async (changeId: string): Promise<void> => {
     const session = getGitHubSession();
-    if (!session) throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.' }));
+    if (!session) throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Forge, then send your message again.' }));
     const { closeLabChange } = await loadLabApi();
     await closeLabChange(session, changeId);
     await reloadLabThread(changeId);
@@ -1615,7 +1615,7 @@ export function useAssistantLogic({
       // Refused before the message is shown or the composer cleared: the text stays to send later.
       reportError(
         t('lab.chat.alreadyRunning', {
-          defaultValue: 'BESSER Lab is already running — please wait for it to finish or click Stop.',
+          defaultValue: 'BESSER Forge is already running — please wait for it to finish or click Stop.',
         }),
       );
       return;
@@ -1738,7 +1738,7 @@ export function useAssistantLogic({
         if (hasFiles) {
           reportError(
             t('lab.chat.noAttachments', {
-              defaultValue: 'BESSER Lab reads text only: describe the change in your message.',
+              defaultValue: 'BESSER Forge reads text only: describe the change in your message.',
             }),
           );
           return;
@@ -1891,7 +1891,7 @@ export function useAssistantLogic({
         toKitMessage(
           'assistant',
           t('lab.chat.voiceUnavailable', {
-            defaultValue: 'BESSER Lab does not take voice messages: type the change instead.',
+            defaultValue: 'BESSER Forge does not take voice messages: type the change instead.',
           }),
           { isError: true },
         ),
@@ -2305,7 +2305,7 @@ export function useAssistantLogic({
         case 'updateFromBase': {
           const session = getGitHubSession();
           if (!session) {
-            throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Lab, then send your message again.' }));
+            throw new Error(t('lab.chat.signInPrompt', { defaultValue: 'Sign in with GitHub to use BESSER Forge, then send your message again.' }));
           }
           const { updateLabChangeFromBase } = await loadLabApi();
           await updateLabChangeFromBase(session, changeId, repo);

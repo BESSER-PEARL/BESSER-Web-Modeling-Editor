@@ -264,7 +264,7 @@ export const LabHome: React.FC = () => {
         />
         <div aria-hidden className="grain-overlay pointer-events-none absolute inset-0 opacity-40" />
         <div className="relative z-[1] max-w-3xl">
-          <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER LAB' })}</p>
+          <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER FORGE' })}</p>
           <h1
             className="lab-rise lab-d2 mt-3 font-display text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl"
             style={{ textWrap: 'balance' }}

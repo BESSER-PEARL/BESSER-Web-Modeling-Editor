@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "De Lab konnt net opgemaach ginn: {{error}}",
-        "loading": "BESSER Lab gëtt opgemaach…",
+        "loading": "BESSER Forge gëtt opgemaach…",
         "notReady": "D’Aarbechtskopie vum Lab sinn net prett: {{detail}}. En Administrateur muss d’Lab-Installatioun ausféieren.",
-        "off": "Op dësem Server leeft kee BESSER Lab.",
+        "off": "Op dësem Server leeft kee BESSER Forge.",
         "retry": "Nach eng Kéier probéieren",
         "unreachable": "De Lab-Server ass net z’erreechen."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "Wat deng Lab-Leef dëse Mount kaschten",
         "settings": "Astellungen a Verbrauch",
         "signOut": "Ofmellen",
-        "title": "BESSER Lab",
+        "title": "BESSER Forge",
         "keyOwn": "Äre Schlëssel: {{provider}}",
         "keyLab": "Schlëssel vum Lab",
         "keyMissing": "API-Schlëssel derbäisetzen",
@@ -5106,7 +5106,7 @@
         "body": "Fir d'BESSER-Equipe. Mellt Iech mat GitHub un; de Lab kuckt, ob Dir op senger Lëscht stitt oder Member vu senger Organisatioun sidd.",
         "button": "Mat GitHub umellen",
         "heading": "<em>BESSER</em> vu bannen aus BESSER änneren.",
-        "kicker": "BESSER LAB",
+        "kicker": "BESSER FORGE",
         "note": "Ännerunge ginn op Lab-Branche gemaach an als Draft-Pull-Requesten opgemaach. Näischt gëtt ouni e Mënsch gemergt."
       }
     },
@@ -5173,34 +5173,34 @@
       "allChanges": "All Ännerungen",
       "hideChat": "Gespréich verstoppen",
       "showChat": "Gespréich weisen",
-      "notInTheLab": "Dat gehéiert zum ëffentlechen Editor. Beschreift d'Ännerung am BESSER Lab am Gespréich."
+      "notInTheLab": "Dat gehéiert zum ëffentlechen Editor. Beschreift d'Ännerung am BESSER Forge am Gespréich."
     },
     "chat": {
       "addressCommentsMessage_one": "Beaarbecht de gewielte Review-Kommentar am {{repo}}-Pull-Request.",
       "addressCommentsMessage_other": "Beaarbecht déi {{count}} gewielte Review-Kommentaren am {{repo}}-Pull-Request.",
-      "alreadyRunning": "BESSER Lab leeft schonn – waart w.e.g., bis e fäerdeg ass, oder klick op Stopp.",
+      "alreadyRunning": "BESSER Forge leeft schonn – waart w.e.g., bis e fäerdeg ass, oder klick op Stopp.",
       "closeFailed": "D’Ännerung gouf gemergt, mee de Lab konnt se net zoumaachen: {{reason}}",
       "fixCiMessage": "Flécke déi feelgeschloe Kontrolle vum {{repo}}-Pull-Request.",
-      "noAttachments": "BESSER Lab liest just Text: beschreif d’Ännerung an dengem Message.",
+      "noAttachments": "BESSER Forge liest just Text: beschreif d’Ännerung an dengem Message.",
       "noOpenChange": "Maach fir d’éischt eng Ännerung op oder fänk eng nei un.",
       "noPullRequests": "Kee Pull-Request gouf opgemaach: d’Ännerung huet keng geännert Fichieren.",
       "pullRequestsBy": "@{{login}} huet d’Draft-Pull-Requesten opgemaach oder aktualiséiert:",
       "refused": {
-        "busy": "BESSER Lab ass mat engem anere Laf oder enger Ännerungsaktioun beschäftegt. Schéck däi Message nach eng Kéier, wann dat fäerdeg ass.",
-        "notAllowed": "Däi GitHub-Login däerf BESSER Lab op dëser Instanz net benotzen.",
+        "busy": "BESSER Forge ass mat engem anere Laf oder enger Ännerungsaktioun beschäftegt. Schéck däi Message nach eng Kéier, wann dat fäerdeg ass.",
+        "notAllowed": "Däi GitHub-Login däerf BESSER Forge op dëser Instanz net benotzen.",
         "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Mell dech nees un a schéck däi Message dann nach eng Kéier.",
-        "unavailable": "BESSER Lab ass op dësem Server net disponibel: {{detail}}"
+        "unavailable": "BESSER Forge ass op dësem Server net disponibel: {{detail}}"
       },
       "resolveConflictsMessage": "Léis d’Merge-Konflikter an {{repo}}.",
       "runError": "BESSER-Lab-Feeler ({{code}}): {{message}}",
-      "signInPrompt": "Mell dech mat GitHub un, fir BESSER Lab ze benotzen, a schéck däi Message dann nach eng Kéier.",
+      "signInPrompt": "Mell dech mat GitHub un, fir BESSER Forge ze benotzen, a schéck däi Message dann nach eng Kéier.",
       "stalled": "de Live-Fortschrëtt ass roueg bliwwen (zënter {{seconds}} s keng Evenementer) a gouf zougemaach. De Laf kann um Server nach weiderlafen.",
-      "startFailed": "BESSER Lab konnt net starten: {{error}}",
+      "startFailed": "BESSER Forge konnt net starten: {{error}}",
       "stopped": "BESSER-Lab-Laf vum Benotzer gestoppt.",
       "streamClosed": "De Stream vum Lab-Laf gouf zougemaach, ier e Resultat koum.",
-      "streamError": "Streamfeeler vu BESSER Lab: {{error}}",
+      "streamError": "Streamfeeler vu BESSER Forge: {{error}}",
       "threadFailed": "D’Gespréich vun dëser Ännerung konnt net gelies ginn: {{reason}}",
-      "voiceUnavailable": "BESSER Lab hëlt keng Sproochmessagen: tipp d’Ännerung amplaz."
+      "voiceUnavailable": "BESSER Forge hëlt keng Sproochmessagen: tipp d’Ännerung amplaz."
     },
     "diff": {
       "addComment": "Kommentar derbäisetzen",
@@ -5569,6 +5569,6 @@
       "max_turns": "D’Ronnelimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
       "timeout": "D’Zäitlimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie."
     },
-    "title": "BESSER Lab"
+    "title": "BESSER Forge"
   }
 }

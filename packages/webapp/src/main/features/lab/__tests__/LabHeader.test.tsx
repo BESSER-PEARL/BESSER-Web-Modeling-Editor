@@ -87,7 +87,7 @@ describe('LabHeader key chip', () => {
 describe('LabHeader', () => {
   it("shows the lab's name, the base commits and no fork chip for the BESSER-PEARL repositories", async () => {
     await renderHeader(home({ spentUsd: 12.4, reservedUsd: 0, capUsd: 75 }, UPSTREAM_BASES));
-    expect(screen.getByText('BESSER Lab')).toBeInTheDocument();
+    expect(screen.getByText('BESSER Forge')).toBeInTheDocument();
     expect(screen.getByTestId('lab-bases')).toHaveTextContent('development a1fe9e6·develop a1fe9e6·develop a1fe9e6');
     expect(screen.queryByTestId('lab-fork-chip')).not.toBeInTheDocument();
   });
