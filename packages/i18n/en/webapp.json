@@ -1948,16 +1948,19 @@
       "titleMarker": {
         "success": "(Done)",
         "incomplete": "(Incomplete)",
+        "unresolved": "(Blockers remain)",
         "failed": "(Failed)"
       },
       "notificationTitle": {
         "success": "Generation finished",
         "incomplete": "Generation incomplete",
+        "unresolved": "Generation finished with blockers",
         "failed": "Generation failed"
       },
       "notificationBody": {
         "success": "{{project}}: the application is ready to download.",
         "incomplete": "{{project}}: the run stopped early. Its output is ready to inspect.",
+        "unresolved": "{{project}}: the run finished with unresolved blockers. Its output is ready to inspect.",
         "failed": "{{project}}: the run failed. Open the tab for details."
       },
       "untitledProject": "Your project"

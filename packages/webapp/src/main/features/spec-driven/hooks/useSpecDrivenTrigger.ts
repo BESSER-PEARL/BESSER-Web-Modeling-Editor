@@ -319,7 +319,13 @@ export function useSpecDrivenTrigger(
     if (result.errorCode !== 'CANCELLED' && !result.stoppedByUser) {
       announceRunFinished(
         runProjectNameRef.current,
-        result.ok ? (result.incomplete ? 'incomplete' : 'success') : 'failed',
+        !result.ok
+          ? 'failed'
+          : result.incomplete
+            ? 'incomplete'
+            : (result.unresolvedBlockerCount ?? 0) > 0
+              ? 'unresolved'
+              : 'success',
       );
     }
     try {
@@ -828,6 +834,10 @@ export function useSpecDrivenTrigger(
               toast.warning(`${edited ? 'Update' : 'Generation'} not verified — output available to inspect`);
             } else if (incomplete) {
               toast.warning(`${edited ? 'Update' : 'Generation'} incomplete — output available to inspect`);
+            } else if (realBlockerCount !== undefined && unresolved > 0) {
+              toast.warning(
+                `${edited ? 'Update' : 'Generation'} finished with ${unresolved} unresolved blocker${unresolved === 1 ? '' : 's'} — output available to inspect`,
+              );
             } else {
               toast.success('Spec-Driven Agent finished -- ready to download');
             }

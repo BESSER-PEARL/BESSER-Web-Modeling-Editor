@@ -1948,16 +1948,19 @@
       "titleMarker": {
         "success": "(Listo)",
         "incomplete": "(Incompleto)",
+        "unresolved": "(Bloqueos pendientes)",
         "failed": "(Error)"
       },
       "notificationTitle": {
         "success": "Generación terminada",
         "incomplete": "Generación incompleta",
+        "unresolved": "Generación terminada con bloqueos",
         "failed": "La generación falló"
       },
       "notificationBody": {
         "success": "{{project}}: la aplicación está lista para descargar.",
         "incomplete": "{{project}}: la ejecución se detuvo antes de tiempo. Su resultado se puede revisar.",
+        "unresolved": "{{project}}: la ejecución terminó con bloqueos sin resolver. Su resultado se puede revisar.",
         "failed": "{{project}}: la ejecución falló. Abre la pestaña para ver los detalles."
       },
       "untitledProject": "Tu proyecto"

@@ -1948,16 +1948,19 @@
       "titleMarker": {
         "success": "(Fertig)",
         "incomplete": "(Unvollständig)",
+        "unresolved": "(Blocker offen)",
         "failed": "(Fehlgeschlagen)"
       },
       "notificationTitle": {
         "success": "Generierung abgeschlossen",
         "incomplete": "Generierung unvollständig",
+        "unresolved": "Generierung mit offenen Blockern abgeschlossen",
         "failed": "Generierung fehlgeschlagen"
       },
       "notificationBody": {
         "success": "{{project}}: Die Anwendung steht zum Herunterladen bereit.",
         "incomplete": "{{project}}: Der Lauf wurde vorzeitig beendet. Das Ergebnis kann geprüft werden.",
+        "unresolved": "{{project}}: Der Lauf endete mit ungelösten Blockern. Das Ergebnis kann geprüft werden.",
         "failed": "{{project}}: Der Lauf ist fehlgeschlagen. Öffnen Sie den Tab für Details."
       },
       "untitledProject": "Ihr Projekt"

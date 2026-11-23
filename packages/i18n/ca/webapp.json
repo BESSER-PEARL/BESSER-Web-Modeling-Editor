@@ -1948,16 +1948,19 @@
       "titleMarker": {
         "success": "(Fet)",
         "incomplete": "(Incomplet)",
+        "unresolved": "(Bloquejos pendents)",
         "failed": "(Error)"
       },
       "notificationTitle": {
         "success": "Generació acabada",
         "incomplete": "Generació incompleta",
+        "unresolved": "Generació acabada amb bloquejos",
         "failed": "La generació ha fallat"
       },
       "notificationBody": {
         "success": "{{project}}: l'aplicació està a punt per baixar.",
         "incomplete": "{{project}}: l'execució s'ha aturat abans d'hora. El resultat es pot revisar.",
+        "unresolved": "{{project}}: l'execució ha acabat amb bloquejos sense resoldre. El resultat es pot revisar.",
         "failed": "{{project}}: l'execució ha fallat. Obre la pestanya per veure'n els detalls."
       },
       "untitledProject": "El teu projecte"

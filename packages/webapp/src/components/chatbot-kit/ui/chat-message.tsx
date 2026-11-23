@@ -1875,12 +1875,15 @@ function SpecDrivenCard({
         unresolvedBlockerCount: specDriven.unresolvedBlockerCount,
         unverified: isUnverified,
       }) ?? 0
+    // Only a backend that sends the real count: an older one's stays "Application ready".
+    const hasBlockers =
+      !isIncomplete && !isUnverified && (specDriven.unresolvedBlockerCount ?? 0) > 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">
           {unenforcedCount > 0 ? (
             <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
-          ) : isIncomplete || isUnverified ? (
+          ) : isIncomplete || isUnverified || hasBlockers ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -1894,9 +1897,13 @@ function SpecDrivenCard({
                   ? runMode === "modify"
                     ? "Updated — not verified"
                     : "Generated — not verified"
-                  : deterministic
-                    ? "Generated deterministically"
-                    : "Application ready"}
+                  : hasBlockers
+                    ? runMode === "modify"
+                      ? "Updated — blockers remain"
+                      : "Generated — blockers remain"
+                    : deterministic
+                      ? "Generated deterministically"
+                      : "Application ready"}
           </span>
           {unenforcedCount > 0 ? (
             <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
