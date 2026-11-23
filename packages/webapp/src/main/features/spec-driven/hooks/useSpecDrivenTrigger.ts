@@ -91,11 +91,13 @@ import {
   setApiKeyPresent,
   setLastRunForProject,
   tryClaimRunSlot,
+  unresolvedBlockerCount,
 } from '../state/specDrivenSlice';
 import { resolveLinkedRepoBase, type LinkedRepoBase } from '../linkedRepoBase';
 import { loadProjectThunk } from '../../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import {
+  claimSpecDrivenProjectRun,
   claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
   readActiveSpecDrivenRun,
@@ -117,6 +119,7 @@ import {
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
 import {
+  archiveTtlSeconds,
   getSpecDrivenConfig,
   resolveFreeRunModel,
 } from '../../../shared/services/specDrivenConfig';
@@ -129,6 +132,7 @@ import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry'
 import type {
   SpecDrivenEvent,
   SpecDrivenMessageState,
+  SpecDrivenMode,
   SpecDrivenProvider,
   TriggerSpecDrivenPayload,
 } from '../types';
@@ -201,6 +205,8 @@ export interface SpecDrivenRunResult {
   fileName?: string;
   costUsd?: number;
   generatorUsed?: string;
+  /** What the run did, from its done event: "modify" when it edited an existing app. */
+  mode?: 'create' | 'modify';
   /** Set on a successful run that was nonetheless cut short — the output
    * may be missing requested changes. Carried so the modeling agent can
    * report the outcome honestly instead of an unqualified success. */
@@ -213,14 +219,26 @@ export interface SpecDrivenRunResult {
    * agent report "finished with N unresolved issues" instead of the
    * misleading "stopped early". */
   blockerCount?: number;
+  /** From the done event, absent from older backends: findings not confirmed
+   * (counted in a complete run's `blockerCount`), and whether a whole class of
+   * checks left no evidence, with the sentence that says which. */
+  notConfirmedCount?: number;
+  /** The backend's real unresolved blockers, on every run; absent from older backends. */
+  unresolvedBlockerCount?: number;
+  unverified?: boolean;
+  unverifiedReason?: string;
   /** TRUE totals from the done event's verification report — what the run
-   * verified, could not verify, and delivered UNENFORCED. `blockerCount` is
-   * the same evidence collapsed to one number; `shippedUnenforced` is the
-   * one the agent must not round off to "success". */
+   * ran, only found in the code, could not verify, and delivered UNENFORCED.
+   * `blockerCount` is the same evidence collapsed to one number;
+   * `shippedUnenforced` is the one the agent must not round off to "success". */
   verificationCounts?: {
     verified: number;
+    /** Absent when the backend does not report this state. */
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    /** Test workflows that ran and failed; absent when the backend does not report them. */
+    failed?: number;
   };
 }
 
@@ -513,7 +531,7 @@ export function useSpecDrivenTrigger(
   const handleSseEvent = useCallback(
     async (
       event: SpecDrivenEvent,
-      run: { liveKey: string; streamingId: string; projectId: string },
+      run: { liveKey: string; streamingId: string; projectId: string; mode?: SpecDrivenMode },
     ): Promise<void> => {
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
@@ -609,6 +627,7 @@ export function useSpecDrivenTrigger(
           return;
         }
         case 'phase_update':
+        case 'step':
         case 'tool_call':
         case 'findings':
         case 'text':
@@ -656,15 +675,37 @@ export function useSpecDrivenTrigger(
           const verificationCounts = vCounts
             ? {
                 verified: Math.max(0, Math.round(vCounts.verified ?? 0)),
+                foundInCode:
+                  typeof vCounts.foundInCode === 'number'
+                    ? Math.max(0, Math.round(vCounts.foundInCode))
+                    : undefined,
                 notVerified: Math.max(0, Math.round(vCounts.notVerified ?? 0)),
                 shippedUnenforced: Math.max(
                   0,
                   Math.round(vCounts.shippedUnenforced ?? 0),
                 ),
+                ...(typeof vCounts.failed === 'number' && {
+                  failed: Math.max(0, Math.round(vCounts.failed)),
+                }),
               }
             : undefined;
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          // Absent from older backends, whose blockerCount keeps its old meaning.
+          const notConfirmedCount =
+            typeof event.notConfirmedCount === 'number'
+              ? Math.max(0, Math.round(event.notConfirmedCount))
+              : undefined;
+          // The backend's real blockers; its blockerCount is padded for released editors.
+          const realBlockerCount =
+            typeof event.unresolvedBlockerCount === 'number'
+              ? Math.max(0, Math.round(event.unresolvedBlockerCount))
+              : undefined;
+          const unverified = event.unverified === true && !incomplete;
+          const unverifiedReason =
+            unverified && typeof event.unverifiedReason === 'string' && event.unverifiedReason.trim()
+              ? event.unverifiedReason.trim()
+              : undefined;
           const stoppedByUser = wasStoppedByUser(event, doneRunId);
           const finishedAt = Date.now();
           // Record this output as the base for a future
@@ -701,6 +742,16 @@ export function useSpecDrivenTrigger(
             const withGen = generatorUsed
               ? ` with BESSER's \`${generatorUsed}\` generator`
               : '';
+            // An edit of an existing app says what it changed, not what it generated.
+            const edited = event.mode === 'modify';
+            const changed = event.changedFileCount;
+            const whatPhrase = !edited
+              ? `Generated ${filesPhrase}${withGen}`
+              : typeof changed !== 'number'
+                ? 'Updated your application'
+                : changed === 0
+                  ? 'Changed no files of your application'
+                  : `Updated **${changed}** file${changed === 1 ? '' : 's'} of your application`;
             // Only list top-level entries when they actually say something —
             // "Top level: .gitignore, web_app" is noise. Drop the phrase when it
             // would just echo a wrapper dir and dotfiles.
@@ -734,32 +785,49 @@ export function useSpecDrivenTrigger(
             //     error, cancellation) — "stopped early" is accurate.
             const incompleteMessage =
               blockerCount > 0
-                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
-                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
+                ? `⚠️ ${whatPhrase}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The ${edited ? 'updated' : 'generated'} app is **not verified complete**.${topPhrase} Start a follow-up ${edited ? 'run' : 'generation'} to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                : `⚠️ ${whatPhrase}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another ${edited ? 'run' : 'generation'} to finish the remaining changes, or use the **Download** button on the run card to save it.`;
             // Stated separately from the blocker count: the app was
             // delivered and these rules are NOT in it.
             const unenforcedPhrase =
               unenforcedCount > 0
                 ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
                 : '';
-            // A complete run's blockerCount is unverified findings only.
-            const unverifiedPhrase =
-              !incomplete && blockerCount > 0
+            // An older backend's complete-run blockerCount is findings it could not verify.
+            const legacyPhrase =
+              notConfirmedCount === undefined && !incomplete && blockerCount > 0
                 ? ` ${blockerCount} check${blockerCount === 1 ? '' : 's'} could not be verified.`
                 : '';
+            const unresolved = incomplete
+              ? 0
+              : unresolvedBlockerCount({ blockerCount, notConfirmedCount, unresolvedBlockerCount: realBlockerCount, unverified }) ?? 0;
+            const unresolvedPhrase = `**${unresolved} unresolved implementation or verification issue${unresolved === 1 ? '' : 's'}** remain${unresolved === 1 ? 's' : ''}.`;
+            const notConfirmedPhrase =
+              !incomplete && !unverified && (notConfirmedCount ?? 0) > 0
+                ? ` ${notConfirmedCount} check${notConfirmedCount === 1 ? '' : 's'} could not be confirmed.`
+                : '';
+            const checksPhrase = `${unresolved > 0 ? ` ${unresolvedPhrase}` : ''}${notConfirmedPhrase}${legacyPhrase}`;
+            const appNoun = `${edited ? 'updated' : 'generated'} app`;
+            const reasonPhrase = unverifiedReason ? ` ${unverifiedReason}` : '';
             appendAssistantMessage(
               incomplete
                 ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
                 : unenforcedCount > 0
-                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${unverifiedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
-                  : `✅ Generated ${filesPhrase}${withGen}.${unverifiedPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+                  ? `⚠️ ${whatPhrase}, but ${unenforcedPhrase}${checksPhrase}${unverified ? ` The ${appNoun} is also **not verified**.${reasonPhrase}` : ''}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : unverified
+                    ? `⚠️ ${whatPhrase}, but the ${appNoun} is **not verified**.${reasonPhrase}${unresolved > 0 ? ` ${unresolvedPhrase}` : ''}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                    : unresolved > 0
+                      ? `⚠️ ${whatPhrase}, but ${unresolvedPhrase}${notConfirmedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                      : `✅ ${whatPhrase}.${checksPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             if (unenforcedCount > 0) {
               toast.warning(
                 `Delivered — ${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} not enforced`,
               );
+            } else if (unverified) {
+              toast.warning(`${edited ? 'Update' : 'Generation'} not verified — output available to inspect`);
             } else if (incomplete) {
-              toast.warning('Generation incomplete — output available to inspect');
+              toast.warning(`${edited ? 'Update' : 'Generation'} incomplete — output available to inspect`);
             } else {
               toast.success('Spec-Driven Agent finished -- ready to download');
             }
@@ -772,10 +840,15 @@ export function useSpecDrivenTrigger(
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
+            mode: event.mode,
             incomplete,
             incompleteReason: event.incompleteReason,
             stoppedByUser,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
+            notConfirmedCount,
+            unresolvedBlockerCount: realBlockerCount,
+            unverified: unverified || undefined,
+            unverifiedReason,
             verificationCounts,
           }, {
             stats: {
@@ -848,8 +921,9 @@ export function useSpecDrivenTrigger(
           // the user can see the run failed without scrolling to the toast.
           finalizeLiveRun(run.liveKey, run.streamingId);
           if (event.code === 'CANCELLED' && event.reason === 'abandoned') {
-            appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
-            toast.warning('Generation stopped after the disconnect grace period');
+            const what = run.mode === 'modify' ? 'Update' : 'Generation';
+            appendAssistantMessage(`⏹ ${what} stopped after disconnect. ${event.message}`);
+            toast.warning(`${what} stopped after the disconnect grace period`);
           } else {
             appendErrorToChat(
               `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
@@ -914,12 +988,15 @@ export function useSpecDrivenTrigger(
         ifAvailable: true,
       });
       if (!releaseOwnership) return;
+      // The adopted run is this project's run: no other tab starts one meanwhile.
+      const releaseProject = (await claimSpecDrivenProjectRun(saved.projectId)) ?? (() => {});
       if (
         isRunningRef.current ||
         currentProjectRef.current?.id !== saved.projectId ||
         !dispatch(tryClaimRunSlot())
       ) {
         releaseOwnership();
+        releaseProject();
         return;
       }
 
@@ -1018,6 +1095,7 @@ export function useSpecDrivenTrigger(
         activeCardRef.current = null;
         dispatch(releaseRunSlot());
         releaseOwnership();
+        releaseProject();
         if (mountedRef.current) setIsGenerating(false);
       }
     })();
@@ -1138,6 +1216,17 @@ export function useSpecDrivenTrigger(
         );
         return;
       }
+      // Held until this run ends or the tab closes: another tab's run on this
+      // project would start from the same base.
+      const releaseProject = await claimSpecDrivenProjectRun(project.id);
+      if (!releaseProject) {
+        dispatch(releaseRunSlot());
+        track('spec_run_blocked', { reason: 'already_running' });
+        appendErrorToChat(
+          'Spec-Driven Agent is already running on this project in another tab — please wait for it to finish there.',
+        );
+        return;
+      }
 
       // Settle the run mode before any run card, so the model-change question
       // never sits under "Starting…". The typing indicator and its Stop
@@ -1167,8 +1256,8 @@ export function useSpecDrivenTrigger(
       // fallback), so the values below are always defined.
       const cfg = await getSpecDrivenConfig();
       // Incremental modify decision. Look up the previous successful
-      // run for THIS project and, if it's still within the backend's
-      // download-TTL window, edit that app in place (`mode:'modify'` +
+      // run for THIS project and, if the backend can still edit it,
+      // edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
       // explicit `mode` on the trigger payload overrides it.
       let runDecision: RunModeDecision | null = null;
@@ -1217,6 +1306,8 @@ export function useSpecDrivenTrigger(
                 lastRun,
                 nowMs: Date.now(),
                 ttlSeconds,
+                // An edit from a run's download does not know the GitHub commit it started from.
+                baseTtlSeconds: getProjectGitHubLink(project.id) ? ttlSeconds : archiveTtlSeconds(cfg),
                 explicitMode: payload.mode,
                 explicitBaseRunId: payload.baseRunId,
               },
@@ -1229,6 +1320,7 @@ export function useSpecDrivenTrigger(
         // Stopped (or failed) before the run: free the slot in every exit path.
         if (!runDecision || check.signal.aborted) {
           dispatch(releaseRunSlot());
+          releaseProject();
           if (mountedRef.current) setIsGenerating(false);
         }
       }
@@ -1242,13 +1334,11 @@ export function useSpecDrivenTrigger(
       // Point of no return: the slot now holds a running run.
       dispatch(claimRunSlot());
 
-      // The free-tier / BYOK choice was already conveyed by the agent's
-      // confirmation copy before the run, so the intro line below is enough.
-      const introText =
-        typeof payload.message === 'string' && payload.message.trim().length > 0
-          ? payload.message
-          : 'Starting the Spec-Driven Agent…';
-      appendAssistantMessage(introText);
+      // Worded from the mode settled above, not from the agent's banner: the
+      // agent sends the trigger before this decision is made.
+      appendAssistantMessage(
+        i18n.t(runDecision.mode === 'modify' ? 'assistant.runCard.introModify' : 'assistant.runCard.introGenerate'),
+      );
       // Client-generated run key: created BEFORE the backend assigns its
       // run id, it links the card message (`specDriven.liveKey`) to the
       // Redux slice entry every SSE event updates. Register the slice
@@ -1344,6 +1434,7 @@ export function useSpecDrivenTrigger(
         primaryKindOverride: payload.primaryKindOverride,
         targetGeneratorOverride: payload.targetGeneratorOverride,
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
+        followupStatesNothingNew: payload.rememberNewest === false,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
           recordRunSeedModel(runId, seedModel, seedContext());
@@ -1365,7 +1456,7 @@ export function useSpecDrivenTrigger(
 
       // Kept from the start, so a run that fails, is stopped or outlives the
       // tab still leaves the application's description behind.
-      recordProjectRunRequest(project.id, payload.instructions);
+      recordProjectRunRequest(project.id, payload.instructions, payload.rememberNewest !== false);
 
       let handle;
       try {
@@ -1385,13 +1476,14 @@ export function useSpecDrivenTrigger(
         activeCardRef.current = null;
         setIsGenerating(false);
         dispatch(releaseRunSlot());
+        releaseProject();
         reportRunFinished({ ok: false, errorCode: 'INTERNAL' }, { stage: 'start', error: err });
         return;
       }
 
       abortRef.current = handle.abort;
 
-      const runCtx = { liveKey, streamingId, projectId: runProject.id };
+      const runCtx = { liveKey, streamingId, projectId: runProject.id, mode: runDecision.mode };
       let terminalEventSeen = false;
       let eventsReceived = 0;
       try {
@@ -1410,7 +1502,7 @@ export function useSpecDrivenTrigger(
           await handleSseEvent(event, runCtx);
         }
         if (!abortRequestedRef.current && !terminalEventSeen) {
-          const message = 'The generation stream closed before reporting a final result.';
+          const message = `The ${runDecision.mode === 'modify' ? 'update' : 'generation'} stream closed before reporting a final result.`;
           // Synthetic terminal event through the SAME single write path
           // as real SSE errors — the card gets the red status + notice.
           dispatch(
@@ -1513,6 +1605,7 @@ export function useSpecDrivenTrigger(
         // closed early), which dispatches nothing else.
         dispatch(releaseRunSlot());
         void ownership.claim?.then((release) => release?.());
+        releaseProject();
         if (mountedRef.current) setIsGenerating(false);
       }
     },

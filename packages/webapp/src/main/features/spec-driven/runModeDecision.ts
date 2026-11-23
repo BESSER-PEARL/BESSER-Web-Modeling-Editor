@@ -2,7 +2,7 @@
  * Decision helpers for incremental modify.
  *
  * Given the previously recorded successful run for the current project
- * (if any) and the backend's download-TTL window, decides whether a new
+ * (if any) and whether the backend can still edit it, decides whether a new
  * run should:
  *   - edit that run's app IN PLACE (`mode:'modify'` + `baseRunId`), or
  *   - rebuild from scratch (`mode:'generate'`).
@@ -14,7 +14,7 @@
  */
 
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
-import { fetchModelChange, modelChangeQuestion } from './services/modelChange';
+import { checkModifyBase, modelChangeQuestion } from './services/modelChange';
 import type { ModelChange } from './services/modelChange';
 import type { SpecDrivenMode } from './types';
 import { isValidRunId, type LastRunRecord } from '../../shared/services/storage/specDrivenRunRecords';
@@ -31,8 +31,8 @@ export interface RunModeDecision {
    */
   askUser?: 'large' | 'unrelated';
   /**
-   * Set on an automatic fresh build because the project's last run is past
-   * the download lifetime: the app is rebuilt, not edited in place.
+   * Set on an automatic fresh build because the backend can no longer edit
+   * the project's last run: the app is rebuilt, not edited in place.
    */
   baseExpired?: boolean;
 }
@@ -42,17 +42,21 @@ export interface DecideRunModeParams {
   lastRun: LastRunRecord | null | undefined;
   /** Current time in epoch ms (injected for deterministic tests). */
   nowMs: number;
-  /** Backend download-TTL window in seconds (the modify window). */
+  /** How long the backend keeps a run's workspace, in seconds: the modify window when it has not said whether the base can be edited. */
   ttlSeconds: number;
+  /** How long the backend may still be able to edit a run (its download lifetime); the backend is asked within it. Defaults to `ttlSeconds`. */
+  baseTtlSeconds?: number;
   /** Explicit `mode` from the trigger payload, if the agent forced one. */
   explicitMode?: string;
   /** Explicit `baseRunId` from the trigger payload, if provided. */
   explicitBaseRunId?: string;
   /** The base run's model vs the current one; absent when unknown. */
   modelChange?: ModelChange | null;
+  /** The backend's answer to whether it can still edit the stored run; absent when it did not say. */
+  baseAvailable?: boolean;
 }
 
-/** True while the backend still holds `lastRun`, so a run can edit it in place. */
+/** True while `lastRun` is younger than `ttlSeconds`. */
 export function isWithinTtl(lastRun: LastRunRecord | null | undefined, nowMs: number, ttlSeconds: number): boolean {
   return !!lastRun && Number.isFinite(lastRun.at) && Number.isFinite(ttlSeconds) && nowMs - lastRun.at < ttlSeconds * 1000;
 }
@@ -67,15 +71,14 @@ export function isWithinTtl(lastRun: LastRunRecord | null | undefined, nowMs: nu
  *      the stored one; with neither it degrades to a fresh `generate`
  *      rather than sending an invalid request.
  *   2. Otherwise, automatically `modify` the stored last run when it is a
- *      valid run id AND still within the backend's download-TTL window
- *      (after the TTL the backend has garbage-collected the temp dir /
- *      zip it would edit in place, so a rebuild is the only option).
+ *      valid run id AND the backend says it can still edit it; when the
+ *      backend did not say, while it is within the workspace TTL.
  *      When the model changed a lot or is another app, `askUser` asks
  *      the caller to let the user choose; an unknown change modifies.
  *   3. Fall back to a fresh `generate`.
  */
 export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
-  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId, modelChange } = params;
+  const { lastRun, nowMs, ttlSeconds, explicitMode, explicitBaseRunId, modelChange, baseAvailable } = params;
 
   const storedRunId =
     lastRun && isValidRunId(lastRun.runId) ? lastRun.runId : undefined;
@@ -92,8 +95,8 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
     return baseRunId ? { mode: 'modify', baseRunId } : { mode: 'generate' };
   }
 
-  // 2. Automatic heuristic — modify only within a fresh, valid window.
-  if (storedRunId && isWithinTtl(lastRun, nowMs, ttlSeconds)) {
+  // 2. Automatic: modify only a base the backend can still edit.
+  if (storedRunId && (baseAvailable ?? isWithinTtl(lastRun, nowMs, ttlSeconds))) {
     // Never start fresh on our own: the base app may carry custom work.
     const verdict = modelChange?.verdict;
     if (verdict === 'large' || verdict === 'unrelated') {
@@ -107,25 +110,27 @@ export function decideRunMode(params: DecideRunModeParams): RunModeDecision {
 }
 
 /**
- * The run mode, with the user's say on a large model change. An automatic
- * modify first asks the backend how far the model moved from the base app's;
- * on a large change or another app the user picks "Start fresh" (generate) or
- * "Update the existing app" (modify, also on dismiss). Null when `signal`
- * aborts during the check or the question.
+ * The run mode, with the backend's and the user's say. Without an explicit
+ * mode, a stored run within `baseTtlSeconds` is first checked with the
+ * backend: whether it can still edit that run, and how far the model moved
+ * from the base app's. On a large change or another app the user picks
+ * "Start fresh" (generate) or "Update the existing app" (modify, also on
+ * dismiss). Null when `signal` aborts during the check or the question.
  */
 export async function resolveRunMode(
   params: DecideRunModeParams,
   check: { project: unknown; instructions: string; signal: AbortSignal },
 ): Promise<RunModeDecision | null> {
   const decision = decideRunMode(params);
-  if (decision.mode !== 'modify' || !decision.baseRunId || params.explicitMode) {
+  const { lastRun, nowMs, ttlSeconds, baseTtlSeconds, explicitMode } = params;
+  if (explicitMode || !lastRun || !isValidRunId(lastRun.runId)
+    || !isWithinTtl(lastRun, nowMs, baseTtlSeconds ?? ttlSeconds)) {
     return decision;
   }
-  const modelChange = await fetchModelChange(
-    check.project, check.instructions, decision.baseRunId, check.signal,
-  );
+  const base = await checkModifyBase(check.project, check.instructions, lastRun.runId, check.signal);
   if (check.signal.aborted) return null;
-  const checked = decideRunMode({ ...params, modelChange });
+  const modelChange = base?.modelChange;
+  const checked = decideRunMode({ ...params, modelChange, baseAvailable: base?.baseAvailable });
   if (!checked.askUser || !modelChange) return checked;
   const startFresh = await globalConfirm({
     ...modelChangeQuestion(checked.askUser, modelChange),

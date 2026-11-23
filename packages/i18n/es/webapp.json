@@ -1901,6 +1901,23 @@
         "filesChanged_other": "{{count}} archivos modificados",
         "showAll": "Mostrar los {{count}}",
         "more": "y {{count}} más"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} encontrados en el código",
+        "foundInCode": {
+          "label": "Encontrado en el código, no ejecutado",
+          "blurb": "Su fuente está citada, pero ninguna llamada a la aplicación en ejecución lo alcanzó.",
+          "empty": "Nada se apoya solo en una cita de la fuente."
+        },
+        "summaryFailed": "{{count}} ejecutados y fallidos",
+        "failed": {
+          "label": "Ejecutado y fallido",
+          "blurb": "Una prueba escrita por el agente se ejecutó contra la aplicación y falló; la prueba o la aplicación pueden estar mal.",
+          "empty": "Ninguna prueba ejecutada contra la aplicación falló."
+        },
+        "checksOff": "No se comprueba en este servidor: {{checks}}",
+        "verifiedBlurb": "Ejercitado por una llamada a la aplicación en ejecución, con la evidencia.",
+        "footer": "Verificado significa que una llamada a la aplicación en ejecución lo ejercitó. Encontrado en el código significa que su fuente está citada, pero nada lo ejecutó. No se pudo verificar significa que no hay evidencia en ningún sentido — no es un aprobado."
       }
     },
     "generationKey": {
@@ -1920,6 +1937,8 @@
       "lifetimeHours_one": "{{count}} hora",
       "lifetimeHours_other": "{{count}} horas",
       "generateAgain": "Generar de nuevo",
+      "introModify": "Aplicando los cambios solicitados a tu aplicación…",
+      "introGenerate": "Generando tu aplicación a partir de tus especificaciones…",
       "rebuildAfterExpiry": "La ejecución anterior ya no se puede editar sobre sí misma, así que la aplicación se reconstruye a partir del modelo y de la petición original.",
       "downloadUntil": "Descarga disponible hasta las {{time}}.",
       "downloadAndGithubUntil": "Descarga disponible hasta las {{download}}; guardar en GitHub hasta las {{github}}.",
@@ -1969,7 +1988,8 @@
       "turns_one": "{{count}} turno",
       "turns_other": "{{count}} turnos",
       "stats": "Duración, turnos del LLM y coste estimado de este paso",
-      "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura."
+      "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura.",
+      "stepElapsed": "{{duration}} en este paso"
     }
   },
   "deploy": {

@@ -110,7 +110,10 @@ export interface AnalyticsEvents {
       tokens_used?: number;
       is_zip?: boolean;
       blocker_count: number;
+      /** Exercised by a call to the running app (before `found_in_code` existed, also source citations). */
       verified?: number;
+      /** Implemented with a cited source that nothing ran. */
+      found_in_code?: number;
       not_verified?: number;
       shipped_unenforced?: number;
     };

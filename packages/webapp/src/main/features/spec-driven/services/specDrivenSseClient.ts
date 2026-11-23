@@ -134,6 +134,8 @@ export interface StartSpecDrivenRunParams {
   targetGeneratorOverride?: string;
   /** Explicit approved-plan choice to bypass the deterministic Phase-1 generator. */
   skipDeterministicGenerator?: boolean;
+  /** The assistant judged that the newest message of `instructions` states nothing new (a retry, a fix). */
+  followupStatesNothingNew?: boolean;
   /** Called as soon as the backend accepts the run, before body event #1. */
   onRunAccepted?: (runId: string) => void;
 }
@@ -591,6 +593,8 @@ export function startSpecDrivenRun(
   if (params.skipDeterministicGenerator === true) {
     body.skip_deterministic_generator = true;
   }
+  // Servers that predate the field ignore it.
+  if (params.followupStatesNothingNew === true) body.followup_states_nothing_new = true;
   // Research telemetry: tag the run with the `?pilot=` label + the per-tab
   // session id so the backend can attach its run summary to the same
   // telemetry session as the chat events. Absent for regular sessions.

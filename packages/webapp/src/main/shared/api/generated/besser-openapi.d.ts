@@ -1471,7 +1471,8 @@ export interface paths {
          *           "estimated_duration_seconds": 195,
          *           "notes": [...],
          *           "model_summary": {"primary": "class", "present": [...]},
-         *           "model_change": {"verdict": "large", "gone": 0.54, ...}  # modify only
+         *           "model_change": {"verdict": "large", "gone": 0.54, ...},  # modify only
+         *           "base_available": true  # modify only; false: the run builds from scratch
          *         }
          *
          *     Errors are mapped by ``handle_endpoint_errors`` (``ValueError`` -> 400).
@@ -3266,6 +3267,8 @@ export interface components {
             /** Text */
             text: string;
             kind: components["schemas"]["RequirementKind"];
+            /** Met By */
+            met_by?: ("declaration" | "type" | "check") | null;
         };
         /**
          * RequirementKind
@@ -3512,6 +3515,10 @@ export interface components {
          *         user's request. When given, the requirements ledger is built from
          *         them instead of extracting its own, and each verdict names its
          *         requirement's trace id. Left out, the run extracts them.
+         *     followup_states_nothing_new
+         *         True when the modeling assistant judged that the newest message of
+         *         ``instructions`` (a retry, a fix) states nothing new: it does not stop
+         *         ``requirements`` from being used for the request before it.
          *     actorName
          *         Optional name of the person starting the run (the project owner), the
          *         Person the run's trace (``done.trace``) records besides the agent.
@@ -3527,6 +3534,11 @@ export interface components {
             instructions: string;
             /** Requirements */
             requirements?: components["schemas"]["RequirementInput"][] | null;
+            /**
+             * Followup States Nothing New
+             * @default false
+             */
+            followup_states_nothing_new: boolean;
             /** Actorname */
             actorName?: string | null;
             /**
@@ -3664,6 +3676,8 @@ export interface components {
             notes: string[];
             model_summary: components["schemas"]["SmartPreviewModelSummaryResponse"];
             model_change: components["schemas"]["ModelChangeResponse"] | null;
+            /** Base Available */
+            base_available: boolean | null;
         };
         /**
          * SmartPushDeployConfig

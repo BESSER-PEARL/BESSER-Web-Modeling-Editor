@@ -200,3 +200,42 @@ describe('live-paint repro (production wiring)', () => {
     expect(screen.getAllByText('Application ready').length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe('step events (production wiring)', () => {
+  it('paint the current step and are not reported as unknown events', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const api: { current: SurfaceApi | null } = { current: null };
+    render(
+      <Provider store={store}>
+        <Surface apiRef={api} />
+      </Provider>,
+    );
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = api.current!.handleTrigger(PAYLOAD);
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    await act(async () => {
+      pushEvent({
+        event: 'start', runId: '7c2a0000aaaaaaaaaaaaaaaaaaaaaaaa', provider: 'free',
+        llmModel: 'qwen3-coder:30b', maxCost: 1.0, maxRuntime: 900,
+      } as SpecDrivenEvent);
+      pushEvent({ event: 'phase', phase: 'validate', message: 'Validating', elapsedSeconds: 300 });
+      pushEvent({
+        event: 'step', phase: 'validate',
+        message: 'First check: checking 12 requirements against the code', elapsedSeconds: 310,
+      });
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(screen.getByText('First check: checking 12 requirements against the code')).toBeTruthy();
+    expect(warn.mock.calls.some((args) => String(args[0]).includes('unknown SSE event'))).toBe(false);
+
+    await act(async () => {
+      pushEvent({ event: 'error', code: 'CANCELLED', message: 'Cancelled' });
+      closeStream();
+      await run;
+    });
+    warn.mockRestore();
+  });
+});

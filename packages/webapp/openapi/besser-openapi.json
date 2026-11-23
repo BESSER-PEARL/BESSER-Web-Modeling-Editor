@@ -3296,7 +3296,7 @@
           "spec-driven"
         ],
         "summary": "Smart Preview",
-        "description": "Return the plan spec-driven generate would run, without executing it.\n\nThe response lets the UI show a confirmation screen before the user\ncommits their API key and budget. Preview never calls an LLM — the\nclassifier is pure heuristics plus the project's model presence —\nso no api_key is required and the response is instant.\n\nReturns (simplified)::\n\n    {\n      \"primary_kind\": \"class\",\n      \"auxiliary_kinds\": [\"gui\", \"agent\"],\n      \"target_generator\": \"generate_web_app\",\n      \"target_generator_confidence\": 0.8,\n      \"summary\": \"Generate full-stack web app from Class Diagram; \"\n                 \"also using GUI Model, Agent Model\",\n      \"estimated_turns\": 18,\n      \"estimated_cost_usd\": 0.59,\n      \"estimated_duration_seconds\": 195,\n      \"notes\": [...],\n      \"model_summary\": {\"primary\": \"class\", \"present\": [...]},\n      \"model_change\": {\"verdict\": \"large\", \"gone\": 0.54, ...}  # modify only\n    }\n\nErrors are mapped by ``handle_endpoint_errors`` (``ValueError`` -> 400).",
+        "description": "Return the plan spec-driven generate would run, without executing it.\n\nThe response lets the UI show a confirmation screen before the user\ncommits their API key and budget. Preview never calls an LLM — the\nclassifier is pure heuristics plus the project's model presence —\nso no api_key is required and the response is instant.\n\nReturns (simplified)::\n\n    {\n      \"primary_kind\": \"class\",\n      \"auxiliary_kinds\": [\"gui\", \"agent\"],\n      \"target_generator\": \"generate_web_app\",\n      \"target_generator_confidence\": 0.8,\n      \"summary\": \"Generate full-stack web app from Class Diagram; \"\n                 \"also using GUI Model, Agent Model\",\n      \"estimated_turns\": 18,\n      \"estimated_cost_usd\": 0.59,\n      \"estimated_duration_seconds\": 195,\n      \"notes\": [...],\n      \"model_summary\": {\"primary\": \"class\", \"present\": [...]},\n      \"model_change\": {\"verdict\": \"large\", \"gone\": 0.54, ...},  # modify only\n      \"base_available\": true  # modify only; false: the run builds from scratch\n    }\n\nErrors are mapped by ``handle_endpoint_errors`` (``ValueError`` -> 400).",
         "operationId": "smart_preview_besser_api_spec_driven_preview_post",
         "requestBody": {
           "content": {
@@ -7325,6 +7325,22 @@
           },
           "kind": {
             "$ref": "#/components/schemas/RequirementKind"
+          },
+          "met_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "declaration",
+                  "type",
+                  "check"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Met By"
           }
         },
         "type": "object",
@@ -7882,6 +7898,11 @@
             ],
             "title": "Requirements"
           },
+          "followup_states_nothing_new": {
+            "type": "boolean",
+            "title": "Followup States Nothing New",
+            "default": false
+          },
           "actorName": {
             "anyOf": [
               {
@@ -8071,7 +8092,7 @@
           "instructions"
         ],
         "title": "SmartGenerateRequest",
-        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap.\nrequirements\n    Optional requirements the modeling assistant extracted from the\n    user's request. When given, the requirements ledger is built from\n    them instead of extracting its own, and each verdict names its\n    requirement's trace id. Left out, the run extracts them.\nactorName\n    Optional name of the person starting the run (the project owner), the\n    Person the run's trace (``done.trace``) records besides the agent.\n    Left out, the trace names only the Spec-Driven Agent.\ntraceabilityEnabled\n    Whether the project records traces (opt-in, off by default). Only\n    then does the run build its trace, send it as ``done.trace`` and ship\n    it in the ZIP."
+        "description": "Body of ``POST /besser_api/spec-driven/generate``.\n\nAttributes\n----------\nproject\n    The full ``ProjectInput`` payload (same shape as the existing\n    ``/generate-output-from-project`` endpoint).\ninstructions\n    Natural-language description of what to build. Typically refined\n    by the modeling agent before being sent.\napi_key\n    The user's Anthropic, OpenAI, Mistral, or Nebius Token Factory API\n    key. BYOK — sent only\n    in the POST body, never in the URL, never logged, never persisted.\nprovider\n    Which provider the key is for.\nllm_model\n    Optional model override (e.g. ``claude-sonnet-4-5``, ``gpt-4o``).\nmax_cost_usd\n    Soft cap for LLM spend in USD. Clamped to the server hard cap.\nmax_runtime_seconds\n    Soft cap for total wall-clock runtime. Clamped to the server hard cap.\nrequirements\n    Optional requirements the modeling assistant extracted from the\n    user's request. When given, the requirements ledger is built from\n    them instead of extracting its own, and each verdict names its\n    requirement's trace id. Left out, the run extracts them.\nfollowup_states_nothing_new\n    True when the modeling assistant judged that the newest message of\n    ``instructions`` (a retry, a fix) states nothing new: it does not stop\n    ``requirements`` from being used for the request before it.\nactorName\n    Optional name of the person starting the run (the project owner), the\n    Person the run's trace (``done.trace``) records besides the agent.\n    Left out, the trace names only the Spec-Driven Agent.\ntraceabilityEnabled\n    Whether the project records traces (opt-in, off by default). Only\n    then does the run build its trace, send it as ``done.trace`` and ship\n    it in the ZIP."
       },
       "SmartPreviewModelSummaryResponse": {
         "properties": {
@@ -8252,6 +8273,17 @@
                 "type": "null"
               }
             ]
+          },
+          "base_available": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Available"
           }
         },
         "type": "object",
@@ -8267,7 +8299,8 @@
           "estimated_duration_seconds",
           "notes",
           "model_summary",
-          "model_change"
+          "model_change",
+          "base_available"
         ],
         "title": "SmartPreviewResponse",
         "description": "Response of ``POST /besser_api/spec-driven/preview``: ``PreviewPlan.to_dict()`` and the model."
