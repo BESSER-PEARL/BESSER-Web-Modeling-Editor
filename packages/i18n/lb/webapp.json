@@ -1901,6 +1901,23 @@
         "filesChanged_other": "{{count}} Fichieren geännert",
         "showAll": "All {{count}} weisen",
         "more": "an {{count}} aner"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} am Code fonnt",
+        "foundInCode": {
+          "label": "Am Code fonnt, net ausgefouert",
+          "blurb": "Seng Quell ass uginn, mä keen Opruff vun der lafender App huet et erreecht.",
+          "empty": "Näischt baut eleng op enger Quellenugab op."
+        },
+        "summaryFailed": "{{count}} ausgefouert an net gelongen",
+        "failed": {
+          "label": "Ausgefouert an net gelongen",
+          "blurb": "En Test, deen den Agent geschriwwen huet, ass géint d’App gelaf an huet net geklappt; den Test oder d’App kann falsch sinn.",
+          "empty": "Keen Test, deen géint d’App gelaf ass, huet net geklappt."
+        },
+        "checksOff": "Op dësem Server net gepréift: {{checks}}",
+        "verifiedBlurb": "Duerch en Opruff vun der lafender App ausgefouert, mam Beweis.",
+        "footer": "Verifizéiert heescht, datt en Opruff vun der lafender App et ausgefouert huet. Am Code fonnt heescht, datt seng Quell uginn ass, mä näischt et ausgefouert huet. Konnt net verifizéiert ginn heescht, datt et kee Beweis an déi eng oder aner Richtung gëtt — dat ass kee Bestoen."
       }
     },
     "generationKey": {
@@ -1920,6 +1937,8 @@
       "lifetimeHours_one": "{{count}} Stonn",
       "lifetimeHours_other": "{{count}} Stonnen",
       "generateAgain": "Nach eng Kéier generéieren",
+      "introModify": "Är gewënschten Ännerunge ginn op Är Applikatioun ugewannt…",
+      "introGenerate": "Är Applikatioun gëtt aus Äre Spezifikatioune generéiert…",
       "rebuildAfterExpiry": "De virege Laf kann net méi direkt geännert ginn. D'Applikatioun gëtt dofir aus dem Modell an der ursprénglecher Ufro nei gebaut.",
       "downloadUntil": "Download disponibel bis {{time}}.",
       "downloadAndGithubUntil": "Download disponibel bis {{download}}; op GitHub späichere bis {{github}}.",
@@ -1969,7 +1988,8 @@
       "turns_one": "{{count}} Ronn",
       "turns_other": "{{count}} Ronnen",
       "stats": "Dauer, LLM-Ronnen a geschate Käschte vun dësem Schrëtt",
-      "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung."
+      "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung.",
+      "stepElapsed": "{{duration}} an dësem Schrëtt"
     }
   },
   "deploy": {

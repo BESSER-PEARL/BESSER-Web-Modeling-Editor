@@ -150,6 +150,37 @@ describe('Spec-Driven run analytics', () => {
     });
   });
 
+  it('counts what was only found in the code apart from what was run', async () => {
+    const doneWithReport =
+      `event: done\ndata: {"event":"done","runId":"${RUN_ID}",` +
+      `"downloadUrl":"/besser_api/spec-driven/download/${RUN_ID}",` +
+      '"fileName":"out.zip","isZip":true,"recipe":{},' +
+      '"verification":{"verified":[],"foundInCode":[],"notVerified":[],"shippedUnenforced":[],' +
+      '"counts":{"verified":2,"foundInCode":7,"notVerified":3,"shippedUnenforced":0}}}\n\n';
+    await runOnce(streamOf([START_FRAME, doneWithReport]));
+
+    expect(sent('spec_run_completed')[0]).toMatchObject({
+      verified: 2,
+      found_in_code: 7,
+      not_verified: 3,
+      shipped_unenforced: 0,
+    });
+  });
+
+  it('sends no found-in-code count for a backend that does not report it', async () => {
+    const doneWithOlderReport =
+      `event: done\ndata: {"event":"done","runId":"${RUN_ID}",` +
+      `"downloadUrl":"/besser_api/spec-driven/download/${RUN_ID}",` +
+      '"fileName":"out.zip","isZip":true,"recipe":{},' +
+      '"verification":{"verified":[],"notVerified":[],"shippedUnenforced":[],' +
+      '"counts":{"verified":2,"notVerified":3,"shippedUnenforced":0}}}\n\n';
+    await runOnce(streamOf([START_FRAME, doneWithOlderReport]));
+
+    const completed = sent('spec_run_completed')[0];
+    expect(completed).toMatchObject({ verified: 2, not_verified: 3 });
+    expect((completed as { found_in_code?: number }).found_in_code).toBeUndefined();
+  });
+
   it('reports a server error as failed at the server stage, without its message', async () => {
     await runOnce(streamOf([START_FRAME, ERROR_FRAME]));
 

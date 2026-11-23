@@ -152,8 +152,10 @@ const isWarning = (value: unknown): boolean => isRecord(value) && isString(value
 const isVerification = (value: unknown): boolean =>
   isRecord(value) &&
   isListOf(value.verified, isRecord) &&
+  (value.foundInCode === undefined || isListOf(value.foundInCode, isRecord)) &&
   isListOf(value.notVerified, isRecord) &&
   isListOf(value.shippedUnenforced, isRecord) &&
+  (value.failed === undefined || isListOf(value.failed, isRecord)) &&
   isRecord(value.counts);
 
 /** The run card as stored, or undefined when a field the card reads unguarded is wrong; a wrong optional list is dropped. */
@@ -169,9 +171,10 @@ const reviveCard = (value: unknown): ChatKitMessage['specDriven'] => {
   }
   const card: Json = { ...value };
   if (card.verification !== undefined && !isVerification(card.verification)) delete card.verification;
-  for (const field of ['changedFiles', 'modelChanges']) {
+  for (const field of ['changedFiles', 'modelChanges', 'checksOff']) {
     if (card[field] !== undefined && !isListOf(card[field], isString)) delete card[field];
   }
+  if (card.unverifiedReason !== undefined && !isString(card.unverifiedReason)) delete card.unverifiedReason;
   return card as unknown as ChatKitMessage['specDriven'];
 };
 

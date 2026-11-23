@@ -90,6 +90,7 @@ export function trackRunFinished(
       is_zip: details.stats?.isZip,
       blocker_count: result.blockerCount ?? 0,
       verified: result.verificationCounts?.verified,
+      found_in_code: result.verificationCounts?.foundInCode,
       not_verified: result.verificationCounts?.notVerified,
       shipped_unenforced: result.verificationCounts?.shippedUnenforced,
     });

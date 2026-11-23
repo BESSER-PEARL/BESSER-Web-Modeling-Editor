@@ -1,10 +1,11 @@
 /**
  * Where a Spec-Driven run starts on a project linked to GitHub once its last run has expired.
  *
- * The backend keeps a finished run only for `download_ttl_seconds`. A request
- * made later would rebuild the app from the model, ignoring the code on GitHub,
- * so the repo's head becomes the base instead. Nothing rebuilds silently: when
- * the code cannot be read, the user decides.
+ * The backend keeps a finished run's workspace only for `download_ttl_seconds`.
+ * A request made later could at most edit the run's download, which does not
+ * know the GitHub commit it came from, or rebuild from the model, ignoring the
+ * code on GitHub, so the repo's head becomes the base instead. Nothing rebuilds
+ * silently: when the code cannot be read, the user decides.
  */
 import { ApiError } from '../../shared/api/api-client';
 import { importRepoAsRun, type ImportedRun } from '../../shared/api/github';

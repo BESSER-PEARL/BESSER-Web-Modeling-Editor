@@ -1,7 +1,8 @@
 /**
- * How the project's model relates to the model a base run was built from,
- * read from `POST /spec-driven/preview` (no LLM call, no key) before a modify
- * run starts. See `resolveRunMode`.
+ * Whether the server can still edit a base run, and how the project's model
+ * relates to the model that run was built from, read from
+ * `POST /spec-driven/preview` (no LLM call, no key) before a modify run starts.
+ * See `resolveRunMode`.
  */
 
 import { previewSpecDrivenRun } from '../../../shared/api/specDriven';
@@ -35,35 +36,50 @@ const renames = (value: unknown): ModelChange['renamed'] =>
         .map((r) => ({ from: r.from, to: r.to }))
     : [];
 
-/** The comparison, or null when it is unavailable or `signal` aborts. Never rejects. */
-export async function fetchModelChange(
+/** The server's answer about a modify of a base run. */
+export interface ModifyBaseCheck {
+  /** Null when the server cannot compare the models. */
+  modelChange: ModelChange | null;
+  /** Whether the server can still edit the base run; absent from older servers. */
+  baseAvailable?: boolean;
+}
+
+function readModelChange(change: components['schemas']['ModelChangeResponse'] | null | undefined): ModelChange | null {
+  if (!change || !VERDICTS.has(change.verdict) || typeof change.gone !== 'number') {
+    return null;
+  }
+  return {
+    verdict: change.verdict,
+    basis: change.basis === 'classes' ? 'classes' : 'attributes',
+    gone: change.gone,
+    removed: names(change.removed),
+    added: names(change.added),
+    renamed: renames(change.renamed),
+  };
+}
+
+/** The server's answer, or null when it is unavailable or `signal` aborts. Never rejects. */
+export async function checkModifyBase(
   project: unknown,
   instructions: string,
   baseRunId: string,
   signal?: AbortSignal,
-): Promise<ModelChange | null> {
+): Promise<ModifyBaseCheck | null> {
   try {
     const response = await previewSpecDrivenRun(
       { project, instructions, mode: 'modify', base_run_id: baseRunId },
       { signal, timeout: MODEL_CHANGE_TIMEOUT_MS },
     );
-    const change = response?.model_change;
-    if (!change || !VERDICTS.has(change.verdict) || typeof change.gone !== 'number') {
-      return null;
-    }
+    const baseAvailable = response?.base_available;
     return {
-      verdict: change.verdict,
-      basis: change.basis === 'classes' ? 'classes' : 'attributes',
-      gone: change.gone,
-      removed: names(change.removed),
-      added: names(change.added),
-      renamed: renames(change.renamed),
+      modelChange: readModelChange(response?.model_change),
+      ...(typeof baseAvailable === 'boolean' ? { baseAvailable } : {}),
     };
   } catch (err) {
     if (err instanceof ApiError) {
-      console.warn(`[modelChange] preview returned ${err.status}; modifying without the check`);
+      console.warn(`[modelChange] preview returned ${err.status}; deciding without the check`);
     } else if (!signal?.aborted) {
-      console.warn('[modelChange] preview failed; modifying without the check', err);
+      console.warn('[modelChange] preview failed; deciding without the check', err);
     }
     return null;
   }

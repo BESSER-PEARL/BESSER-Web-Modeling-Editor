@@ -1901,6 +1901,23 @@
         "filesChanged_other": "{{count}} files changed",
         "showAll": "Show all {{count}}",
         "more": "and {{count}} more"
+      },
+      "verification": {
+        "summaryFoundInCode": "{{count}} found in code",
+        "foundInCode": {
+          "label": "Found in the code, not run",
+          "blurb": "Its source is cited, but no call to the running app reached it.",
+          "empty": "Nothing rests on a source citation alone."
+        },
+        "summaryFailed": "{{count}} ran and failed",
+        "failed": {
+          "label": "Ran and failed",
+          "blurb": "A test the agent wrote ran against the app and failed; the test or the app may be wrong.",
+          "empty": "No test that ran against the app failed."
+        },
+        "checksOff": "Not checked on this server: {{checks}}",
+        "verifiedBlurb": "Exercised by a call to the running app, with the evidence.",
+        "footer": "Verified means a call to the running app exercised it. Found in the code means its source is cited, but nothing ran it. Could not verify means there is no evidence either way — it is not a pass."
       }
     },
     "generationKey": {
@@ -1920,6 +1937,8 @@
       "lifetimeHours_one": "{{count}} hour",
       "lifetimeHours_other": "{{count}} hours",
       "generateAgain": "Generate again",
+      "introModify": "Applying your requested changes to your application…",
+      "introGenerate": "Generating your application from your specs…",
       "rebuildAfterExpiry": "The previous run can no longer be edited in place, so the application is rebuilt from the model and the original request.",
       "downloadUntil": "Download available until {{time}}.",
       "downloadAndGithubUntil": "Download available until {{download}}; save to GitHub until {{github}}.",
@@ -1969,7 +1988,8 @@
       "turns_one": "{{count}} turn",
       "turns_other": "{{count}} turns",
       "stats": "Duration, LLM turns and estimated cost of this step",
-      "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill."
+      "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill.",
+      "stepElapsed": "{{duration}} on this step"
     }
   },
   "deploy": {

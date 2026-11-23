@@ -140,6 +140,81 @@ describe('SpecDrivenCard — live activity strip (feels alive on long runs)', ()
   });
 });
 
+describe('SpecDrivenCard — current step in the activity strip', () => {
+  // Validation can run for twenty minutes, one judge call for over two: the strip
+  // names the step running now, and how long it has run, instead of a stale line.
+  const validating = (overrides: Partial<SpecDrivenMessageState> = {}) =>
+    baseSpecDriven({
+      phases: [
+        {
+          phase: 'customize',
+          label: 'Customising output',
+          message: '',
+          toolCalls: [{ turn: 4, tool: 'modify_file', detail: 'path=src/pages/Orders.tsx' }],
+        },
+        { phase: 'validate', label: 'Validating', message: '', toolCalls: [] },
+      ],
+      text: 'The order list now shows the totals.',
+      elapsedSeconds: 500,
+      step: {
+        message: 'First check: checking 35 requirements against the code',
+        startedAt: 420,
+        toolCallsBefore: 1,
+        textBefore: 'The order list now shows the totals.'.length,
+      },
+      ...overrides,
+    });
+
+  it('names the step instead of a generic "Working"', () => {
+    const { container } = renderCard(validating());
+    expect(container.textContent).toContain('First check: checking 35 requirements against the code');
+    expect(container.textContent).not.toContain('Working');
+  });
+
+  it('shows how long a long step has run, from the server heartbeat', () => {
+    const { container } = renderCard(validating());
+    expect(container.textContent).toContain('1m 20s on this step');
+  });
+
+  it('says nothing about time for a step that just started', () => {
+    const { container } = renderCard(validating({ elapsedSeconds: 430 }));
+    expect(container.textContent).not.toContain('on this step');
+  });
+
+  it('drops an action from before the step, keeps one made during it', () => {
+    // A fix attempt edited a page, then the re-check started: the edit is not what runs now.
+    const recheck = validating({
+      phases: [
+        ...validating().phases.slice(0, 1),
+        {
+          phase: 'validate',
+          label: 'Validating',
+          message: '',
+          toolCalls: [{ turn: 9, tool: 'modify_file', detail: 'path=src/pages/Customers.tsx' }],
+        },
+      ],
+      step: {
+        message: 'Re-check after fix attempt 1: checking 35 requirements against the code',
+        startedAt: 420,
+        toolCallsBefore: 2,
+        textBefore: 'The order list now shows the totals.'.length,
+      },
+    });
+    expect(renderCard(recheck).container.textContent).not.toContain('Customers.tsx');
+    cleanup();
+    const fixing = { ...recheck, step: { ...recheck.step!, message: 'Fix attempt 1: fixing 2 blockers', toolCallsBefore: 1 } };
+    expect(renderCard(fixing).container.textContent).toContain('Customers.tsx');
+  });
+
+  it('stops the typing cursor on prose written before the step', () => {
+    const { container } = renderCard(validating());
+    expect(container.querySelector('.animate-pulse')).toBeNull();
+    cleanup();
+    const writing = validating({ text: 'The order list now shows the totals. Next' });
+    expect(renderCard(writing).container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+});
+
 describe('SpecDrivenCard — token-honest completion badge', () => {
   it('labels file provenance and does not show a raw cumulative token count', () => {
     const { container } = renderCard(

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Code2,
   Download,
+  FileSearch,
   FolderOpen,
   Github,
   HelpCircle,
@@ -30,7 +31,11 @@ import { cn } from "@/lib/utils"
 import { badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAppSelector } from "@/main/app/store/hooks"
-import { phaseStats, selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
+import {
+  phaseStats,
+  selectLiveSpecDrivenRun,
+  unresolvedBlockerCount,
+} from "@/main/features/spec-driven/state/specDrivenSlice"
 import {
   canOfferRunNotification,
   isRunNotificationOn,
@@ -683,6 +688,8 @@ function ToolCallList({ calls }: { calls: SpecDrivenToolCallView[] }) {
 }
 
 const FINDINGS_SHOWN = 5
+/** A step shorter than this needs no timer; past it, a user starts to wonder. */
+const STEP_SECONDS_SHOWN_FROM = 20
 
 /** One validation round: what failed, and against the round before, what got fixed. */
 function FindingsRound({ segment }: { segment: FindingsSegment }) {
@@ -943,7 +950,7 @@ const VERIFICATION_KIND_LABELS: Record<
   check: "Check",
 }
 
-type VerificationTone = "unenforced" | "unchecked" | "verified"
+type VerificationTone = "unenforced" | "failed" | "unchecked" | "found" | "verified"
 
 const VERIFICATION_TONES: Record<
   VerificationTone,
@@ -954,10 +961,20 @@ const VERIFICATION_TONES: Record<
     chip: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
     rule: "border-red-200 dark:border-red-900/50",
   },
+  failed: {
+    body: "bg-orange-50/70 text-orange-900 dark:bg-orange-950/20 dark:text-orange-100",
+    chip: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+    rule: "border-orange-200 dark:border-orange-900/40",
+  },
   unchecked: {
     body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
     chip: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
     rule: "border-amber-200 dark:border-amber-900/40",
+  },
+  found: {
+    body: "bg-sky-50/70 text-sky-900 dark:bg-sky-950/20 dark:text-sky-100",
+    chip: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200",
+    rule: "border-sky-200 dark:border-sky-900/40",
   },
   verified: {
     body: "bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100",
@@ -1033,7 +1050,7 @@ function VerificationCapNote({
 }
 
 /**
- * A ledger row for the two NON-headline states. Collapsed by default, but
+ * A ledger row for the four NON-headline states. Collapsed by default, but
  * the count is always on the row: the number is never hidden, only the
  * detail behind it.
  */
@@ -1214,7 +1231,7 @@ function RunChangesSummary({
 }
 
 /**
- * The verification report: three visually distinct states, each labelled
+ * The verification report: five visually distinct states, each labelled
  * with the TRUE total from `counts` rather than the capped list length.
  *
  * `shippedUnenforced` is the headline and is never collapsed: rules the user
@@ -1226,9 +1243,16 @@ function SpecDrivenVerificationPanel({
 }: {
   verification: SpecDrivenVerificationView
 }) {
-  const { verified, notVerified, shippedUnenforced, counts } = verification
+  const { t } = useTranslation()
+  const { verified, foundInCode, notVerified, shippedUnenforced, failed, counts } =
+    verification
   const unenforced = counts.shippedUnenforced
   const alarm = VERIFICATION_TONES.unenforced
+  // Cards saved before this state existed counted source citations as verified.
+  const splitsFoundInCode = foundInCode !== undefined
+  const foundInCodeCount = counts.foundInCode ?? foundInCode?.length ?? 0
+  // Older backends listed a failed test workflow under Could not verify.
+  const failedCount = counts.failed ?? failed?.length ?? 0
 
   // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
   // collapse to one summary row the user can open.
@@ -1250,9 +1274,33 @@ function SpecDrivenVerificationPanel({
             Verification
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {failedCount > 0 ? (
+              <>
+                <span className="text-foreground">
+                  {t("assistant.chatKit.verification.summaryFailed", {
+                    defaultValue: "{{count}} ran and failed",
+                    count: failedCount,
+                  })}
+                </span>
+                <span aria-hidden>·</span>
+              </>
+            ) : null}
             <span className={counts.verified > 0 ? "text-foreground" : undefined}>
               {counts.verified} verified
             </span>
+            {splitsFoundInCode ? (
+              <>
+                <span aria-hidden>·</span>
+                <span
+                  className={foundInCodeCount > 0 ? "text-foreground" : undefined}
+                >
+                  {t("assistant.chatKit.verification.summaryFoundInCode", {
+                    defaultValue: "{{count}} found in code",
+                    count: foundInCodeCount,
+                  })}
+                </span>
+              </>
+            ) : null}
             <span aria-hidden>·</span>
             <span className={counts.notVerified > 0 ? "text-foreground" : undefined}>
               {counts.notVerified} unverified
@@ -1327,6 +1375,25 @@ function SpecDrivenVerificationPanel({
         />
       )}
 
+      {failed !== undefined ? (
+        <VerificationSection
+          label={t("assistant.chatKit.verification.failed.label", {
+            defaultValue: "Ran and failed",
+          })}
+          count={failedCount}
+          items={failed}
+          tone="failed"
+          icon={XCircle}
+          blurb={t("assistant.chatKit.verification.failed.blurb", {
+            defaultValue:
+              "A test the agent wrote ran against the app and failed; the test or the app may be wrong.",
+          })}
+          emptyNote={t("assistant.chatKit.verification.failed.empty", {
+            defaultValue: "No test that ran against the app failed.",
+          })}
+        />
+      ) : null}
+
       <VerificationSection
         label="Could not verify"
         count={counts.notVerified}
@@ -1337,20 +1404,49 @@ function SpecDrivenVerificationPanel({
         emptyNote="Everything in scope reached a verdict."
       />
 
+      {splitsFoundInCode ? (
+        <VerificationSection
+          label={t("assistant.chatKit.verification.foundInCode.label", {
+            defaultValue: "Found in the code, not run",
+          })}
+          count={foundInCodeCount}
+          items={foundInCode}
+          tone="found"
+          icon={FileSearch}
+          blurb={t("assistant.chatKit.verification.foundInCode.blurb", {
+            defaultValue:
+              "Its source is cited, but no call to the running app reached it.",
+          })}
+          emptyNote={t("assistant.chatKit.verification.foundInCode.empty", {
+            defaultValue: "Nothing rests on a source citation alone.",
+          })}
+        />
+      ) : null}
+
       <VerificationSection
         label="Verified"
         count={counts.verified}
         items={verified}
         tone="verified"
         icon={ShieldCheck}
-        blurb="Checked against the delivered code, with the evidence."
+        blurb={
+          splitsFoundInCode
+            ? t("assistant.chatKit.verification.verifiedBlurb", {
+                defaultValue:
+                  "Exercised by a call to the running app, with the evidence.",
+              })
+            : "Checked against the delivered code, with the evidence."
+        }
         emptyNote="Nothing was confirmed working in this run."
       />
 
       <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
-        Verified means we ran or re-checked it against the delivered code.
-        Could not verify means there is no evidence either way — it is not a
-        pass.
+        {splitsFoundInCode
+          ? t("assistant.chatKit.verification.footer", {
+              defaultValue:
+                "Verified means a call to the running app exercised it. Found in the code means its source is cited, but nothing ran it. Could not verify means there is no evidence either way — it is not a pass.",
+            })
+          : "Verified means we ran or re-checked it against the delivered code. Could not verify means there is no evidence either way — it is not a pass."}
       </p>
     </div>
   )
@@ -1576,12 +1672,17 @@ function SpecDrivenCard({
     provider,
     model,
     phases,
+    step,
     warnings,
     text,
     status,
     incomplete,
     incompleteReason,
     blockerCount,
+    notConfirmedCount,
+    unverified,
+    unverifiedReason,
+    checksOff,
     verification,
     costUsd,
     elapsedSeconds,
@@ -1706,11 +1807,21 @@ function SpecDrivenCard({
     (status === "running" || status === "done") &&
     typeof elapsedSeconds === "number"
   const showStop = status === "running" && typeof runId === "string"
-  // The action in flight, named in the running card's activity strip.
+  // The action in flight, named in the running card's activity strip. One made
+  // before the current step started is over: the step is what runs now.
   const lastCall = phases[phases.length - 1]?.toolCalls.slice(-1)[0]
-  const lastAction = lastCall
+  const toolCallCount = phases.reduce((n, p) => n + p.toolCalls.length, 0)
+  const lastAction = lastCall && (!step || toolCallCount > step.toolCallsBefore)
     ? describeToolCall(lastCall.tool, lastCall.detail, lastCall.summary)
     : null
+  // How long the current step has run, from the server's cost heartbeat (so it
+  // freezes if the stream dies). Shown once a step is long enough to wonder about.
+  const stepSeconds =
+    step && typeof step.startedAt === "number" && typeof elapsedSeconds === "number"
+      ? Math.max(0, elapsedSeconds - step.startedAt)
+      : undefined
+  // Prose written before the current step is finished: no typing cursor on it.
+  const proseIsLive = !step || text.length > step.textBefore
   const serverResult =
     status === "done" &&
     typeof runId === "string" &&
@@ -1752,12 +1863,24 @@ function SpecDrivenCard({
     // blockers and still ship an app that does not enforce what was asked
     // for. Never let such a run render as "Application ready".
     const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
+    // A whole class of checks left no evidence: never "Application ready".
+    const isUnverified = unverified === true && !isIncomplete
+    // An older backend's blockerCount mixes blockers with findings not confirmed.
+    const splitsNotConfirmed = typeof notConfirmedCount === "number"
+    const unresolved =
+      unresolvedBlockerCount({
+        incomplete: isIncomplete,
+        blockerCount,
+        notConfirmedCount,
+        unresolvedBlockerCount: specDriven.unresolvedBlockerCount,
+        unverified: isUnverified,
+      }) ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1 pt-2.5 text-xs">
           {unenforcedCount > 0 ? (
             <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
-          ) : isIncomplete ? (
+          ) : isIncomplete || isUnverified ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -1767,9 +1890,13 @@ function SpecDrivenCard({
               ? "Delivered — rules not enforced"
               : isIncomplete
                 ? "Generated — incomplete"
-                : deterministic
-                  ? "Generated deterministically"
-                  : "Application ready"}
+                : isUnverified
+                  ? runMode === "modify"
+                    ? "Updated — not verified"
+                    : "Generated — not verified"
+                  : deterministic
+                    ? "Generated deterministically"
+                    : "Application ready"}
           </span>
           {unenforcedCount > 0 ? (
             <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
@@ -1777,14 +1904,19 @@ function SpecDrivenCard({
               enforced
             </span>
           ) : null}
-          {isIncomplete && (blockerCount ?? 0) > 0 ? (
+          {unresolved > 0 ? (
             <span className="text-[11px] text-amber-700 dark:text-amber-400">
-              · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+              · {unresolved} unresolved blocker{unresolved === 1 ? "" : "s"}
             </span>
           ) : null}
-          {!isIncomplete && (blockerCount ?? 0) > 0 ? (
+          {!splitsNotConfirmed && !isIncomplete && (blockerCount ?? 0) > 0 ? (
             <span className="text-[11px] text-muted-foreground">
               · {blockerCount} could not be verified
+            </span>
+          ) : null}
+          {splitsNotConfirmed && !isUnverified && (notConfirmedCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {notConfirmedCount} could not be confirmed
             </span>
           ) : null}
           {generatorUsed ? (
@@ -1936,10 +2068,24 @@ function SpecDrivenCard({
         {verification ? (
           <SpecDrivenVerificationPanel verification={verification} />
         ) : null}
+        {/* Switched off by the server's configuration: a fact, not a finding of this run. */}
+        {checksOff && checksOff.length > 0 ? (
+          <p className="border-t border-border/40 px-3 py-1.5 text-[11px] text-muted-foreground">
+            {t("assistant.chatKit.verification.checksOff", {
+              defaultValue: "Not checked on this server: {{checks}}",
+              checks: checksOff.join(", "),
+            })}
+          </p>
+        ) : null}
 
         {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
           <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {incompleteReason}
+          </p>
+        ) : null}
+        {isUnverified && unverifiedReason ? (
+          <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {unverifiedReason}
           </p>
         ) : null}
 
@@ -2143,7 +2289,12 @@ function SpecDrivenCard({
       {status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
-          <span className="font-medium text-foreground">Working…</span>
+          <span className="min-w-0 font-medium text-foreground">{step ? step.message : "Working…"}</span>
+          {stepSeconds !== undefined && stepSeconds >= STEP_SECONDS_SHOWN_FROM ? (
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+              · {t("assistant.runTrace.stepElapsed", { duration: formatDuration(stepSeconds) })}
+            </span>
+          ) : null}
           {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
             <span className="text-[11px] text-muted-foreground">
               Big steps can take a few minutes — the timer keeps moving while
@@ -2167,7 +2318,7 @@ function SpecDrivenCard({
       {text ? (
         <div className="border-t border-border/60 bg-background/40 px-3 py-2">
           <MarkdownRenderer>{text}</MarkdownRenderer>
-          {isStreaming ? <StreamingCursor /> : null}
+          {isStreaming && proseIsLive ? <StreamingCursor /> : null}
         </div>
       ) : null}
 
