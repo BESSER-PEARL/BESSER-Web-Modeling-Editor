@@ -28,6 +28,16 @@ describe('describeToolCall', () => {
     expect(describeToolCall('task_list', 'action=add text=Add CORS').target).toBe('add Add CORS');
   });
 
+  it('reads a checklist call without an action by its fields', () => {
+    expect(describeToolCall('task_list', 'done=1,3 add=Export orders,Seed data').target).toBe(
+      'done #1,3 add Export orders,Seed data',
+    );
+    expect(parseToolDetail("drop={'id': 2, 'reason': 'not asked'} blocked={'id': 4, 'reason': 'no key'}")).toEqual({
+      drop: "{'id': 2, 'reason': 'not asked'}",
+      blocked: "{'id': 4, 'reason': 'no key'}",
+    });
+  });
+
   it('labels generator tools and falls back to the raw tool name', () => {
     expect(describeToolCall('generate_react')).toEqual({ verb: 'generate', target: 'react' });
     expect(describeToolCall('some_new_tool')).toEqual({ verb: 'some_new_tool', target: '' });

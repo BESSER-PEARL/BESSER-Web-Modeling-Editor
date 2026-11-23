@@ -231,6 +231,24 @@ export function claimSpecDrivenRunOwnership(
   runId: string,
   opts: { ifAvailable?: boolean } = {},
 ): Promise<(() => void) | null> {
+  return _claimLock(_runLockName(runId), opts.ifAvailable ?? false);
+}
+
+// One run per project across the origin's tabs: two runs on the same base would both
+// succeed, and whichever finished last would become the base for the next edit.
+const _projectLockName = (projectId: string) => `besser_spec_driven_project_${projectId}`;
+
+/**
+ * Claim this project's run for this tab, without waiting. Resolves to a release
+ * function, or `null` while another tab holds it. The browser drops the lock
+ * when the holding tab closes, reloads or crashes. Without Web Locks support
+ * every tab may start a run (the pre-lock behaviour).
+ */
+export function claimSpecDrivenProjectRun(projectId: string): Promise<(() => void) | null> {
+  return _claimLock(_projectLockName(projectId), true);
+}
+
+function _claimLock(name: string, ifAvailable: boolean): Promise<(() => void) | null> {
   const locks = _lockManager();
   const noop = () => {};
   if (!locks) return Promise.resolve(noop);
@@ -240,7 +258,7 @@ export function claimSpecDrivenRunOwnership(
       release = done;
     });
     locks
-      .request(_runLockName(runId), { ifAvailable: opts.ifAvailable ?? false }, (lock) => {
+      .request(name, { ifAvailable }, (lock) => {
         if (!lock) {
           resolve(null);
           return;

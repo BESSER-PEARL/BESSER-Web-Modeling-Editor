@@ -41,6 +41,7 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
 import { sanitizeMessageForPersist } from '../../../assistant';
 import { SseHttpError } from '../../../../shared/api/sseClient';
+import { readProjectRunRequest } from '../../../../shared/services/storage/specDrivenRunRecords';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   cancelSpecDrivenUrl,
@@ -457,7 +458,28 @@ describe('useSpecDrivenTrigger — run ownership across tabs', () => {
       name: `besser_spec_driven_run_${runId}`,
       ifAvailable: false,
     });
+    // The project's run lock too: held for the run, released when it ends.
+    expect(requests).toContainEqual({ name: 'besser_spec_driven_project_test-project', ifAvailable: true });
     await waitFor(() => expect(held.size).toBe(0));
+  });
+
+  it('does not start a run while another tab runs one on this project', async () => {
+    // Before: both tabs' runs started from the same base, and whichever ended last became the base.
+    installFakeLocks(['besser_spec_driven_project_test-project']);
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    expect(vi.mocked(sseClientModule.startSpecDrivenRun)).not.toHaveBeenCalled();
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(msgs.some((m) => m.isError && m.content?.includes('in another tab'))).toBe(true);
+    // The tab's own run slot is free again.
+    expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 });
 
@@ -587,6 +609,40 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
   });
 });
 
+
+describe('useSpecDrivenTrigger — a newest message that states nothing new', () => {
+  const RETRY =
+    "## Assistant's notes (may be inaccurate)\n\nRetry the app.\n\n" +
+    "## The user's original request, verbatim\n\nThis is the authority.\n\nA book catalogue.\n\n" +
+    '## Subsequent user request, verbatim\n\nThis later request takes precedence.\n\ntry again';
+
+  async function start(rememberNewest?: boolean) {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, instructions: RETRY, rememberNewest, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('tells the run, and keeps that message out of the recorded request', async () => {
+    const args = await start(false);
+    expect(args.instructions).toBe(RETRY);
+    expect(args.followupStatesNothingNew).toBe(true);
+    expect(readProjectRunRequest('test-project')).toBe('A book catalogue.');
+  });
+
+  it('without the field, sends and records the request as before', async () => {
+    const args = await start();
+    expect(args.followupStatesNothingNew).not.toBe(true);
+    expect(readProjectRunRequest('test-project')).toContain('try again');
+  });
+});
 
 describe('useSpecDrivenTrigger — whether the run is traced', () => {
   async function runArgs(recording: boolean) {
