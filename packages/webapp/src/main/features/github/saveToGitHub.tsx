@@ -67,8 +67,20 @@ const SaveGeneratedCodeToast: React.FC<{ file: Blob; fileName: string; closeToas
   );
 };
 
-/** After the Generate menu downloaded `file`: offer to save it to GitHub when this tab is signed in. */
+const GENERATED_CODE_OFFER = 'github-generated-code-offer';
+let offers = 0;
+
+/**
+ * After the Generate menu downloaded `file`: offer to save it to GitHub when this tab is signed in. One offer at a
+ * time: a new download replaces the shown one, so only the newest file is held, and none once it is dismissed.
+ */
 export function offerGeneratedCodeOnGitHub(file: Blob, fileName: string): void {
   if (!getGitHubSession()) return;
-  toast.info(<SaveGeneratedCodeToast file={file} fileName={fileName} />, { autoClose: 15_000 });
+  offers += 1;
+  const content = <SaveGeneratedCodeToast key={offers} file={file} fileName={fileName} />;
+  if (toast.isActive(GENERATED_CODE_OFFER)) {
+    toast.update(GENERATED_CODE_OFFER, { render: content, autoClose: 15_000 });
+  } else {
+    toast.info(content, { toastId: GENERATED_CODE_OFFER, autoClose: 15_000 });
+  }
 }

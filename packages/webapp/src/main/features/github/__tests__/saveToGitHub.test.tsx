@@ -25,7 +25,18 @@ vi.mock('../../../shared/services/github/saveGeneratedCode', () => ({ storeGener
 const dispatch = vi.hoisted(() => vi.fn());
 vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => dispatch }));
 const info = vi.hoisted(() => vi.fn());
-vi.mock('react-toastify', () => ({ toast: { info } }));
+const update = vi.hoisted(() => vi.fn());
+const shown = vi.hoisted(() => new Set<string>());
+vi.mock('react-toastify', () => ({
+  toast: {
+    info: (content: unknown, options?: { toastId?: string }) => {
+      if (options?.toastId) shown.add(options.toastId);
+      return info(content, options);
+    },
+    update,
+    isActive: (id: string) => shown.has(id),
+  },
+}));
 
 const RUN = 'a'.repeat(32);
 const events: string[] = [];
@@ -39,6 +50,8 @@ beforeEach(() => {
   events.length = 0;
   dispatch.mockClear();
   info.mockClear();
+  update.mockClear();
+  shown.clear();
   storeGeneratedCodeForPush.mockClear();
   window.addEventListener(OPEN_GITHUB_SAVE_EVENT, record);
   window.addEventListener(OPEN_GITHUB_PANEL_EVENT, record);
@@ -101,5 +114,19 @@ describe('offerGeneratedCodeOnGitHub (after the Generate menu)', () => {
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith(openPushDialog('f'.repeat(32))));
     expect(storeGeneratedCodeForPush).toHaveBeenCalledWith(zip, 'web_app.zip');
     expect(closeToast).toHaveBeenCalled();
+  });
+
+  it('replaces the shown offer on the next download instead of stacking one more Blob', () => {
+    // Before: every download added a toast holding its file.
+    auth.session = 'session';
+    const next = new Blob(['PK2'], { type: 'application/zip' });
+    offerGeneratedCodeOnGitHub(zip, 'web_app.zip');
+    offerGeneratedCodeOnGitHub(next, 'django.zip');
+
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
+    const [id, options] = update.mock.calls[0] as [string, { render: React.ReactElement<{ file: Blob; fileName: string }> }];
+    expect(id).toBe((info.mock.calls[0][1] as { toastId: string }).toastId);
+    expect(options.render.props).toMatchObject({ file: next, fileName: 'django.zip' });
   });
 });
