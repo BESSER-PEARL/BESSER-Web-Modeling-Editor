@@ -4,6 +4,7 @@ import { CheckCircle, ChevronDown, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { inputBaseClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { LAB_BUILD } from '../../../shared/constants/constant';
 import type { QualityCheckResult, QualityCheckState } from '../../../shared/types/quality-check';
 import { GitHubMenu } from '../../../features/github/components/GitHubMenu';
 import { WhatsNewMenu } from '../../../features/whats-new/WhatsNewMenu';
@@ -194,6 +195,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         </HeaderTooltip>
       )}
 
+      {/* A BESSER Lab change is not a project linked to a repository of its own: its work goes to BESSER's. */}
+      {!LAB_BUILD && (
       <GitHubMenu
         outlineButtonClass={outlineButtonClass}
         isAuthenticated={isAuthenticated}
@@ -203,6 +206,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         onLogout={onGitHubLogout}
         onRepoOpened={onRepoOpened}
       />
+      )}
     </>
   );
 };

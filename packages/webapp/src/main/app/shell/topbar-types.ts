@@ -68,4 +68,6 @@ export interface WorkspaceTopBarProps {
   isMobileNavOpen: boolean;
   onOpenMobileNav: () => void;
   mobileNavTriggerRef: React.RefObject<HTMLButtonElement>;
+  /** BESSER Lab: the actions of the open change, shown in place of the File, Generate and Deploy menus. */
+  labActions?: React.ReactNode;
 }

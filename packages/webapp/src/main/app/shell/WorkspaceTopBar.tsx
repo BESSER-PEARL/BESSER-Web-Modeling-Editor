@@ -66,6 +66,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   isMobileNavOpen,
   onOpenMobileNav,
   mobileNavTriggerRef,
+  labActions,
 }) => {
   const { t } = useTranslation();
   return (
@@ -119,6 +120,10 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 xl:gap-1.5">
+          {/* A BESSER Lab change has its own actions where a project has File, Generate and Deploy. */}
+          {labActions}
+          {labActions === undefined && (
+          <>
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
@@ -143,8 +148,11 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onDeriveDeploymentDiagram={onDeriveDeploymentDiagram}
             onGenerateDockerCompose={onGenerateDockerCompose}
           />
+          </>
+          )}
           {/* Below sm these fold into the More menu */}
           <div className="hidden sm:contents">
+            {labActions === undefined && (
             <DeployMenu
               outlineButtonClass={outlineButtonClass}
               isAuthenticated={isAuthenticated}
@@ -154,6 +162,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
               onGitHubLogin={onGitHubLogin}
               onOpenDeployDialog={onOpenDeployDialog}
             />
+            )}
             <HelpMenu
               outlineButtonClass={outlineButtonClass}
               onOpenHelpDialog={onOpenHelpDialog}

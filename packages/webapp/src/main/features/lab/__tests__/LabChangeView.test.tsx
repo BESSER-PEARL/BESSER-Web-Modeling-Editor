@@ -91,6 +91,24 @@ vi.mock('react-toastify', () => ({
 }));
 const confirm = vi.hoisted(() => ({ answer: true }));
 vi.mock('../../../shared/services/confirm/globalConfirm', () => ({ globalConfirm: vi.fn(async () => confirm.answer) }));
+// The editor's shell has its own tests: here it is its lab slots around the page.
+vi.mock('../../../app/shell/WorkspaceShell', () => ({
+  WorkspaceShell: ({ children, lab, onOpenProjectHub }: {
+    children: React.ReactNode;
+    lab: { actions: React.ReactNode; conversation: React.ReactNode };
+    onOpenProjectHub: () => void;
+  }) => (
+    <div data-testid="editor-shell">
+      <header>
+        <button type="button" onClick={() => onOpenProjectHub()}>BESSER</button>
+        {lab.actions}
+      </header>
+      <main>{children}</main>
+      {lab.conversation}
+    </div>
+  ),
+}));
+vi.mock('../../../app/hooks/useStorageSync', () => ({ useStorageSync: () => {} }));
 // Stubs: the canvas and the preview have their own tests.
 vi.mock('../../editors/EditorView', () => ({ EditorView: () => <div data-testid="lab-canvas" /> }));
 vi.mock('../LabPreviewTab', () => ({
@@ -163,10 +181,20 @@ const message = (id: string, login: string, text: string, at: number, model: Rec
 /** What the router sent the change view: shown so a test can see the state being cleared. */
 const StateProbe: React.FC = () => {
   const location = useLocation();
-  return <pre data-testid="router-state">{JSON.stringify(location.state)}</pre>;
+  return (
+    <>
+      <pre data-testid="router-state">{JSON.stringify(location.state)}</pre>
+      <pre data-testid="router-path">{location.pathname}</pre>
+    </>
+  );
 };
 
-async function renderView(detail: LabChangeDetail, { login = 'ana', isAdmin = false, entry = `/c/${CHANGE_ID}` as string | { pathname: string; state: unknown } } = {}) {
+/** `onLeave` of the last rendered view. */
+const leave = vi.fn();
+
+/** The change in the editor, at `entry` under the change's own address (`/` is its canvas). */
+async function renderView(detail: LabChangeDetail, { login = 'ana', isAdmin = false, entry = '/' as string | { pathname: string; state: unknown } } = {}) {
+  const changeId = detail.changeId;
   vi.mocked(getLabHome).mockResolvedValue(HOME(login, isAdmin));
   signInToGitHubForTests(SESSION, login);
   vi.mocked(getLabChange).mockResolvedValue(detail);
@@ -174,15 +202,13 @@ async function renderView(detail: LabChangeDetail, { login = 'ana', isAdmin = fa
     <Provider store={store}>
       <MemoryRouter initialEntries={[entry]}>
         <LabAuthGate>
-          <Routes>
-            <Route path="/c/:changeId" element={<><LabChangeView /><StateProbe /></>} />
-            <Route path="/" element={<p>Home</p>} />
-          </Routes>
+          <LabChangeView changeId={changeId} onLeave={leave} />
+          <StateProbe />
         </LabAuthGate>
       </MemoryRouter>
     </Provider>,
   );
-  await screen.findByRole('heading', { level: 1 });
+  await screen.findByTestId('lab-change-actions');
 }
 
 beforeEach(() => {
@@ -190,6 +216,7 @@ beforeEach(() => {
   resetGitHubAuthForTests();
   conversationStore.clear();
   confirm.answer = true;
+  leave.mockReset();
   lab.connectCalls = 0;
   vi.mocked(startLabRun).mockReset().mockImplementation(() => ({
     controller: new AbortController(),
@@ -278,7 +305,7 @@ describe('LabChangeView chat', () => {
 
   it("sends the home's first message once, then clears it from the history entry", async () => {
     await renderView(change({ status: 'draft', phase: 'draft', title: '' }), {
-      entry: { pathname: `/c/${CHANGE_ID}`, state: { labStart: { message: 'Add a TOML generator', issue: { repo: 'besser', number: 744 } } } },
+      entry: { pathname: '/', state: { labStart: { message: 'Add a TOML generator', issue: { repo: 'besser', number: 744 } } } },
     });
     await waitFor(() => expect(startLabRun).toHaveBeenCalledTimes(1));
     expect(vi.mocked(startLabRun).mock.calls[0][0]).toMatchObject({
@@ -294,14 +321,13 @@ describe('LabChangeView chat', () => {
     });
     await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
     expect(startLabRun).toHaveBeenCalledTimes(1);
-    // The diff dialog that request opened hides the page behind it from the accessibility tree.
-    expect(screen.getByRole('heading', { level: 1, hidden: true })).toHaveTextContent('New change');
+    expect(screen.getByTestId('router-path')).toHaveTextContent('/changes');
   });
 });
 
 describe('LabChangeView model', () => {
   // D4 test 10 (canvas part): a browser without the change's project rebuilds it from the thread.
-  it("rebuilds the canvas project from the thread when this browser has none, and opens the Model tab", async () => {
+  it('rebuilds the canvas project from the thread when this browser has none, and stays on the canvas', async () => {
     expect(ProjectStorageRepository.getAllProjects()).toEqual([]);
     await renderView(change({
       phase: 'planned',
@@ -324,32 +350,40 @@ describe('LabChangeView model', () => {
     expect(labProposalChangeId(diagram)).toBe(CHANGE_ID);
     expect(Object.keys((diagram.model as { elements: object }).elements)).toEqual(['id-Note', 'id-Page']);
     expect(store.getState().workspace.project?.id).toBe(labProjectId(CHANGE_ID));
-    // The proposal banner sits above the canvas, in the Model tab.
+    // The project is named after the change, and the proposal banner sits above the canvas.
+    expect(project.name).toBe('Note element');
     expect(screen.getByRole('region', { name: 'Proposed model' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Model', selected: true })).toBeTruthy();
+    expect(screen.getByTestId('router-path').textContent).toBe('/');
   });
 
-  it('opens the Changes tab of a built change by default, and says when a change has no model', async () => {
-    await renderView(change({ phase: 'built' }));
-    expect(screen.getByRole('tab', { name: 'Changes', selected: true })).toBeTruthy();
-    fireEvent.click(screen.getByRole('tab', { name: 'Model' }));
-    expect(await screen.findByTestId('lab-model-empty')).toBeTruthy();
+  it('opens a built change that has no model on what was built, and a change with nothing built on its canvas', async () => {
+    const built: NonNullable<LabChangeDetail['view']> = {
+      step: 'build', changeId: CHANGE_ID, title: 'Note element', kind: 'editor_element',
+      repoChanges: [{ repo: 'frontend', branch: 'lab/note-element', base: 'develop', files: [{ path: 'a.ts', status: 'added' }] }],
+      checks: [], checklist: [], summary: '', stopReason: 'completed', report: null,
+      pullRequests: [], cost: { usd: 0.4, turns: 5, elapsedSeconds: 60, runs: 1 }, issues: [],
+    };
+    // A change of its own: the store still holds the project, with its model, of the test before.
+    const other = 'ffffffffffff';
+    await renderView(change({ changeId: other, phase: 'built', view: { ...built, changeId: other } }));
+    await waitFor(() => expect(screen.getByTestId('router-path').textContent).toBe('/changes'));
+    cleanup();
+    await renderView(change({ changeId: other, phase: 'draft', status: 'draft', view: null }));
+    expect(await screen.findByTestId('lab-canvas')).toBeTruthy();
+    expect(screen.getByTestId('router-path').textContent).toBe('/');
   });
 });
 
-describe('LabChangeView tabs and views', () => {
-  it('opens Try it from ?tab=try, visible while the page is', async () => {
-    await renderView(change(), { entry: `/c/${CHANGE_ID}?tab=try` });
-    expect(screen.getByRole('tab', { name: 'Try it', selected: true })).toBeTruthy();
+describe('LabChangeView pages and views', () => {
+  it('shows Try it at /try, visible while the page is, and not on the canvas', async () => {
+    await renderView(change(), { entry: '/try' });
     expect(screen.getByTestId('lab-preview')).toHaveAttribute('data-visible', 'true');
-  });
-
-  it('keeps Try it hidden and not visible on another tab', async () => {
+    cleanup();
     await renderView(change());
-    expect(screen.getByTestId('lab-preview')).toHaveAttribute('data-visible', 'false');
+    expect(screen.queryByTestId('lab-preview')).toBeNull();
   });
 
-  it("opens the view a card asks for: the pull-request dialog, Try it, the Changes tab with the diff", async () => {
+  it('opens the view a card asks for: the pull-request dialog, Try it, the Changes page with the diff', async () => {
     await renderView(change({ view: null }));
     await act(async () => {
       requestLabView({ kind: 'pullRequest', changeId: CHANGE_ID });
@@ -362,71 +396,64 @@ describe('LabChangeView tabs and views', () => {
     await act(async () => {
       requestLabView({ kind: 'tryIt', changeId: CHANGE_ID });
     });
+    expect(screen.getByTestId('router-path').textContent).toBe('/try');
     expect(screen.getByTestId('lab-preview')).toHaveAttribute('data-visible', 'true');
 
     await act(async () => {
       requestLabView({ kind: 'changes', changeId: CHANGE_ID, file: { repo: 'frontend', path: 'a.ts' } });
     });
-    // The diff dialog is modal: the tabs behind it are hidden from the accessibility tree.
-    expect(screen.getByRole('tab', { name: 'Changes', selected: true, hidden: true })).toBeTruthy();
+    expect(screen.getByTestId('router-path').textContent).toBe('/changes');
     await waitFor(() => expect(getLabDiff).toHaveBeenCalledWith(SESSION, CHANGE_ID, undefined));
 
     // A request for another change is not this view's.
     await act(async () => {
       requestLabView({ kind: 'tryIt', changeId: 'another' });
     });
-    expect(screen.getByRole('tab', { name: 'Changes', selected: true, hidden: true })).toBeTruthy();
+    expect(screen.getByTestId('router-path').textContent).toBe('/changes');
   });
 
-  it('says a change that does not exist any more may have been dropped', async () => {
+  it('says a change that does not exist any more may have been dropped, and leads back to the changes', async () => {
     vi.mocked(getLabHome).mockResolvedValue(HOME('ana'));
     signInToGitHubForTests(SESSION, 'ana');
     vi.mocked(getLabChange).mockRejectedValue(new ApiError(404, 'No change.', 'No change.'));
     render(
       <Provider store={store}>
-        <MemoryRouter initialEntries={[`/c/${CHANGE_ID}`]}>
+        <MemoryRouter initialEntries={['/']}>
           <LabAuthGate>
-            <Routes>
-              <Route path="/c/:changeId" element={<LabChangeView />} />
-            </Routes>
+            <LabChangeView changeId={CHANGE_ID} onLeave={leave} />
           </LabAuthGate>
         </MemoryRouter>
       </Provider>,
     );
     expect(await screen.findByTestId('lab-change-not-found')).toHaveTextContent('It may have been dropped.');
-    expect(screen.getByRole('link', { name: 'Back to changes' })).toHaveAttribute('href', '/');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to changes' }));
+    expect(leave).toHaveBeenCalledWith('/');
   });
 });
 
-describe('LabChangeView editor layout', () => {
-  it("switches views from the editor's sidebar and keeps the title and the pull-request action above the view", async () => {
+describe('LabChangeView in the editor', () => {
+  it("puts the change's actions in the editor's top bar and its conversation beside the editor", async () => {
     await renderView(change());
-    const sidebar = screen.getByTestId('lab-change-sidebar');
-    const views = within(sidebar).getByRole('tablist', { name: 'Model, changes and preview' });
-    expect(within(views).getAllByRole('tab').map((tab) => tab.getAttribute('aria-label'))).toEqual(['Model', 'Changes', 'Try it']);
-    fireEvent.click(within(views).getByRole('tab', { name: 'Try it' }));
-    expect(within(views).getByRole('tab', { name: 'Try it', selected: true })).toBeTruthy();
-    expect(within(sidebar).getByRole('link', { name: 'All changes' })).toHaveAttribute('href', '/');
-    // The conversation sits after the view in the page, and the strip with the title is inside the view's column.
-    const view = screen.getByRole('region', { name: 'Model, changes and preview' });
-    const chat = screen.getByRole('region', { name: 'Conversation' });
-    expect(view.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(view).getByRole('heading', { level: 1 })).toBeTruthy();
-    expect(within(view).getByRole('button', { name: 'Open pull request' })).toBeTruthy();
+    const shell = screen.getByTestId('editor-shell');
+    const actions = within(shell).getByTestId('lab-change-actions');
+    expect(within(actions).getByRole('button', { name: 'Open pull request' })).toBeTruthy();
+    expect(within(actions).getByTestId('lab-key-chip')).toHaveTextContent("Lab's key");
+    expect(within(actions).getByTestId('lab-meter')).toBeTruthy();
+    // Hidden, not unmounted: the conversation keeps its scroll position and its draft.
+    const chat = within(shell).getByRole('region', { name: 'Conversation' });
+    fireEvent.click(within(actions).getByRole('button', { name: 'Hide the conversation' }));
+    expect(chat.className.split(' ')).toContain('hidden');
+    fireEvent.click(within(actions).getByRole('button', { name: 'Show the conversation' }));
+    expect(chat.className.split(' ')).not.toContain('hidden');
   });
 
-  it('collapses the sidebar to icons and hides and shows the conversation', async () => {
+  it("leaves for the lab's screens from the editor's logo and the change's menu", async () => {
     await renderView(change());
-    const sidebar = screen.getByTestId('lab-change-sidebar');
-    fireEvent.click(within(sidebar).getByRole('button', { name: 'Collapse sidebar' }));
-    expect(sidebar.className).toContain('w-[72px]');
-    expect(within(sidebar).getByRole('tab', { name: 'Changes' })).toHaveAttribute('title', 'Changes');
-    // Hidden, not unmounted: the conversation keeps its scroll position and its draft.
-    const chat = screen.getByRole('region', { name: 'Conversation' });
-    fireEvent.click(screen.getByRole('button', { name: 'Hide the conversation' }));
-    expect(chat.className.split(' ')).toContain('hidden');
-    fireEvent.click(screen.getByRole('button', { name: 'Show the conversation' }));
-    expect(chat.className.split(' ')).not.toContain('hidden');
+    fireEvent.click(screen.getByRole('button', { name: 'BESSER' }));
+    expect(leave).toHaveBeenLastCalledWith('/');
+    fireEvent.keyDown(screen.getByRole('button', { name: 'More actions' }), { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Settings and usage/ }));
+    expect(leave).toHaveBeenLastCalledWith('/settings');
   });
 });
 
@@ -448,7 +475,7 @@ describe('LabChangeView drop', () => {
       fireEvent.click(await screen.findByRole('menuitem', { name: /Drop change/ }));
     });
     await waitFor(() => expect(dropLabChange).toHaveBeenCalledWith(SESSION, CHANGE_ID));
-    expect(await screen.findByText('Home')).toBeTruthy();
+    await waitFor(() => expect(leave).toHaveBeenCalledWith('/'));
   });
 
   it('is offered to the owner, and does nothing when the owner cancels', async () => {

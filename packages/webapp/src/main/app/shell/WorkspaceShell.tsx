@@ -163,6 +163,11 @@ interface WorkspaceShellProps {
   isGenerating?: boolean;
   onAssistantGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   onboarding?: OnboardingHook;
+  /**
+   * BESSER Lab (a project is a change): the change's actions for the top bar, in place of the File, Generate and
+   * Deploy menus, and its conversation, docked beside the editor in place of the modeling assistant's drawer.
+   */
+  lab?: { actions: React.ReactNode; conversation: React.ReactNode };
 }
 
 interface UserModelValidationRecord {
@@ -209,6 +214,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   isGenerating = false,
   onAssistantGenerate,
   onboarding,
+  lab,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1208,6 +1214,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         isMobileNavOpen={isMobileDrawerOpen}
         onOpenMobileNav={openMobileDrawer}
         mobileNavTriggerRef={mobileNavTriggerRef}
+        labActions={lab?.actions}
       />
 
       {/* Mobile navigation drawer (below md): a left-side Radix dialog */}
@@ -1322,6 +1329,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           run started from the drawer streams its events into the same
           chat as the modeling-agent conversation.
         */}
+        {lab ? lab.conversation : (
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
@@ -1333,6 +1341,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             chatHeader={<RepoChatHeader className="mb-4" />}
           />
         </Suspense>
+        )}
       </div>
 
       <AssistantImportDialog

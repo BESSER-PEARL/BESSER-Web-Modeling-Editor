@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,33 +25,74 @@ const LAB_MOTION_CSS = `
   }
 `;
 
+/** The id of the change an address is in (`/c/<id>` and below), or null on a lab screen. */
+export function changeIdOf(pathname: string): string | null {
+  return /^\/c\/([0-9a-f]{12})(?:\/|$)/.exec(pathname)?.[1] ?? null;
+}
+
+/** Reached by a link to a change from a lab screen: hands over to the editor, which lives under the change's address. */
+const EnterChange: React.FC<{ onEnter: () => void }> = ({ onEnter }) => {
+  useEffect(onEnter, [onEnter]);
+  return <SuspenseFallback />;
+};
+
 /**
- * The BESSER Lab build's whole application (`LAB_BUILD=true`): home at `/`, a change at
- * `/c/:changeId`, settings and usage at `/settings`, all behind {@link LabAuthGate} and under
- * {@link LabHeader}. None of the public editor's shell, menus or dialogs.
+ * The BESSER Lab build's whole application (`LAB_BUILD=true`), behind {@link LabAuthGate}. The lab's own screens
+ * (the changes at `/`, settings and usage at `/settings`) sit under {@link LabHeader}. A change is the editor
+ * itself: its router has `/c/<id>` as its base, so the editor's shell sees its usual addresses (`/` the canvas,
+ * `/changes`, `/try`), and the history entry the home opened it with (its first message) is kept.
  */
-export const LabApplication: React.FC = () => (
-  <BrowserRouter>
-    <style>{LAB_MOTION_CSS}</style>
-    <LabAuthGate>
-      {/* The editor's frame: a fixed-height page whose main area scrolls, so a change can fill it with its canvas. */}
-      <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-        <LabHeader />
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <Suspense fallback={<SuspenseFallback />}>
-            <Routes>
-              <Route path="/" element={<LabHome />} />
-              <Route path="/c/:changeId" element={<LabChangeView />} />
-              <Route path="/settings" element={<LabSettingsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </main>
-      </div>
-    </LabAuthGate>
-    <ToastContainer />
-    <GlobalConfirmProvider />
-  </BrowserRouter>
-);
+export const LabApplication: React.FC = () => {
+  const [changeId, setChangeId] = useState(() => changeIdOf(window.location.pathname));
+  const follow = useCallback(() => setChangeId(changeIdOf(window.location.pathname)), []);
+  // Back and forward between a change and a lab screen.
+  useEffect(() => {
+    window.addEventListener('popstate', follow);
+    return () => window.removeEventListener('popstate', follow);
+  }, [follow]);
+  const leave = useCallback(
+    (path: string) => {
+      window.history.pushState(null, '', path);
+      follow();
+    },
+    [follow],
+  );
+
+  return (
+    <>
+      <style>{LAB_MOTION_CSS}</style>
+      {changeId ? (
+        <BrowserRouter key={changeId} basename={`/c/${changeId}`}>
+          <LabAuthGate>
+            <Suspense fallback={<SuspenseFallback />}>
+              <LabChangeView changeId={changeId} onLeave={leave} />
+            </Suspense>
+          </LabAuthGate>
+          <GlobalConfirmProvider />
+        </BrowserRouter>
+      ) : (
+        <BrowserRouter>
+          <LabAuthGate>
+            <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+              <LabHeader />
+              <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                <Suspense fallback={<SuspenseFallback />}>
+                  <Routes>
+                    <Route path="/" element={<LabHome />} />
+                    <Route path="/c/:changeId/*" element={<EnterChange onEnter={follow} />} />
+                    <Route path="/settings" element={<LabSettingsPage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </main>
+            </div>
+          </LabAuthGate>
+          <GlobalConfirmProvider />
+        </BrowserRouter>
+      )}
+      <ToastContainer />
+    </>
+  );
+};
 
 export default LabApplication;

@@ -5172,7 +5172,8 @@
       "sidebarTitle": "Diese Änderung",
       "allChanges": "Alle Änderungen",
       "hideChat": "Unterhaltung ausblenden",
-      "showChat": "Unterhaltung einblenden"
+      "showChat": "Unterhaltung einblenden",
+      "notInTheLab": "Das gehört zum öffentlichen Editor. Beschreiben Sie die Änderung in BESSER Lab in der Unterhaltung."
     },
     "chat": {
       "addressCommentsMessage_one": "Bearbeite den ausgewählten Review-Kommentar im {{repo}}-Pull-Request.",

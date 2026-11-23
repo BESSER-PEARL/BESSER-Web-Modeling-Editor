@@ -5172,7 +5172,8 @@
       "sidebarTitle": "Aquest canvi",
       "allChanges": "Tots els canvis",
       "hideChat": "Amaga la conversa",
-      "showChat": "Mostra la conversa"
+      "showChat": "Mostra la conversa",
+      "notInTheLab": "Això pertany a l'editor públic. A BESSER Lab, descriviu el canvi a la conversa."
     },
     "chat": {
       "addressCommentsMessage_one": "Atén el comentari de revisió seleccionat a la pull request de {{repo}}.",

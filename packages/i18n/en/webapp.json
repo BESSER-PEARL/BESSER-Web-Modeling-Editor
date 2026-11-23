@@ -5172,7 +5172,8 @@
       "sidebarTitle": "This change",
       "allChanges": "All changes",
       "hideChat": "Hide the conversation",
-      "showChat": "Show the conversation"
+      "showChat": "Show the conversation",
+      "notInTheLab": "This belongs to the public editor. In BESSER Lab, describe the change in the conversation."
     },
     "chat": {
       "addressCommentsMessage_one": "Address the selected review comment on the {{repo}} pull request.",

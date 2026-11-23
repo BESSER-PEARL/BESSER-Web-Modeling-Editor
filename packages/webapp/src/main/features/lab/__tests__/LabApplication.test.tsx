@@ -5,7 +5,7 @@ import { ApiError } from '../../../shared/api/api-client';
 import { getLabHome, listLabChanges, type LabHomeResponse } from '../../../shared/api/lab';
 import { resolveLabEnabled } from '../../../shared/services/labConfig';
 import { resetGitHubAuthForTests, signInToGitHubForTests } from '../../../shared/services/github/githubAuth';
-import { LabApplication } from '../LabApplication';
+import { changeIdOf, LabApplication } from '../LabApplication';
 
 vi.mock('../../../shared/services/labConfig', () => ({ resolveLabEnabled: vi.fn() }));
 vi.mock('../../../shared/api/lab', async (importOriginal) => ({
@@ -46,6 +46,17 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 afterEach(cleanup);
+
+describe('changeIdOf', () => {
+  it("reads the change an address is in, and nothing from a lab screen's", () => {
+    expect(changeIdOf('/c/0123456789ab')).toBe('0123456789ab');
+    expect(changeIdOf('/c/0123456789ab/changes')).toBe('0123456789ab');
+    expect(changeIdOf('/')).toBeNull();
+    expect(changeIdOf('/settings')).toBeNull();
+    expect(changeIdOf('/c/not-a-change')).toBeNull();
+    expect(changeIdOf('/c/0123456789abc')).toBeNull();
+  });
+});
 
 describe('LabAuthGate', () => {
   it('says the lab is opening until the server config is known', async () => {

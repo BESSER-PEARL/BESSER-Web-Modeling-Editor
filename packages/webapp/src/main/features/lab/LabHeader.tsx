@@ -44,7 +44,7 @@ const METER_BAR: Record<ReturnType<typeof meterLevel>, string> = {
 };
 
 /** This month's spending of the signed-in user: "$12.40 of $75" and a 48 px bar. */
-const MonthMeter: React.FC<{ meter: LabMeter }> = ({ meter }) => {
+export const MonthMeter: React.FC<{ meter: LabMeter }> = ({ meter }) => {
   const { t, i18n } = useTranslation();
   const level = meterLevel(meter);
   const width = Math.min(100, meter.capUsd > 0 ? (meter.spentUsd / meter.capUsd) * 100 : 100);
@@ -77,7 +77,7 @@ const LlmKeyDialog = React.lazy(() =>
  * Which key pays the user's next run, and the editor's key dialog behind it: their own key (kept in this tab
  * only, as in the editor), else the lab's; on a lab without a key of its own it asks for one.
  */
-const LabKeyChip: React.FC<{ labKey: boolean }> = ({ labKey }) => {
+export const LabKeyChip: React.FC<{ labKey: boolean }> = ({ labKey }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [key, setKey] = useState(readLlmKey);

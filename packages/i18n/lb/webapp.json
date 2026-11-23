@@ -5172,7 +5172,8 @@
       "sidebarTitle": "Dës Ännerung",
       "allChanges": "All Ännerungen",
       "hideChat": "Gespréich verstoppen",
-      "showChat": "Gespréich weisen"
+      "showChat": "Gespréich weisen",
+      "notInTheLab": "Dat gehéiert zum ëffentlechen Editor. Beschreift d'Ännerung am BESSER Lab am Gespréich."
     },
     "chat": {
       "addressCommentsMessage_one": "Beaarbecht de gewielte Review-Kommentar am {{repo}}-Pull-Request.",

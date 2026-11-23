@@ -245,6 +245,13 @@ export async function openLabChangeProject(
   const isNew = !project;
   let created = isNew;
   if (!project) project = createLabProject(change.changeId, change.title, change.owner);
+  // Made while the change was a draft: the project takes the title its plan gave the change.
+  if (change.title && project.name !== change.title) {
+    project.name = change.title;
+    const renamed = project;
+    ProjectStorageRepository.withoutNotify(() => ProjectStorageRepository.saveProject(renamed));
+    created = true;
+  }
   const blank = project.diagrams.ClassDiagram[0];
   // A project this browser already has takes the thread's model only into an empty first diagram that is older
   // than that model: the change was opened here before a plan made elsewhere. A diagram the user drew in, or
@@ -268,7 +275,10 @@ export async function openLabChangeProject(
     // A proposal has no layout of its own; a message's model keeps the user's.
     if (found.source === 'proposal') requestAutoLayoutOnNextSetup();
   }
-  if (created || store.getState().workspace.project?.id !== project.id) {
+  // A page load starts with the last project already in the store and no editor set up for it yet
+  // (`editorRevision` 0): loading it is what mounts the canvas, as the editor's own start-up does.
+  const { project: open, editorRevision } = store.getState().workspace;
+  if (created || open?.id !== project.id || editorRevision === 0) {
     await store.dispatch(loadProjectThunk(project.id)).unwrap();
   }
 }

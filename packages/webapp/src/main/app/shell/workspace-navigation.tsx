@@ -19,8 +19,10 @@ import {
   SlidersHorizontal,
   User,
   Workflow,
+  FileDiff,
+  Play,
 } from 'lucide-react';
-import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../shared/constants/constant';
+import { LAB_BUILD, SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../shared/constants/constant';
 import type { SupportedDiagramType, BesserProject, ProjectDiagram } from '../../shared/types/project';
 import { diagramHasContent } from '../../shared/types/project';
 
@@ -145,10 +147,18 @@ export const DIAGRAM_ROUTE_ITEMS: Partial<Record<SupportedDiagramType, readonly 
 };
 
 /** Project-wide pages, below the diagram editors: they concern every diagram of the project. */
-export const ROUTE_ITEMS = [
+const PROJECT_ROUTE_ITEMS: readonly NavRouteItem[] = [
   { path: '/traceability', label: 'Traceability', labelKey: 'nav.route.traceability', icon: <GitBranch className="size-4" /> },
   { path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> },
-] as const;
+];
+
+/** The pages of a change in the BESSER Lab build, where a project is a change: what was built, and trying it. */
+const LAB_CHANGE_ROUTE_ITEMS: readonly NavRouteItem[] = [
+  { path: '/changes', label: 'Changes', labelKey: 'lab.change.tab.changes', icon: <FileDiff className="size-4" /> },
+  { path: '/try', label: 'Try it', labelKey: 'lab.change.tab.try', icon: <Play className="size-4" /> },
+];
+
+export const ROUTE_ITEMS: readonly NavRouteItem[] = LAB_BUILD ? LAB_CHANGE_ROUTE_ITEMS : PROJECT_ROUTE_ITEMS;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [
