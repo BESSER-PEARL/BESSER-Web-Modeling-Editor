@@ -5057,7 +5057,7 @@
       "unusable": "No s'ha pogut llegir la traça desada d'aquest projecte (potser està malmesa o escrita per una versió més recent). Es conserva tal com és i no es registra res d'aquest projecte en aquesta sessió; esborra la traça per començar-ne una de nova."
     },
     "requirements": {
-      "empty": "Encara no s'ha registrat cap requisit. Descriu una aplicació a l'assistent: els requisits que extregui apareixeran aquí, amb els elements del model i el codi que els realitzen.",
+      "empty": "Encara no s'ha registrat cap requisit. Descriu una aplicació a l'assistent: registra els requisits que la teva descripció enuncia, com ara «els hostes reserven habitacions» o «cada habitació té un número únic», amb els elements del model i el codi que els realitzen. Una petició que només anomena l'aplicació, com ara «una aplicació d'hotel», no n'enuncia cap.",
       "statusFilter": "Cobertura",
       "filters": {
         "all": "Tots ({{count}})",

@@ -5057,7 +5057,7 @@
       "unusable": "No se pudo leer la traza guardada de este proyecto (puede estar dañada o escrita por una versión más reciente). Se conserva tal cual y no se registra nada de este proyecto en esta sesión; borra la traza para empezar una nueva."
     },
     "requirements": {
-      "empty": "Todavía no se ha registrado ningún requisito. Describe una aplicación al asistente: los requisitos que extraiga aparecerán aquí, con los elementos del modelo y el código que los realizan.",
+      "empty": "Todavía no se ha registrado ningún requisito. Describe una aplicación al asistente: registra los requisitos que tu descripción enuncia, como «los huéspedes reservan habitaciones» o «cada habitación tiene un número único», con los elementos del modelo y el código que los realizan. Una petición que solo nombra la aplicación, como «una aplicación de hotel», no enuncia ninguno.",
       "statusFilter": "Cobertura",
       "filters": {
         "all": "Todos ({{count}})",

@@ -5057,7 +5057,7 @@
       "unusable": "The stored trace of this project could not be read (it may be damaged, or written by a newer version). It is kept as it is, and nothing is recorded for this project in this session; clear the trace to start a new one."
     },
     "requirements": {
-      "empty": "No requirements recorded yet. Describe an application to the assistant: the requirements it extracts appear here, with the model elements and the code that realize them.",
+      "empty": "No requirements recorded yet. Describe an application to the assistant: it records the requirements your description states, such as “guests book rooms” or “each room has a unique number”, with the model elements and the code that realize them. A request that only names the app, like “a hotel app”, states none.",
       "statusFilter": "Coverage",
       "filters": {
         "all": "All ({{count}})",
