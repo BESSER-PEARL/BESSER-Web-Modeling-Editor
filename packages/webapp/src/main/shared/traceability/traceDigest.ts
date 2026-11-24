@@ -4,7 +4,7 @@ import { lineageOf } from './lineage';
 import { requirementCoverage } from './requirementCoverage';
 import type { TraceIndex } from './traceQueries';
 import {
-  generatedFrom, historyOf, isDeleted, isDiagram, MAX_PARENT_DEPTH, outOfDate, qualifiedName, withDescendants,
+  generatedFrom, historyOf, isDeleted, isDiagram, MAX_PARENT_DEPTH, outOfDate, qualifiedName, resolveArtifactId, withDescendants,
 } from './traceQueries';
 import { traceSummary } from './traceSummary';
 
@@ -128,6 +128,9 @@ export interface TraceDigestOptions {
   recording?: boolean;
   /** Serialized size bound; default {@link TRACE_DIGEST_MAX_CHARS}. */
   maxChars?: number;
+  /** The editor ids of the elements selected on the canvas, in order: the focus when the message names none, so
+   *  "what does changing this affect?" is answered about the selection. */
+  selected?: readonly string[];
 }
 
 const OPERATION_TYPES: readonly TraceDigestOperationType[] = [
@@ -315,20 +318,47 @@ export function findFocusArtifacts(index: TraceIndex, message: string, max: numb
     return { artifact, at: position, key: qualifiedName(index, artifact).toLowerCase(), deleted: isDeleted(index, id) };
   });
   // A matched part beats what holds it.
-  const holders = new Set<string>();
-  for (const { artifact } of matched) {
-    for (let id = artifact.parentId, steps = 0; id && steps < MAX_PARENT_DEPTH; steps += 1) {
-      holders.add(id);
-      id = index.artifacts.get(id)?.parentId;
-    }
-  }
-  const candidates = matched.filter(({ artifact }) => !holders.has(artifact.id));
+  const candidates = withoutHolders(index, matched);
   const liveKeys = new Set(candidates.filter((c) => !c.deleted).map((c) => c.key));
   return candidates
     .filter((c) => !c.deleted || !liveKeys.has(c.key))
     .sort((a, b) => a.at - b.at || a.key.localeCompare(b.key) || a.artifact.id.localeCompare(b.artifact.id))
     .slice(0, max)
     .map((c) => c.artifact);
+}
+
+/** The items without those that hold another item (a class whose attribute is in the list too). */
+function withoutHolders<T extends { artifact: TraceArtifact }>(index: TraceIndex, items: T[]): T[] {
+  const holders = new Set<string>();
+  for (const { artifact } of items) {
+    for (let id = artifact.parentId, steps = 0; id && steps < MAX_PARENT_DEPTH; steps += 1) {
+      holders.add(id);
+      id = index.artifacts.get(id)?.parentId;
+    }
+  }
+  return items.filter(({ artifact }) => !holders.has(artifact.id));
+}
+
+/**
+ * The model artifacts of the elements selected on the canvas (editor element ids, or trace artifact ids), in
+ * selection order: those the trace knows and has not deleted, without a diagram, and a selected part beating what
+ * holds it, as for a named focus.
+ */
+export function selectedFocusArtifacts(
+  index: TraceIndex,
+  selected: readonly string[],
+  max: number = TRACE_DIGEST_CAPS.focus,
+): TraceArtifact[] {
+  const seen = new Set<string>();
+  const found: Array<{ artifact: TraceArtifact }> = [];
+  for (const id of selected) {
+    const artifactId = resolveArtifactId(index, id);
+    const artifact = artifactId ? index.artifacts.get(artifactId) : undefined;
+    if (!isModelArtifact(artifact) || isDiagram(artifact) || seen.has(artifact.id) || isDeleted(index, artifact.id)) continue;
+    seen.add(artifact.id);
+    found.push({ artifact });
+  }
+  return withoutHolders(index, found).slice(0, max).map(({ artifact }) => artifact);
 }
 
 function focusEntry(index: TraceIndex, artifact: TraceArtifact): TraceDigestFocus {
@@ -514,7 +544,8 @@ function digestBaseOf(trace: TraceFile, index: TraceIndex): DigestBase {
 /**
  * The digest of `trace` for a user message: counts, the newest operations, the current requirements with what
  * realizes them, the links that may be out of date, the newest generations, and, for the artifacts the message
- * names, their history, what they were derived from and what was derived from them.
+ * names (else those selected on the canvas, `options.selected`), their history, what they were derived from and
+ * what was derived from them.
  *
  * The serialized result is at most `options.maxChars` (default 12,000) characters. Beyond the per-string and
  * per-list caps, lists are shortened from their end, the least valuable first: recent operations, generations,
@@ -542,7 +573,9 @@ export function buildTraceDigest(
   if (base.outOfDate.length > 0) digest.outOfDate = [...base.outOfDate];
   if (base.generations.length > 0) digest.generations = [...base.generations];
 
-  const focus = findFocusArtifacts(index, message).map((artifact) => focusEntry(index, artifact));
+  const named = findFocusArtifacts(index, message);
+  const focusArtifacts = named.length > 0 ? named : selectedFocusArtifacts(index, options.selected ?? []);
+  const focus = focusArtifacts.map((artifact) => focusEntry(index, artifact));
   if (focus.length > 0) digest.focus = focus;
 
   return fitDigest(digest, maxChars);

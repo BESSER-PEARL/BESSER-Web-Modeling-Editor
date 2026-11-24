@@ -127,8 +127,8 @@ The assistant can answer questions about the trace ("why does Book have an isbn?
 (``context.traceDigest``, built by ``shared/traceability/traceDigest.ts``; the wire format is section 3 of the
 cross-repo traceability contract). It is sent **only when the project records traces and its trace holds at
 least one operation**; otherwise the field is left out and the assistant answers that nothing is recorded and
-how to turn recording on. A voice message carries the digest too, with an empty focus (its transcript is not
-known when the context is sent). The digest is built on the main thread, so its cost per message is kept to the
+how to turn recording on. A voice message carries the digest too, its focus taken from the canvas selection
+only (its transcript is not known when the context is sent). The digest is built on the main thread, so its cost per message is kept to the
 message: the trace's index and the parts that do not depend on the message are computed once per trace revision
 (``traceIndexOf``), and the focus is found by looking the message's runs of words up in the model's names,
 indexed once per revision, rather than by searching the message for every name.
@@ -141,7 +141,10 @@ The digest is a bounded summary, at most about 12,000 characters, never the trac
   and the 10 newest generations (files and out-of-date files);
 * a *focus* of at most 5 model elements whose name, or qualified ``Owner.member`` name, the message mentions as
   a whole word: their change history, what they were derived from (requirements, prompts, models, with the kind
-  of evidence) and the code derived from them (path, lines, why it may be out of date).
+  of evidence) and the code derived from them (path, lines, why it may be out of date). When the message names
+  none, the elements and relationships selected on the UML canvas are the focus (in selection order, a selected
+  attribute beating its class), so "what does changing this affect?" or "who changed this?" is answered about
+  the selection.
 
 Generated file contents and prompt texts are never sent; a requirement's statement and quote are cut at 500
 characters.

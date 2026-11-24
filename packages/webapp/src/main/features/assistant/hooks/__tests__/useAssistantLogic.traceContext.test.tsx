@@ -68,7 +68,7 @@ vi.mock('../useModelInjection', () => ({
 }));
 
 const digest = vi.hoisted(() => ({
-  buildAssistantTraceDigest: vi.fn((_project: unknown, message?: string) => ({ focus: message ?? null })),
+  buildAssistantTraceDigest: vi.fn((_project: unknown, message?: string, _selected?: string[]) => ({ focus: message ?? null })),
 }));
 vi.mock('../../services/traceDigestContext', () => digest);
 
@@ -86,7 +86,7 @@ vi.mock('../../../../shared/services/analytics/events', () => ({
 
 import { useAssistantLogic } from '../useAssistantLogic';
 
-async function renderWith(project: BesserProject) {
+async function renderWith(project: BesserProject, editor?: unknown) {
   const workspace = { ...workspaceReducer(undefined, { type: 'init' }), project };
   const reducer = combineReducers({ workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer });
   const store = configureStore({ reducer, preloadedState: { workspace } as never });
@@ -97,7 +97,7 @@ async function renderWith(project: BesserProject) {
   }
   render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <ApollonEditorProvider value={{ editor: editor as never, setEditor: () => {} }}>
         <Surface />
       </ApollonEditorProvider>
     </Provider>,
@@ -133,6 +133,23 @@ describe('the trace digest of a typed message', () => {
     expect(override?.traceDigest).toBeUndefined();
     expect(base?.traceDigest).toEqual({ focus: 'Who created Book?' });
     expect(digest.buildAssistantTraceDigest.mock.calls.map(([, message]) => message)).toEqual(['Who created Book?']);
+  });
+
+  it('is given the elements and relationships selected on the canvas, its focus when the message names none', async () => {
+    const editor = { selection: { elements: { book: true, gone: false }, relationships: { owns: true } } };
+    const submit = await renderWith(recording(true), editor);
+    digest.buildAssistantTraceDigest.mockClear();
+    await submit('What is the impact if I change this?');
+
+    expect(digest.buildAssistantTraceDigest.mock.calls.map(([, , selected]) => selected)).toEqual([['book', 'owns']]);
+  });
+
+  it('is given no selection without a canvas', async () => {
+    const submit = await renderWith(recording(true));
+    digest.buildAssistantTraceDigest.mockClear();
+    await submit('What is out of date?');
+
+    expect(digest.buildAssistantTraceDigest.mock.calls.map(([, , selected]) => selected)).toEqual([[]]);
   });
 });
 

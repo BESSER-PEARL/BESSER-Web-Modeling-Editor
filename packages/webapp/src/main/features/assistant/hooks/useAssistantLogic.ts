@@ -427,6 +427,7 @@ export function useAssistantLogic({
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
+  const editorRef = useRef(editor);
   const onGenerateRef = useRef(onGenerate);
   const switchDiagramRef = useRef(switchDiagram);
   const [{ currentProjectRef, currentDiagramTypeRef, currentModelRef }] = useState(() => ({
@@ -435,6 +436,7 @@ export function useAssistantLogic({
     currentModelRef: liveRef<any>(() => selectActiveDiagram(store.getState())?.model),
   }));
 
+  editorRef.current = editor;
   onGenerateRef.current = onGenerate;
   switchDiagramRef.current = switchDiagram;
 
@@ -801,10 +803,18 @@ export function useAssistantLogic({
   /* ---- workspace context builder ---- */
 
   /** The workspace context the client sends with a message (its context provider), with the trace digest built
-   *  from that message (its focus); the digest is left out unless the project records traces and has recorded
-   *  something. */
+   *  from that message (its focus, else the elements selected on the canvas); the digest is left out unless the
+   *  project records traces and has recorded something. */
   function buildWorkspaceContext(message?: string) {
-    return { ...workspaceContextWithoutDigest(), traceDigest: buildAssistantTraceDigest(currentProjectRef.current, message) };
+    const traceDigest = buildAssistantTraceDigest(currentProjectRef.current, message, selectedElementIds());
+    return { ...workspaceContextWithoutDigest(), traceDigest };
+  }
+
+  /** The ids of the elements and relationships selected on the UML canvas, or none when another editor is shown. */
+  function selectedElementIds(): string[] {
+    const selection = isUmlDiagramType(currentDiagramTypeRef.current) ? editorRef.current?.selection : undefined;
+    if (!selection) return [];
+    return [selection.elements, selection.relationships].flatMap((ids) => Object.keys(ids).filter((id) => ids[id]));
   }
 
   /** The context a send passes as its override: without the digest, which the client's provider builds once, from the
