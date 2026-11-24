@@ -5039,12 +5039,17 @@
       "linksHint": "Links between two different artefacts, such as a class and the code generated from it; edits within one diagram are not links. Counted for the project as it is now: the newest run of each generator, without deleted elements.",
       "outOfDate_one": "link may be out of date",
       "outOfDate_other": "links may be out of date",
-      "outOfDateHint": "Cross-artefact trace links whose source, target, or something the source was derived from changed after the link was made. Regenerate the code to bring them up to date.",
+      "outOfDateHint": "Cross-artefact trace links whose source, target, or something the source was derived from changed after the link was made. Regenerate the code to bring them up to date. The rows below break the number down: one per generator, and one for the links that are not to code.",
       "staleFiles_one": "{{generator}}: {{count}} file out of date",
       "staleFiles_other": "{{generator}}: {{count}} files out of date",
       "regenerate": "regenerate to bring the code generated on {{time}} up to date",
       "unknownGenerator": "A generator",
-      "showCoverage": "View coverage"
+      "showCoverage": "View coverage",
+      "staleLinks_one": "{{count}} out-of-date link",
+      "staleLinks_other": "{{count}} out-of-date links",
+      "otherStale_one": "{{count}} out-of-date link is between requirements and models, not to code",
+      "otherStale_other": "{{count}} out-of-date links are between requirements and models, not to code",
+      "showLineage": "View lineage"
     },
     "recordingOff": {
       "title": "Trace recording is off",

@@ -296,9 +296,9 @@ describe('retention of generation runs', () => {
     expect(pruneOldGenerations(trace)).toBe(0); // compacting again changes nothing
   });
 
-  it('counts only runs with links in the coverage matrix', () => {
+  it('shows the generator once in the coverage matrix, by its newest run', () => {
     const trace = generations(7);
     pruneOldGenerations(trace);
-    expect(coverageMatrix(indexTrace(trace), 8).generations.map((g) => g.id)).toEqual(['g6', 'g5', 'g4', 'g3', 'g2']);
+    expect(coverageMatrix(indexTrace(trace), 8).generations.map((g) => g.id)).toEqual(['g6']);
   });
 });

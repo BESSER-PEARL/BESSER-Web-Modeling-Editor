@@ -5039,12 +5039,17 @@
       "linksHint": "Enllaços entre dos artefactes diferents, com ara una classe i el codi generat a partir d'ella; les edicions dins d'un mateix diagrama no són enllaços. Comptats per al projecte tal com és ara: l'execució més recent de cada generador, sense els elements eliminats.",
       "outOfDate_one": "enllaç pot estar desactualitzat",
       "outOfDate_other": "enllaços poden estar desactualitzats",
-      "outOfDateHint": "Enllaços de traça entre artefactes en què l'origen, la destinació o allò de què deriva l'origen ha canviat després de crear l'enllaç. Torna a generar el codi per actualitzar-los.",
+      "outOfDateHint": "Enllaços de traça entre artefactes en què l'origen, la destinació o allò de què deriva l'origen ha canviat després de crear l'enllaç. Torna a generar el codi per actualitzar-los. Les files de sota desglossen el nombre: una per generador i una per als enllaços que no porten a codi.",
       "staleFiles_one": "{{generator}}: {{count}} fitxer desactualitzat",
       "staleFiles_other": "{{generator}}: {{count}} fitxers desactualitzats",
       "regenerate": "torna a generar per actualitzar el codi generat el {{time}}",
       "unknownGenerator": "Un generador",
-      "showCoverage": "Mostra la cobertura"
+      "showCoverage": "Mostra la cobertura",
+      "staleLinks_one": "{{count}} enllaç desactualitzat",
+      "staleLinks_other": "{{count}} enllaços desactualitzats",
+      "otherStale_one": "{{count}} enllaç desactualitzat uneix requisits i models, no codi",
+      "otherStale_other": "{{count}} enllaços desactualitzats uneixen requisits i models, no codi",
+      "showLineage": "Veure el llinatge"
     },
     "recordingOff": {
       "title": "El registre de traces està desactivat",

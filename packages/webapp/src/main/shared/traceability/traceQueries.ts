@@ -12,7 +12,7 @@ import type {
   TraceOperation,
   TraceTool,
 } from '../types/traceability';
-import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact } from '../types/traceability';
+import { changesOf, isCodeArtifact, isModelArtifact, isRequirementArtifact, toolIdsOf } from '../types/traceability';
 
 /** Read-only views over a trace, for the traceability page. Pure functions of the trace. */
 
@@ -341,7 +341,8 @@ export interface CoverageMatrix {
 }
 
 /**
- * Diagrams and their elements × generation runs (newest first, at most `maxGenerations`).
+ * Diagrams and their elements × the newest run of each generator (newest first, at most `maxGenerations`):
+ * an older run of the same generator is superseded and says nothing about the code as it is now.
  * Members (attributes, literals) get no row: their code is part of their element's, and
  * changing a member makes its element's code out of date.
  */
@@ -357,11 +358,15 @@ function traceableRowsUnder(index: TraceIndex, artifactId: string, depth = 0): M
   });
 }
 
+/** Which generator ran `operation`: runs with the same key are runs of the same generator. */
+export const generatorKey = (operation: TraceOperation): string => toolIdsOf(operation).join(',');
+
 export function coverageMatrix(index: TraceIndex, maxGenerations: number): CoverageMatrix {
   // Runs compacted by retention have no links left: they say nothing about coverage.
   const generations = index.trace.operations
     .filter((o) => o.type === 'CodeGeneration' && index.linksByOperation.has(o.id))
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    .filter((run, position, runs) => runs.findIndex((other) => generatorKey(other) === generatorKey(run)) === position)
     .slice(0, maxGenerations);
   const row = (element: ModelArtifact): CoverageRow => {
     const links = index.linksBySource.get(element.id) ?? [];

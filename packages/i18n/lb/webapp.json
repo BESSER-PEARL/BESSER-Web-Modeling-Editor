@@ -5039,12 +5039,17 @@
       "linksHint": "Verbindungen tëscht zwee verschiddenen Artefakter, wéi eng Klass an de Code, deen draus generéiert gouf; Ännerungen bannent engem Diagramm si keng Verbindungen. Gezielt fir de Projet, wéi e elo ass: dee neisten Laf vun all Generator, ouni geläscht Elementer.",
       "outOfDate_one": "Verbindung vläicht net méi aktuell",
       "outOfDate_other": "Verbindunge vläicht net méi aktuell",
-      "outOfDateHint": "Artefaktiwwergräifend Trace-Verbindungen, bei deenen d'Quell, d'Zil oder eppes, aus deem d'Quell ofgeleet gouf, sech geännert huet, nodeems d'Verbindung gemaach gouf. Generéier de Code nei, fir se ze aktualiséieren.",
+      "outOfDateHint": "Artefaktiwwergräifend Trace-Verbindungen, bei deenen d'Quell, d'Zil oder eppes, aus deem d'Quell ofgeleet gouf, sech geännert huet, nodeems d'Verbindung gemaach gouf. Generéier de Code nei, fir se ze aktualiséieren. D'Zeilen drënner schlësselen d'Zuel op: eng pro Generator an eng fir d'Linken, déi net zum Code féieren.",
       "staleFiles_one": "{{generator}}: {{count}} Datei net méi aktuell",
       "staleFiles_other": "{{generator}}: {{count}} Dateien net méi aktuell",
       "regenerate": "nei generéieren, fir de Code, deen den {{time}} generéiert gouf, ze aktualiséieren",
       "unknownGenerator": "E Generator",
-      "showCoverage": "Ofdeckung kucken"
+      "showCoverage": "Ofdeckung kucken",
+      "staleLinks_one": "{{count}} veraalte Link",
+      "staleLinks_other": "{{count}} veraalt Linken",
+      "otherStale_one": "{{count}} veraalte Link läit tëscht Ufuerderungen a Modeller, net zum Code",
+      "otherStale_other": "{{count}} veraalt Linke leien tëscht Ufuerderungen a Modeller, net zum Code",
+      "showLineage": "Hierkonft kucken"
     },
     "recordingOff": {
       "title": "D'Opnam vun Traces ass ausgeschalt",

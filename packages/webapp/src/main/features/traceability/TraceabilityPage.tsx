@@ -142,7 +142,7 @@ export const TraceabilityPage: React.FC = () => {
           </Alert>
         )}
 
-        {!isEmpty && <TraceSummaryHeader summary={summary} onShowOutOfDate={() => url.setTab('coverage')} />}
+        {!isEmpty && <TraceSummaryHeader summary={summary} onShowOutOfDate={() => url.setTab('coverage')} onShowLineage={() => showLineage(null)} />}
       </div>
 
       {/* The tabs stay in reach while a long timeline or matrix scrolls. */}

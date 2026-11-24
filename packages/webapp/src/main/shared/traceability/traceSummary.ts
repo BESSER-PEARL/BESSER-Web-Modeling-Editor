@@ -15,6 +15,8 @@ export interface GeneratorStaleness {
   files: CodeArtifact[];
   /** How many of its files have links at all. */
   linkedFiles: number;
+  /** How many out-of-date links point to those files or their fragments. */
+  outOfDateLinks: number;
 }
 
 export interface TraceSummary {
@@ -26,6 +28,8 @@ export interface TraceSummary {
   outOfDateLinks: number;
   /** One entry per generator whose newest run has out-of-date files, most files first. */
   staleGenerators: GeneratorStaleness[];
+  /** The out-of-date links that point to no generated code (a requirement's link to a class, a model derived from a model). */
+  otherOutOfDateLinks: number;
 }
 
 /**
@@ -33,7 +37,7 @@ export interface TraceSummary {
  * (`lineageOf(index, null, { history: false })`), which the page computes once and shares.
  */
 export function traceSummary(index: TraceIndex, projectLineage: Lineage): TraceSummary {
-  const runs = new Map<string, { operation: TraceOperation; files: Map<string, CodeArtifact>; stale: Set<string> }>();
+  const runs = new Map<string, { operation: TraceOperation; files: Map<string, CodeArtifact>; stale: Set<string>; staleLinks: number }>();
   let outOfDateLinks = 0;
   for (const edge of projectLineage.edges) {
     const stale = edge.outOfDate.length > 0;
@@ -45,9 +49,12 @@ export function traceSummary(index: TraceIndex, projectLineage: Lineage): TraceS
     const parent = target.parentId ? index.artifacts.get(target.parentId) : undefined;
     const file = isCodeArtifact(parent) ? parent : target;
     let run = runs.get(operation.id);
-    if (!run) runs.set(operation.id, (run = { operation, files: new Map(), stale: new Set() }));
+    if (!run) runs.set(operation.id, (run = { operation, files: new Map(), stale: new Set(), staleLinks: 0 }));
     run.files.set(file.id, file);
-    if (stale) run.stale.add(file.id);
+    if (stale) {
+      run.stale.add(file.id);
+      run.staleLinks += 1;
+    }
   }
   const staleGenerators = [...runs.values()]
     .filter((run) => run.stale.size > 0)
@@ -60,6 +67,7 @@ export function traceSummary(index: TraceIndex, projectLineage: Lineage): TraceS
         operation: run.operation,
         files: [...run.stale].map((id) => run.files.get(id)!).sort((a, b) => a.path.localeCompare(b.path)),
         linkedFiles: run.files.size,
+        outOfDateLinks: run.staleLinks,
       };
     })
     .sort((a, b) => b.files.length - a.files.length || (a.tool?.name ?? '').localeCompare(b.tool?.name ?? ''));
@@ -69,5 +77,6 @@ export function traceSummary(index: TraceIndex, projectLineage: Lineage): TraceS
     links: projectLineage.edges.length,
     outOfDateLinks,
     staleGenerators,
+    otherOutOfDateLinks: outOfDateLinks - staleGenerators.reduce((sum, entry) => sum + entry.outOfDateLinks, 0),
   };
 }
