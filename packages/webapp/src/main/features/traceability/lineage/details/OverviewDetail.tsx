@@ -67,6 +67,7 @@ export const OverviewDetail: React.FC<{
             {layout.bundles.slice(0, LISTED_CONNECTORS).map((bundle) => {
               const look = bundleLook(bundle.edges);
               const stale = lookOf(look) !== 'upToDate';
+              const outOfDate = bundle.edges.filter((e) => lookOf(e) !== 'upToDate').length;
               return (
                 <li key={bundle.key}>
                   <button
@@ -82,7 +83,14 @@ export const OverviewDetail: React.FC<{
                       {end(bundle.targetId, 'flex-1')}
                     </span>
                     {bundle.edges.length > 1 && <span className="shrink-0 tabular-nums text-muted-foreground">×{bundle.edges.length}</span>}
-                    {stale && (
+                    {stale && bundle.edges.length > 1 && (
+                      // With ×N beside it, the mark says how many of the N may be out of date.
+                      <span className="flex shrink-0 items-center gap-0.5 tabular-nums text-warning">
+                        (<AlertTriangle className="size-3" aria-hidden />
+                        {t('traceability.lineage.pillOutOfDate', { count: outOfDate })})
+                      </span>
+                    )}
+                    {stale && bundle.edges.length === 1 && (
                       <AlertTriangle className="size-3 shrink-0 text-warning" role="img" aria-label={t('traceability.status.outOfDate')} />
                     )}
                   </button>

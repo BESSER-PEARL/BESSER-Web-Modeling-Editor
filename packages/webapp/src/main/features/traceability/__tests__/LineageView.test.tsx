@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LineageView } from '../LineageView';
 import { indexTrace } from '../../../shared/traceability/traceQueries';
@@ -174,6 +174,41 @@ describe('LineageView', () => {
     fireEvent.click(button('×2'));
     expect(rowLabels()).toEqual(['Class Diagram', 'Author', 'Book', 'Generated SQLAlchemy DDL', 'sql_alchemy.py', 'Book · lines 2–3', 'Author · lines 5–6']);
     expect(button('×2')).toBeUndefined();
+  });
+
+  it('tells, on a bundle, how many of its links may be out of date apart from how many it holds', () => {
+    // Book was renamed after its link was made; Author's link still holds: one of the two may be out of date.
+    const file = trace();
+    file.artifacts.push(
+      { id: 'author', type: 'ModelArtifact', name: 'Author', elementId: 'c2', elementType: 'Class', parentId: 'cd', timestamp: time },
+      { id: 'alines', type: 'CodeArtifact', name: 'Author (5-6)', path: 'sql_alchemy.py', contentHash: 'h3', startLine: 5, endLine: 6, parentId: 'file', timestamp: time },
+    );
+    file.traceLinks.push({ ...file.traceLinks[0], id: 'link2', sourceId: 'author', targetId: 'alines' });
+    const { container } = view(file);
+    const pills = [...container.querySelectorAll('button.absolute')].map((b) => b.textContent);
+    expect(pills).toEqual(['×2 (1 out of date)']);
+    // The overview's list of connectors says the same.
+    expect(container.querySelector('aside')!.textContent).toContain('×2(1 out of date)');
+  });
+
+  it('marks a single out-of-date link without a count', () => {
+    const { container } = view(trace(), 'book');
+    const pills = [...container.querySelectorAll('button.absolute')].map((b) => b.textContent);
+    expect(pills).toEqual(['1.00Out of date']);
+  });
+
+  it('explains the history option and every legend entry in a tooltip', async () => {
+    view(trace());
+    fireEvent.focus(screen.getByRole('img', { name: /^Off: only the project as it is now/ }));
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(/On: also older generations and deleted elements/);
+    fireEvent.blur(screen.getByRole('img', { name: /^Off: only the project as it is now/ }));
+
+    const legend = (text: string) => [...document.body.querySelectorAll<HTMLElement>('span[tabindex="0"]')].find((e) => e.textContent === text)!;
+    fireEvent.focus(legend('Upstream changed'));
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(/^Neither end changed, but something the source was derived from did/);
+    for (const entry of ['Rule', 'AI decision (its pill says “AI”)', 'Out of date', 'Thicker: more confident']) {
+      expect(legend(entry)).toBeTruthy();
+    }
   });
 
   it('expands and collapses everything, and goes full screen', () => {

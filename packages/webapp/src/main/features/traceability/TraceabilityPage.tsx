@@ -166,8 +166,14 @@ export const TraceabilityPage: React.FC = () => {
                 {enabled ? <GitBranch className="size-5" /> : <CircleOff className="size-5" />}
               </span>
               <p className="max-w-md text-sm text-muted-foreground">
-                {enabled ? t('traceability.emptyEnabled') : t('traceability.emptyDisabled')}
+                {enabled ? t('traceability.emptyEnabled') : t('traceability.emptyDisabled', { label: t('traceability.toggle.label') })}
               </p>
+              {/* The same switch as the box above, where it is easy to miss. */}
+              {!enabled && (
+                <Button size="sm" onClick={() => setEnabled(true)}>
+                  {t('traceability.recordingOff.turnOn')}
+                </Button>
+              )}
             </div>
           ) : (
             <>

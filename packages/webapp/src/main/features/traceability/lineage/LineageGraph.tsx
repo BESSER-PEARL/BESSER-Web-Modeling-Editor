@@ -51,6 +51,11 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
     if (bundle.edges.length > 1) return `×${bundle.edges.length}`;
     return `${isAiEdge(look) ? `${t('traceability.lineage.legend.ai')} ` : ''}${formatConfidence(look.link.confidence?.value)}`;
   }, [t]);
+  // A bundle's pill says how many of its links may be out of date, apart from how many it holds.
+  const outOfDateText = useCallback((bundle: LineageBundle) => {
+    const count = bundle.edges.filter((e) => lookOf(e) !== 'upToDate').length;
+    return bundle.edges.length > 1 && count > 0 ? t('traceability.lineage.pillOutOfDate', { count }) : '';
+  }, [t]);
   // Pills on connectors with something to say (`hasPill`), plus the selected link's. Placed apart without regard to
   // the selection, the selected-only pill last, so selecting a link moves no pill.
   const pills = useMemo(() => {
@@ -59,11 +64,13 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
       ({ bundle }) => !hasPill(bundle) && bundle.edges.some((e) => e.link.id === selectedLinkId),
     );
     const all = [...shown, ...selectedOnly];
-    const places = placePills(all.map(({ bundle, at }) => ({
-      at, width: pillWidth(pillText(bundle), lookOf(bundleLook(bundle.edges)) !== 'upToDate'), height: PILL_HEIGHT,
-    })));
+    const places = placePills(all.map(({ bundle, at }) => {
+      const outOfDate = outOfDateText(bundle);
+      const text = outOfDate ? `${pillText(bundle)} (${outOfDate})` : pillText(bundle);
+      return { at, width: pillWidth(text, lookOf(bundleLook(bundle.edges)) !== 'upToDate'), height: PILL_HEIGHT };
+    }));
     return all.map((connector, i) => ({ bundle: connector.bundle, place: places[i] }));
-  }, [connectors, selectedLinkId, pillText]);
+  }, [connectors, selectedLinkId, pillText, outOfDateText]);
 
   return (
     <div className="relative h-full min-h-0 overflow-auto rounded-lg border border-border bg-muted/20">
@@ -127,6 +134,7 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
             const look = bundleLook(bundle.edges);
             const bundled = bundle.edges.length > 1;
             const stale = lookOf(look) !== 'upToDate';
+            const outOfDate = outOfDateText(bundle);
             // A bundle opens everything that holds its links' ends, so each link gets its own connector.
             const openable = [
               ...new Set(bundle.edges.flatMap((e) => [...pathTo(index, e.link.sourceId), ...pathTo(index, e.link.targetId)])),
@@ -149,13 +157,21 @@ export const LineageGraph: React.FC<LineageGraphProps> = ({
                 )}
                 style={{ left: place.x, top: place.y }}
               >
-                {/* Not by colour alone: a mark for a link that may not hold, a word for an AI decision. */}
-                {stale && <AlertTriangle className="mr-0.5 inline size-2.5 -translate-y-px" aria-hidden />}
+                {/* Not by colour alone: a mark for a link that may not hold, a word for an AI decision. A bundle's
+                    mark comes with how many of its links may not hold, so ×N is not read as that count. */}
+                {stale && !outOfDate && <AlertTriangle className="mr-0.5 inline size-2.5 -translate-y-px" aria-hidden />}
                 {pillText(bundle)}
                 {/* The selected link's own value, when it sits in a bundle. */}
                 {bundled && selectedLink && bundle.edges.some((e) => e.link.id === selectedLink.id) &&
                   ` · ${formatConfidence(selectedLink.confidence?.value)}`}
-                {stale && <span className="sr-only">{t('traceability.status.outOfDate')}</span>}
+                {outOfDate && (
+                  <>
+                    {' ('}
+                    <AlertTriangle className="mr-0.5 inline size-2.5 -translate-y-px" aria-hidden />
+                    {outOfDate})
+                  </>
+                )}
+                {stale && !outOfDate && <span className="sr-only">{t('traceability.status.outOfDate')}</span>}
               </button>
             );
           })}

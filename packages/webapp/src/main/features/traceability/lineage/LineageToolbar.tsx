@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import type { TraceIndex } from '../../../shared/traceability/traceQueries';
 import type { Lineage } from '../../../shared/traceability/lineage';
 import { LineageRootPicker } from '../LineageRootPicker';
+import { Hint } from '../components/Hint';
 import { EVIDENCE_STROKES, OUT_OF_DATE_STROKE } from './lineageLook';
 import { ZOOM_LEVELS } from './types';
 
@@ -41,9 +42,10 @@ export const LineageToolbar: React.FC<LineageToolbarProps> = ({
         <LineageRootPicker index={index} projectLineage={projectLineage} rootId={root} onChange={onRootChange} />
         <div className="flex items-center gap-2">
           <Checkbox id="lineage-history" checked={history} onCheckedChange={(checked) => onHistoryChange(checked === true)} />
-          <Label htmlFor="lineage-history" className="text-xs font-normal" title={t('traceability.lineage.historyHint')}>
+          <Label htmlFor="lineage-history" className="text-xs font-normal">
             {t('traceability.lineage.history')}
           </Label>
+          <Hint hint={t('traceability.lineage.historyHint')} />
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1">
           <Button size="sm" variant="outline" className="h-8 gap-1" onClick={onExpandAll}>
@@ -80,7 +82,7 @@ export const LineageToolbar: React.FC<LineageToolbarProps> = ({
   );
 };
 
-/** What the connectors' strokes and marks mean. */
+/** What the connectors' strokes and marks mean, each entry explained by its tooltip. */
 const LineageLegend: React.FC = () => {
   const { t } = useTranslation();
   const line = (className: string, dashed = false) => (
@@ -88,13 +90,19 @@ const LineageLegend: React.FC = () => {
       <line x1="1" y1="4" x2="21" y2="4" strokeWidth="2.5" strokeDasharray={dashed ? '4 3' : undefined} className={className} />
     </svg>
   );
+  const entry = (key: string, mark?: React.ReactNode) => (
+    <Hint hint={t(`traceability.lineage.legendHints.${key}`)} className="flex items-center gap-1 underline decoration-dotted underline-offset-2">
+      {mark}
+      {t(`traceability.lineage.legend.${key}`)}
+    </Hint>
+  );
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.RuleEvidence)}{t('traceability.lineage.legend.rule')}</span>
-      <span className="flex items-center gap-1">{line(EVIDENCE_STROKES.AIEvidence)}{t('traceability.lineage.legend.aiLabelled')}</span>
-      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE)}<AlertTriangle className="size-3 text-warning" aria-hidden />{t('traceability.lineage.legend.outOfDate')}</span>
-      <span className="flex items-center gap-1">{line(OUT_OF_DATE_STROKE, true)}{t('traceability.lineage.legend.upstreamChanged')}</span>
-      <span>{t('traceability.lineage.legend.width')}</span>
+      {entry('rule', line(EVIDENCE_STROKES.RuleEvidence))}
+      {entry('aiLabelled', line(EVIDENCE_STROKES.AIEvidence))}
+      {entry('outOfDate', <>{line(OUT_OF_DATE_STROKE)}<AlertTriangle className="size-3 text-warning" aria-hidden /></>)}
+      {entry('upstreamChanged', line(OUT_OF_DATE_STROKE, true))}
+      {entry('width')}
     </div>
   );
 };
