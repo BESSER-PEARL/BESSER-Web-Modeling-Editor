@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { indexTrace } from '../traceQueries';
-import { TRACE_DIGEST_CAPS, buildTraceDigest, findFocusArtifacts, wholeWordIndex } from '../traceDigest';
+import { TRACE_DIGEST_CAPS, buildTraceDigest, findFocusArtifacts, selectedFocusArtifacts, wholeWordIndex } from '../traceDigest';
 
 import { emptyTraceFile } from '../../types/traceability';
 import type { TraceArtifact, TraceFile, TraceLink, TraceOperation } from '../../types/traceability';
@@ -242,3 +242,42 @@ describe('focus', () => {
   });
 });
 
+describe('focus on the selection', () => {
+  const index = indexTrace(library());
+  const ids = (selected: string[]) => selectedFocusArtifacts(index, selected).map((a) => a.id);
+
+  it('resolves editor element ids and trace ids, in selection order, without repeats', () => {
+    expect(ids(['e-member', 'e-book'])).toEqual(['member', 'book']);
+    expect(ids(['book', 'e-book'])).toEqual(['book']);
+  });
+
+  it('skips what the trace does not know, code, the diagram and deleted elements, and lets a part beat its owner', () => {
+    const trace = library();
+    trace.artifacts.push(model('old', 'Shelf', 'Class', 'cd'));
+    trace.operations.push(operation('del', 'ModelingSession', 7, {
+      changes: [{ id: 'cd1', kind: 'DELETED', artifactId: 'old', oldValue: 'Shelf', timestamp: at(7) }],
+    }));
+    const found = selectedFocusArtifacts(indexTrace(trace), ['unknown', 'b1', 'e-cd', 'e-old', 'e-book', 'e-isbn']);
+    expect(found.map((a) => a.id)).toEqual(['isbn']);
+  });
+
+  it('caps at five', () => {
+    const trace = library();
+    for (let i = 0; i < 8; i += 1) trace.artifacts.push(model(`k${i}`, `Kind${i}`, 'Class', 'cd'));
+    expect(selectedFocusArtifacts(indexTrace(trace), Array.from({ length: 8 }, (_, i) => `e-k${i}`))).toHaveLength(5);
+  });
+
+  it('is the focus of a message that names nothing, so its impact can be asked about', () => {
+    const d = digestOf(library(), 'What is the impact if I change this?', { selected: ['e-book'] });
+    expect(d.focus!.map((f) => f.artifactId)).toEqual(['book']);
+    // What changing it affects: the code generated from it, flagged when already out of date.
+    expect(d.focus![0].derived![0]).toEqual({ path: 'models.py', lines: '3-11', outOfDate: expect.arrayContaining(['SOURCE_CHANGED']) });
+    expect(d.focus![0].derivedFrom).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'Requirement', name: 'Books have a title' })]));
+  });
+
+  it('gives way to the elements the message names', () => {
+    const d = digestOf(library(), 'Who created Member?', { selected: ['e-book'] });
+    expect(d.focus!.map((f) => f.artifactId)).toEqual(['member']);
+    expect(digestOf(library(), 'what is out of date?', { selected: [] }).focus).toBeUndefined();
+  });
+});
