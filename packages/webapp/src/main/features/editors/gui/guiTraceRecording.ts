@@ -54,11 +54,11 @@ function ensureTracedId(component: TracedIdTarget): void {
   if (traced && !component.getAttributes().id) component.addAttributes({ id: component.getId() });
 }
 
+/** Walks the component models, not `find('*')`: that queries the rendered DOM, and the canvas renders only the page
+ *  it shows, so the components of every other page were left without an id and their edits went unrecorded. */
 function ensureAllTracedIds(editor: Editor): void {
   for (const page of editor.Pages?.getAll?.() ?? []) {
-    const wrapper = page.getMainComponent?.();
-    if (!wrapper) continue;
-    for (const component of [wrapper, ...wrapper.find('*')]) ensureTracedId(component);
+    page.getMainComponent?.()?.onAll((component) => ensureTracedId(component));
   }
 }
 
@@ -103,9 +103,11 @@ export function guiTraceRecorderOf(editor: Editor, projectOf?: () => BesserProje
         derived = { project, diagram };
         return;
       }
-      // Without a baseline (the editor never loaded with tracing on) there is nothing to compare with yet.
+      // Without a baseline (the editor never loaded with tracing on, or this save came before `start`) there is
+      // nothing to compare with yet. Ids are given first, so giving them is not recorded as creating the components.
       if (!hasGuiBaseline(diagram.id)) {
-        setGuiBaseline(diagram.id, model);
+        ensureAllTracedIds(editor);
+        setGuiBaseline(diagram.id, editor.getProjectData());
         return;
       }
       recordGuiDiagramUpdate(project, diagram, undefined, model, source ?? 'user');

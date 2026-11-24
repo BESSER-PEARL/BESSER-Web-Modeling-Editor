@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import grapesjs from 'grapesjs';
 import type { Editor } from 'grapesjs';
 import { guiTraceRecorderOf } from '../guiTraceRecording';
 import { flushTraceSaves, loadProjectTrace, setTraceStorage } from '../../../../shared/traceability/traceStore';
@@ -27,7 +28,9 @@ class FakeComponent {
 
 /** A one-page editor holding `components`, its project data built from them as GrapesJS serializes it. */
 function fakeEditor(components: FakeComponent[]) {
-  const wrapper = Object.assign(new FakeComponent({ type: 'wrapper', id: 'wrapper' }), { find: () => components });
+  const wrapper: FakeComponent = Object.assign(new FakeComponent({ type: 'wrapper', id: 'wrapper' }), {
+    onAll: (visit: (component: FakeComponent) => void) => [wrapper, ...components].forEach(visit),
+  });
   const editor = {
     Pages: { getAll: () => [{ getMainComponent: () => wrapper }] },
     getProjectData: () => ({
@@ -104,6 +107,59 @@ describe('recording a GUI editor in the project trace', () => {
     const recorder = guiTraceRecorderOf(editor, () => project);
     recorder.start();
     expect(table.getAttributes()).toEqual({ id: 't1' }); // the reader is used: tracing is on
+  });
+
+  it('records edits of components the canvas has not rendered (another page than the one shown)', async () => {
+    // A headless editor renders no page, as the GUI editor renders only the page it shows.
+    const editor = grapesjs.init({
+      headless: true,
+      storageManager: false,
+      pageManager: {
+        pages: [
+          { id: 'home', name: 'Home', component: '<table title="Products"></table>' },
+          { id: 'orders', name: 'Orders', component: '<table title="Orders"></table>' },
+        ],
+      },
+    });
+    const unrenderedProject = {
+      ...project, id: 'p-gui-unrendered',
+      diagrams: { GUINoCodeDiagram: [{ id: 'gui-unrendered', title: 'Shop GUI', model: {} }] },
+    } as unknown as BesserProject;
+    const unrenderedDiagram = unrenderedProject.diagrams.GUINoCodeDiagram[0] as ProjectDiagram;
+    const recorder = guiTraceRecorderOf(editor, () => unrenderedProject);
+    recorder.start();
+
+    const ordersTable = editor.Pages.get('orders')!.getMainComponent().findType('table')[0];
+    expect(ordersTable.getAttributes().id).toBeTruthy();
+    ordersTable.addAttributes({ title: 'Open orders' });
+    recorder.record(unrenderedProject, unrenderedDiagram, editor.getProjectData());
+
+    await flushTraceSaves();
+    const trace = await loadProjectTrace(unrenderedProject.id);
+    expect(trace.operations).toHaveLength(1);
+    const session = trace.operations[0];
+    expect(session.type === 'ModelingSession' && session.changes.map((c) => [c.kind, c.feature, c.oldValue, c.newValue])).toEqual([
+      ['UPDATED', 'name', 'Orders', 'Open orders'],
+    ]);
+  });
+
+  it('records nothing for the ids it gives, when a save came before the editor finished loading', async () => {
+    const editor = grapesjs.init({
+      headless: true,
+      storageManager: false,
+      pageManager: { pages: [{ id: 'home', name: 'Home', component: '<table title="Products"></table>' }] },
+    });
+    const earlyProject = {
+      ...project, id: 'p-gui-early-save',
+      diagrams: { GUINoCodeDiagram: [{ id: 'gui-early-save', title: 'Shop GUI', model: {} }] },
+    } as unknown as BesserProject;
+    const earlyDiagram = earlyProject.diagrams.GUINoCodeDiagram[0] as ProjectDiagram;
+    guiTraceRecorderOf(editor).record(earlyProject, earlyDiagram, editor.getProjectData()); // before `start`
+    const recorder = guiTraceRecorderOf(editor, () => earlyProject);
+    recorder.start();
+    recorder.record(earlyProject, earlyDiagram, editor.getProjectData());
+    await flushTraceSaves();
+    expect((await loadProjectTrace(earlyProject.id)).operations).toEqual([]);
   });
 
   it('records what the editor holds when the generator ends, so a later debounced save is not the user’s', async () => {
