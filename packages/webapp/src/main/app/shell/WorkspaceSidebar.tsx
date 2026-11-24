@@ -237,7 +237,8 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     <TooltipProvider delayDuration={300}>
       <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
         {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
-        <nav aria-label={t('nav.editors')} className="flex flex-col gap-0.5">
+        {/* The list scrolls in a short window; the collapse toggle stays below it. -m-1 p-1 keeps focus rings unclipped. */}
+        <nav aria-label={t('nav.editors')} className="-m-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain p-1">
         {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           return withSubItems(toSupportedDiagramType(item.type), active, (expanded) => (
