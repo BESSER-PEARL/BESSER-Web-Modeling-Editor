@@ -43,8 +43,10 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../app/hooks/useProject', () => ({ useProject: () => ({ currentProject: state.project }) }));
-vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => vi.fn() }));
-vi.mock('../../../app/store/workspaceSlice', () => ({ setTraceabilityEnabledThunk: vi.fn() }));
+const dispatch = vi.hoisted(() => vi.fn());
+const setTraceabilityEnabledThunk = vi.hoisted(() => vi.fn((enabled: boolean) => ({ type: 'setTraceabilityEnabled', enabled })));
+vi.mock('../../../app/store/hooks', () => ({ useAppDispatch: () => dispatch }));
+vi.mock('../../../app/store/workspaceSlice', () => ({ setTraceabilityEnabledThunk }));
 vi.mock('../../../shared/traceability/traceStore', () => ({
   useProjectTrace: () => state.trace,
   isTraceabilityEnabled: () => state.enabled,
@@ -82,6 +84,7 @@ describe('TraceabilityPage', () => {
     state.trace = trace();
     state.enabled = true;
     clearTraceLoadProblem('p1');
+    dispatch.mockClear();
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 10, top: 0, bottom: 10, width: 10, height: 10, x: 0, y: 0, toJSON: () => ({}) });
   });
 
@@ -150,7 +153,9 @@ describe('TraceabilityPage', () => {
     renderAt('/traceability');
     const summary = screen.getByRole('region', { name: 'Trace summary' });
     expect(summary.textContent).toContain('2operations recorded');
-    expect(summary.textContent).toContain('1current trace link');
+    // Only links across artefacts count, so the figure says so (BESSER#826).
+    expect(summary.textContent).toContain('1cross-artefact trace link');
+    expect(summary.textContent).not.toContain('current');
     expect(summary.textContent).toContain('1link may be out of date');
     // Live: "sqlalchemy: 1 file out of date", the generator's id.
     expect(summary.textContent).toContain('SQLAlchemy DDL: 1 file out of date');
@@ -165,5 +170,32 @@ describe('TraceabilityPage', () => {
     expect(screen.getByText('Trace recording is off')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Turn recording on' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('The stored trace could not be loaded');
+  });
+
+  it('turns recording on from the empty page, and names the box above that does it too', () => {
+    state.enabled = false;
+    state.trace = emptyTraceFile('p1');
+    renderAt('/traceability');
+    expect(screen.getByText(/tick “Record traces for this project” above/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Turn recording on' }));
+    expect(setTraceabilityEnabledThunk).toHaveBeenCalledWith(true);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setTraceabilityEnabled', enabled: true });
+  });
+
+  it('offers no button on the empty page while recording is on', () => {
+    state.trace = emptyTraceFile('p1');
+    renderAt('/traceability');
+    expect(screen.getByText(/Nothing recorded yet/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Turn recording on' })).toBeNull();
+  });
+
+  it('explains each summary figure in a tooltip', async () => {
+    renderAt('/traceability');
+    const hint = screen.getByRole('img', { name: /^Links between two different artefacts/ });
+    fireEvent.focus(hint);
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(/^Links between two different artefacts/);
+    for (const name of [/^Everything recorded for this project/, /^What the trace knows about/, /^Cross-artefact trace links whose source/]) {
+      expect(screen.getByRole('img', { name })).toBeTruthy();
+    }
   });
 });

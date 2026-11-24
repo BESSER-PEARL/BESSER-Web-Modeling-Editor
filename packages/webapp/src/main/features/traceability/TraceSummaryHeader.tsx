@@ -4,20 +4,22 @@ import { AlertTriangle, ArrowRight, CheckCircle2, FileWarning, Link2, ListTree, 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { TraceSummary } from '../../shared/traceability/traceSummary';
+import { Hint } from './components/Hint';
 import { formatTime, generatorLabel } from './traceLabels';
 
 interface FigureProps {
   icon: React.ReactNode;
   label: string;
   value: number;
-  hint?: string;
+  /** What the figure counts, as its tooltip. */
+  hint: string;
   tone?: 'default' | 'warning' | 'success';
 }
 
 const Figure: React.FC<FigureProps> = ({ icon, label, value, hint, tone = 'default' }) => {
   const { i18n } = useTranslation();
   return (
-    <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4" title={hint}>
+    <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:px-4">
       <span
         className={cn(
           'shrink-0',
@@ -31,7 +33,10 @@ const Figure: React.FC<FigureProps> = ({ icon, label, value, hint, tone = 'defau
         <div className={cn('text-xl font-semibold leading-none tracking-tight tabular-nums', tone === 'warning' && 'text-warning')}>
           {value.toLocaleString(i18n.language)}
         </div>
-        <div className="mt-1 text-xs leading-snug text-muted-foreground">{label}</div>
+        <div className="mt-1 flex items-center gap-1 text-xs leading-snug text-muted-foreground">
+          {label}
+          <Hint hint={hint} className="shrink-0" />
+        </div>
       </div>
     </div>
   );
@@ -51,8 +56,8 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
     <section aria-label={t('traceability.summary.label')} className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {/* 1px gaps over the border colour draw the dividers, in two rows or one. */}
       <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4 [&>*]:bg-card">
-        <Figure icon={<Workflow className="size-4" />} label={t('traceability.summary.operations', { count: summary.operations })} value={summary.operations} />
-        <Figure icon={<ListTree className="size-4" />} label={t('traceability.summary.artifacts', { count: summary.artifacts })} value={summary.artifacts} />
+        <Figure icon={<Workflow className="size-4" />} label={t('traceability.summary.operations', { count: summary.operations })} value={summary.operations} hint={t('traceability.summary.operationsHint')} />
+        <Figure icon={<ListTree className="size-4" />} label={t('traceability.summary.artifacts', { count: summary.artifacts })} value={summary.artifacts} hint={t('traceability.summary.artifactsHint')} />
         <Figure
           icon={<Link2 className="size-4" />}
           label={t('traceability.summary.links', { count: summary.links })}
@@ -63,6 +68,7 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
           icon={stale ? <AlertTriangle className="size-4" /> : <CheckCircle2 className="size-4" />}
           label={t('traceability.summary.outOfDate', { count: summary.outOfDateLinks })}
           value={summary.outOfDateLinks}
+          hint={t('traceability.summary.outOfDateHint')}
           tone={stale ? 'warning' : 'success'}
         />
       </div>
