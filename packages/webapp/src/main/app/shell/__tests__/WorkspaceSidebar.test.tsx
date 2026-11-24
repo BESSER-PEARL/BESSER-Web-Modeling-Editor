@@ -272,4 +272,16 @@ describe('WorkspaceSidebar', () => {
     const settings = within(nav).getByRole('button', { name: 'Settings' });
     expect(settings.compareDocumentPosition(star) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  // BESSER #831: on a laptop-height window the list was cut off below the fold with no way to reach
+  // Traceability and Settings. The list scrolls; the collapse toggle sits outside it and stays visible.
+  it('scrolls the navigation list and keeps the collapse toggle outside it', () => {
+    render(<WorkspaceSidebar {...defaultProps()} />);
+
+    const nav = screen.getByRole('navigation');
+    expect(nav).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+    expect(within(nav).getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('button', { name: 'Collapse sidebar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
+  });
 });
