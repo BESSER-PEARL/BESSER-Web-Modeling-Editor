@@ -5057,7 +5057,7 @@
       "unusable": "Der gespeicherte Trace dieses Projekts konnte nicht gelesen werden (er ist möglicherweise beschädigt oder von einer neueren Version geschrieben). Er bleibt unverändert, und in dieser Sitzung wird für dieses Projekt nichts aufgezeichnet; lösche den Trace, um einen neuen zu beginnen."
     },
     "requirements": {
-      "empty": "Noch keine Anforderungen aufgezeichnet. Beschreibe dem Assistenten eine Anwendung: Die Anforderungen, die er extrahiert, erscheinen hier, mit den Modellelementen und dem Code, die sie umsetzen.",
+      "empty": "Noch keine Anforderungen aufgezeichnet. Beschreibe dem Assistenten eine Anwendung: Er zeichnet die Anforderungen auf, die deine Beschreibung nennt, etwa „Gäste buchen Zimmer“ oder „jedes Zimmer hat eine eindeutige Nummer“, mit den Modellelementen und dem Code, die sie umsetzen. Eine Anfrage, die nur die App nennt, wie „eine Hotel-App“, nennt keine.",
       "statusFilter": "Abdeckung",
       "filters": {
         "all": "Alle ({{count}})",

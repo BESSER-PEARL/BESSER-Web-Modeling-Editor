@@ -5057,7 +5057,7 @@
       "unusable": "La trace enregistrée de ce projet n'a pas pu être lue (elle est peut-être endommagée, ou écrite par une version plus récente). Elle est conservée telle quelle, et rien n'est enregistré pour ce projet dans cette session ; effacez la trace pour en commencer une nouvelle."
     },
     "requirements": {
-      "empty": "Aucune exigence enregistrée pour l'instant. Décrivez une application à l'assistant : les exigences qu'il extrait apparaissent ici, avec les éléments du modèle et le code qui les réalisent.",
+      "empty": "Aucune exigence enregistrée pour l'instant. Décrivez une application à l'assistant : il enregistre les exigences que votre description énonce, comme « les clients réservent des chambres » ou « chaque chambre a un numéro unique », avec les éléments du modèle et le code qui les réalisent. Une demande qui ne fait que nommer l'application, comme « une application d'hôtel », n'en énonce aucune.",
       "statusFilter": "Couverture",
       "filters": {
         "all": "Toutes ({{count}})",
