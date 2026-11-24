@@ -77,7 +77,8 @@ The assistant understands natural-language modeling requests such as:
   the last session?"* The answer ends with a button that opens the
   Traceability page on the matching view (lineage, coverage or timeline).
   This works only in a project that records traces, once something has been
-  recorded; otherwise the assistant says so. See *Asking the assistant about
+  recorded; otherwise the assistant says so. To turn recording on, see
+  :doc:`traceability`. See *Asking the assistant about
   the trace* in :doc:`../webapp/traceability-recording` for what is sent.
 
 Suggested **quick actions** appear as one-click chips underneath the
