@@ -41,6 +41,55 @@ describe('agent diagram SVG export', () => {
     const svg = new Svg({ model: legacyAgentModel() as UMLModel });
     expect(svg.state.elements).toEqual([]);
   });
+
+  // A state whose body is custom code with an indented and an empty line.
+  const codeStateModel = (): AnyRecord => ({
+    version: '3.0.0',
+    type: 'AgentDiagram',
+    size: { width: 800, height: 600 },
+    interactive: { elements: {}, relationships: {} },
+    assessments: {},
+    relationships: {},
+    elements: {
+      s1: {
+        id: 's1', name: 'chat_state', type: 'AgentState', owner: null, stateType: 'standard',
+        bounds: { x: 60, y: 0, width: 310, height: 136 }, bodies: ['b1'], fallbackBodies: [], fallbackBodyEnabled: false,
+      },
+      b1: {
+        id: 'b1', name: 'def chat_body(session):\n\n    session.reply("a < b && c")', type: 'AgentStateBody', owner: 's1',
+        bounds: { x: 60.5, y: 40.5, width: 309, height: 96 }, replyType: 'code', actionType: 'CustomCodeAction',
+      },
+    },
+  });
+
+  it('exports code bodies as well-formed SVG text, not foreignObject HTML', async () => {
+    const { svg } = await ApollonEditor.exportModelAsSvg(codeStateModel() as UMLModel);
+
+    // An exported .svg must parse as XML (outerHTML used to emit `&nbsp;`, an undefined XML entity).
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    expect(doc.getElementsByTagName('parsererror')).toHaveLength(0);
+    // foreignObject taints the canvas the PNG export draws on, so `toBlob` threw and the export hung.
+    expect(svg).not.toContain('foreignObject');
+    expect(svg).not.toContain('&nbsp;');
+
+    const lines = Array.from(doc.getElementsByTagName('tspan')).map((t) => t.textContent);
+    expect(lines).toEqual(expect.arrayContaining(['def chat_body(session):', '', '    session.reply("a < b && c")']));
+    // The code is not copied into a class attribute.
+    expect(svg).not.toContain('class="def chat_body');
+  });
+
+  it('nests a state body inside its state, so the body does not cover the state border', async () => {
+    const { svg } = await ApollonEditor.exportModelAsSvg(codeStateModel() as UMLModel);
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    const stateSvg = doc.querySelector('svg.chat_state')!;
+    expect(stateSvg).not.toBeNull();
+    const bodyText = Array.from(doc.getElementsByTagName('tspan')).find((t) => t.textContent?.startsWith('def chat_body'));
+    expect(stateSvg.contains(bodyText!)).toBe(true);
+    // The state's border rect is drawn after (on top of) the nested body.
+    const borderRect = Array.from(stateSvg.querySelectorAll('rect')).find((r) => r.getAttribute('fill') === 'none');
+    expect(borderRect).toBeDefined();
+    expect(bodyText!.compareDocumentPosition(borderRect!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
 
 describe('ApollonEditor agent load path', () => {
