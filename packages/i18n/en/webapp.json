@@ -1286,6 +1286,33 @@
         "connected": "Connected to GitHub",
         "connect": "Connect GitHub"
       }
+    },
+    "storageCleanup": {
+      "title": "Free up browser storage",
+      "description": "Projects are saved in this browser's local storage, which holds about 5 MB. Select older projects to delete them. Export any project you want to keep first.",
+      "usage": "{{used}} of about {{limit}} used",
+      "empty": "No saved projects found.",
+      "openBadge": "Open now",
+      "lastModified": "Last edited {{date}}",
+      "selectAria": "Select project {{name}} for deletion",
+      "export": "Export",
+      "exportAria": "Export project {{name}} as JSON",
+      "hint": "The project that is open now cannot be deleted here. You can also delete projects one by one from File › Open Project… (trash icon on each card).",
+      "deleteNone": "Delete selected",
+      "deleteSelected_one": "Delete {{count}} project ({{size}})",
+      "deleteSelected_other": "Delete {{count}} projects ({{size}})",
+      "confirm": {
+        "title_one": "Delete {{count}} project?",
+        "title_other": "Delete {{count}} projects?",
+        "description_one": "Delete {{names}} from this browser? This frees about {{size}} and cannot be undone. Export it first if you want to keep a copy.",
+        "description_other": "Delete {{names}} from this browser? This frees about {{size}} and cannot be undone. Export them first if you want to keep a copy."
+      },
+      "toasts": {
+        "deleted_one": "Deleted {{count}} project and freed {{size}}.",
+        "deleted_other": "Deleted {{count}} projects and freed {{size}}.",
+        "deleteFailed": "Could not delete the selected projects.",
+        "exportFailed": "Could not export project \"{{name}}\"."
+      }
     }
   },
   "github": {
@@ -2525,6 +2552,11 @@
         "freeDefaultModel": "the included free model",
         "keyRemoved": "API key removed from this tab."
       }
+    },
+    "storageQuota": {
+      "title": "Browser storage is nearly full ({{used}} MB of {{limit}} MB).",
+      "instructions": "Your projects are saved in this browser, so you need to delete projects you no longer use to free space, or new changes may not be saved. Click \"Free up space\" to see each project's size and delete older ones, or open File › Open Project… and use the trash icon on a project card. Export a project first (File › Export Project…) to keep a copy.",
+      "action": "Free up space"
     }
   },
   "shell": {

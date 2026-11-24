@@ -1286,6 +1286,33 @@
         "connected": "Connectat a GitHub",
         "connect": "Connecta GitHub"
       }
+    },
+    "storageCleanup": {
+      "title": "Allibera emmagatzematge del navegador",
+      "description": "Els projectes es desen a l'emmagatzematge local d'aquest navegador, que admet uns 5 MB. Selecciona projectes antics per eliminar-los. Exporta abans qualsevol projecte que vulguis conservar.",
+      "usage": "{{used}} utilitzats d'uns {{limit}}",
+      "empty": "No hi ha projectes desats.",
+      "openBadge": "Obert",
+      "lastModified": "Editat el {{date}}",
+      "selectAria": "Selecciona el projecte {{name}} per eliminar-lo",
+      "export": "Exporta",
+      "exportAria": "Exporta el projecte {{name}} com a JSON",
+      "hint": "El projecte obert no es pot eliminar aquí. També pots eliminar projectes un per un des de Fitxer › Obre un projecte… (icona de paperera de cada targeta).",
+      "deleteNone": "Elimina la selecció",
+      "deleteSelected_one": "Elimina {{count}} projecte ({{size}})",
+      "deleteSelected_other": "Elimina {{count}} projectes ({{size}})",
+      "confirm": {
+        "title_one": "Vols eliminar {{count}} projecte?",
+        "title_other": "Vols eliminar {{count}} projectes?",
+        "description_one": "Vols eliminar {{names}} d'aquest navegador? S'alliberen uns {{size}} i no es pot desfer. Exporta'l abans si en vols conservar una còpia.",
+        "description_other": "Vols eliminar {{names}} d'aquest navegador? S'alliberen uns {{size}} i no es pot desfer. Exporta'ls abans si en vols conservar una còpia."
+      },
+      "toasts": {
+        "deleted_one": "S'ha eliminat {{count}} projecte i s'han alliberat {{size}}.",
+        "deleted_other": "S'han eliminat {{count}} projectes i s'han alliberat {{size}}.",
+        "deleteFailed": "No s'han pogut eliminar els projectes seleccionats.",
+        "exportFailed": "No s'ha pogut exportar el projecte «{{name}}»."
+      }
     }
   },
   "github": {
@@ -2525,6 +2552,11 @@
         "freeDefaultModel": "el model gratuït inclòs",
         "keyRemoved": "Clau API eliminada d'aquesta pestanya."
       }
+    },
+    "storageQuota": {
+      "title": "L'emmagatzematge del navegador és gairebé ple ({{used}} MB de {{limit}} MB).",
+      "instructions": "Els teus projectes es desen en aquest navegador, així que has d'eliminar els projectes que ja no facis servir per alliberar espai; si no, és possible que els canvis nous no es desin. Fes clic a «Allibera espai» per veure la mida de cada projecte i eliminar els més antics, o obre Fitxer › Obre un projecte… i fes servir la icona de paperera d'una targeta de projecte. Exporta abans un projecte (Fitxer › Exporta el projecte…) per conservar-ne una còpia.",
+      "action": "Allibera espai"
     }
   },
   "shell": {

@@ -1286,6 +1286,33 @@
         "connected": "Mit GitHub verbunden",
         "connect": "GitHub verbinden"
       }
+    },
+    "storageCleanup": {
+      "title": "Browserspeicher freigeben",
+      "description": "Projekte werden im lokalen Speicher dieses Browsers abgelegt, der etwa 5 MB fasst. Wählen Sie ältere Projekte aus, um sie zu löschen. Exportieren Sie vorher jedes Projekt, das Sie behalten möchten.",
+      "usage": "{{used}} von etwa {{limit}} belegt",
+      "empty": "Keine gespeicherten Projekte gefunden.",
+      "openBadge": "Geöffnet",
+      "lastModified": "Zuletzt bearbeitet am {{date}}",
+      "selectAria": "Projekt {{name}} zum Löschen auswählen",
+      "export": "Exportieren",
+      "exportAria": "Projekt {{name}} als JSON exportieren",
+      "hint": "Das gerade geöffnete Projekt kann hier nicht gelöscht werden. Sie können Projekte auch einzeln unter Datei › Projekt öffnen… löschen (Papierkorb-Symbol auf jeder Karte).",
+      "deleteNone": "Auswahl löschen",
+      "deleteSelected_one": "{{count}} Projekt löschen ({{size}})",
+      "deleteSelected_other": "{{count}} Projekte löschen ({{size}})",
+      "confirm": {
+        "title_one": "{{count}} Projekt löschen?",
+        "title_other": "{{count}} Projekte löschen?",
+        "description_one": "{{names}} aus diesem Browser löschen? Dadurch werden etwa {{size}} frei. Dies kann nicht rückgängig gemacht werden. Exportieren Sie es vorher, wenn Sie eine Kopie behalten möchten.",
+        "description_other": "{{names}} aus diesem Browser löschen? Dadurch werden etwa {{size}} frei. Dies kann nicht rückgängig gemacht werden. Exportieren Sie sie vorher, wenn Sie eine Kopie behalten möchten."
+      },
+      "toasts": {
+        "deleted_one": "{{count}} Projekt gelöscht, {{size}} freigegeben.",
+        "deleted_other": "{{count}} Projekte gelöscht, {{size}} freigegeben.",
+        "deleteFailed": "Die ausgewählten Projekte konnten nicht gelöscht werden.",
+        "exportFailed": "Projekt „{{name}}“ konnte nicht exportiert werden."
+      }
     }
   },
   "github": {
@@ -2525,6 +2552,11 @@
         "freeDefaultModel": "das enthaltene kostenlose Modell",
         "keyRemoved": "API-Schlüssel aus diesem Tab entfernt."
       }
+    },
+    "storageQuota": {
+      "title": "Der Browserspeicher ist fast voll ({{used}} MB von {{limit}} MB).",
+      "instructions": "Ihre Projekte werden in diesem Browser gespeichert. Löschen Sie Projekte, die Sie nicht mehr brauchen, um Platz zu schaffen, sonst werden neue Änderungen eventuell nicht gespeichert. Klicken Sie auf „Speicher freigeben“, um die Größe jedes Projekts zu sehen und ältere zu löschen, oder öffnen Sie Datei › Projekt öffnen… und nutzen Sie das Papierkorb-Symbol auf einer Projektkarte. Exportieren Sie ein Projekt vorher (Datei › Projekt exportieren…), um eine Kopie zu behalten.",
+      "action": "Speicher freigeben"
     }
   },
   "shell": {

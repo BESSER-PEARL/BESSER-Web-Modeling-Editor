@@ -1286,6 +1286,33 @@
         "connected": "Connecté à GitHub",
         "connect": "Connecter GitHub"
       }
+    },
+    "storageCleanup": {
+      "title": "Libérer le stockage du navigateur",
+      "description": "Les projets sont enregistrés dans le stockage local de ce navigateur, qui contient environ 5 Mo. Sélectionnez les projets anciens pour les supprimer. Exportez d'abord tout projet que vous voulez garder.",
+      "usage": "{{used}} utilisés sur environ {{limit}}",
+      "empty": "Aucun projet enregistré.",
+      "openBadge": "Ouvert",
+      "lastModified": "Modifié le {{date}}",
+      "selectAria": "Sélectionner le projet {{name}} pour suppression",
+      "export": "Exporter",
+      "exportAria": "Exporter le projet {{name}} en JSON",
+      "hint": "Le projet ouvert ne peut pas être supprimé ici. Vous pouvez aussi supprimer les projets un par un depuis Fichier › Ouvrir un projet… (icône de corbeille sur chaque carte).",
+      "deleteNone": "Supprimer la sélection",
+      "deleteSelected_one": "Supprimer {{count}} projet ({{size}})",
+      "deleteSelected_other": "Supprimer {{count}} projets ({{size}})",
+      "confirm": {
+        "title_one": "Supprimer {{count}} projet ?",
+        "title_other": "Supprimer {{count}} projets ?",
+        "description_one": "Supprimer {{names}} de ce navigateur ? Cela libère environ {{size}} et est irréversible. Exportez-le d'abord si vous voulez en garder une copie.",
+        "description_other": "Supprimer {{names}} de ce navigateur ? Cela libère environ {{size}} et est irréversible. Exportez-les d'abord si vous voulez en garder une copie."
+      },
+      "toasts": {
+        "deleted_one": "{{count}} projet supprimé, {{size}} libérés.",
+        "deleted_other": "{{count}} projets supprimés, {{size}} libérés.",
+        "deleteFailed": "Impossible de supprimer les projets sélectionnés.",
+        "exportFailed": "Impossible d'exporter le projet « {{name}} »."
+      }
     }
   },
   "github": {
@@ -2525,6 +2552,11 @@
         "freeDefaultModel": "le modèle gratuit inclus",
         "keyRemoved": "Clé API supprimée de cet onglet."
       }
+    },
+    "storageQuota": {
+      "title": "Le stockage du navigateur est presque plein ({{used}} Mo sur {{limit}} Mo).",
+      "instructions": "Vos projets sont enregistrés dans ce navigateur : supprimez les projets que vous n'utilisez plus pour libérer de l'espace, sinon vos nouvelles modifications risquent de ne pas être enregistrées. Cliquez sur « Libérer de l'espace » pour voir la taille de chaque projet et supprimer les plus anciens, ou ouvrez Fichier › Ouvrir un projet… et utilisez l'icône de corbeille sur une carte de projet. Exportez d'abord un projet (Fichier › Exporter le projet…) pour en garder une copie.",
+      "action": "Libérer de l'espace"
     }
   },
   "shell": {

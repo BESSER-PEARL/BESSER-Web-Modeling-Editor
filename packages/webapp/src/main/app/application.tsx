@@ -12,6 +12,7 @@ import { CookieConsentBanner } from '../shared/components/cookie-consent/CookieC
 import { ApplicationStore } from './store/application-store';
 import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
+import { StorageQuotaWarning } from './shell/StorageQuotaWarning';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
@@ -217,6 +218,7 @@ function AppContentInner() {
           />
         </Suspense>
       )}
+      <StorageQuotaWarning />
       {templateDialogMounted && (
         <Suspense fallback={null}>
           <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
