@@ -1,10 +1,10 @@
 import type {
   CodeArtifact, ModelArtifact, PromptArtifact, RequirementArtifact, TraceArtifact, TraceLink, TraceOperation,
 } from '../types/traceability';
-import { isCodeArtifact, isModelArtifact, isPromptArtifact, isRequirementArtifact, toolIdsOf } from '../types/traceability';
+import { isCodeArtifact, isModelArtifact, isPromptArtifact, isRequirementArtifact } from '../types/traceability';
 import type { TraceIndex } from './traceQueries';
 import type { OutOfDateReason } from './traceQueries';
-import { isDeleted, outOfDate, withDescendants } from './traceQueries';
+import { generatorKey, isDeleted, outOfDate, withDescendants } from './traceQueries';
 
 /**
  * The lineage of an artifact: everything it was derived from and everything derived from it,
@@ -50,7 +50,7 @@ export function withoutOlderGenerations(index: TraceIndex, links: TraceLink[]): 
   const started = (operationId: string) => index.operations.get(operationId)?.startedAt ?? '';
   const keyOf = (link: TraceLink) => {
     const operation = index.operations.get(link.operationId);
-    return operation?.type === 'CodeGeneration' ? toolIdsOf(operation).join(',') : undefined;
+    return operation?.type === 'CodeGeneration' ? generatorKey(operation) : undefined;
   };
   for (const link of links) {
     const key = keyOf(link);

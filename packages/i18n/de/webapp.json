@@ -5039,12 +5039,17 @@
       "linksHint": "Verknüpfungen zwischen zwei verschiedenen Artefakten, etwa einer Klasse und dem daraus generierten Code; Änderungen innerhalb eines Diagramms sind keine Verknüpfungen. Gezählt für das Projekt, wie es jetzt ist: der neueste Lauf jedes Generators, ohne gelöschte Elemente.",
       "outOfDate_one": "Verknüpfung möglicherweise veraltet",
       "outOfDate_other": "Verknüpfungen möglicherweise veraltet",
-      "outOfDateHint": "Artefaktübergreifende Trace-Verknüpfungen, deren Quelle, Ziel oder etwas, woraus die Quelle abgeleitet wurde, sich nach dem Erstellen der Verknüpfung geändert hat. Generiere den Code neu, um sie zu aktualisieren.",
+      "outOfDateHint": "Artefaktübergreifende Trace-Verknüpfungen, deren Quelle, Ziel oder etwas, woraus die Quelle abgeleitet wurde, sich nach dem Erstellen der Verknüpfung geändert hat. Generiere den Code neu, um sie zu aktualisieren. Die Zeilen darunter schlüsseln die Zahl auf: eine pro Generator und eine für die Links, die nicht zum Code führen.",
       "staleFiles_one": "{{generator}}: {{count}} Datei veraltet",
       "staleFiles_other": "{{generator}}: {{count}} Dateien veraltet",
       "regenerate": "neu generieren, um den am {{time}} generierten Code zu aktualisieren",
       "unknownGenerator": "Ein Generator",
-      "showCoverage": "Abdeckung ansehen"
+      "showCoverage": "Abdeckung ansehen",
+      "staleLinks_one": "{{count}} veralteter Link",
+      "staleLinks_other": "{{count}} veraltete Links",
+      "otherStale_one": "{{count}} veralteter Link liegt zwischen Anforderungen und Modellen, nicht zum Code",
+      "otherStale_other": "{{count}} veraltete Links liegen zwischen Anforderungen und Modellen, nicht zum Code",
+      "showLineage": "Herkunft ansehen"
     },
     "recordingOff": {
       "title": "Die Trace-Aufzeichnung ist ausgeschaltet",

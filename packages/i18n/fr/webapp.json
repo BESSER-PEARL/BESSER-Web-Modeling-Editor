@@ -5039,12 +5039,17 @@
       "linksHint": "Les liens entre deux artefacts différents, comme une classe et le code généré à partir d'elle ; les modifications à l'intérieur d'un même diagramme ne sont pas des liens. Comptés pour le projet tel qu'il est maintenant : l'exécution la plus récente de chaque générateur, sans les éléments supprimés.",
       "outOfDate_one": "lien peut-être obsolète",
       "outOfDate_other": "liens peut-être obsolètes",
-      "outOfDateHint": "Les liens de trace inter-artefacts dont la source, la cible ou ce dont la source est dérivée a changé après la création du lien. Régénérez le code pour les mettre à jour.",
+      "outOfDateHint": "Les liens de trace inter-artefacts dont la source, la cible ou ce dont la source est dérivée a changé après la création du lien. Régénérez le code pour les mettre à jour. Les lignes ci-dessous détaillent ce nombre : une par générateur, et une pour les liens qui ne mènent pas au code.",
       "staleFiles_one": "{{generator}} : {{count}} fichier obsolète",
       "staleFiles_other": "{{generator}} : {{count}} fichiers obsolètes",
       "regenerate": "régénérez pour mettre à jour le code généré le {{time}}",
       "unknownGenerator": "Un générateur",
-      "showCoverage": "Voir la couverture"
+      "showCoverage": "Voir la couverture",
+      "staleLinks_one": "{{count}} lien obsolète",
+      "staleLinks_other": "{{count}} liens obsolètes",
+      "otherStale_one": "{{count}} lien obsolète relie des exigences et des modèles, pas du code",
+      "otherStale_other": "{{count}} liens obsolètes relient des exigences et des modèles, pas du code",
+      "showLineage": "Voir la lignée"
     },
     "recordingOff": {
       "title": "L'enregistrement des traces est désactivé",

@@ -46,10 +46,12 @@ interface TraceSummaryHeaderProps {
   summary: TraceSummary;
   /** Opens the view that shows what is out of date (the Coverage matrix). */
   onShowOutOfDate: () => void;
+  /** Opens the project's lineage, where every out-of-date link is drawn. */
+  onShowLineage: () => void;
 }
 
 /** The trace at a glance: what it holds, how much of it may no longer hold, and which generators to run again. */
-export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary, onShowOutOfDate }) => {
+export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary, onShowOutOfDate, onShowLineage }) => {
   const { t, i18n } = useTranslation();
   const stale = summary.outOfDateLinks > 0;
   return (
@@ -72,7 +74,7 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
           tone={stale ? 'warning' : 'success'}
         />
       </div>
-      {summary.staleGenerators.length > 0 && (
+      {(summary.staleGenerators.length > 0 || summary.otherOutOfDateLinks > 0) && (
         <ul className="divide-y divide-warning/15 border-t border-warning/25 bg-warning/[0.06]">
           {summary.staleGenerators.map((entry) => (
             <li key={entry.operation.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
@@ -85,6 +87,9 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
                   })}
                 </span>
                 <span className="text-muted-foreground">
+                  {' ('}
+                  {t('traceability.summary.staleLinks', { count: entry.outOfDateLinks })}
+                  {')'}
                   {' — '}
                   {t('traceability.summary.regenerate', { time: formatTime(entry.operation.startedAt, i18n.language) })}
                 </span>
@@ -99,6 +104,16 @@ export const TraceSummaryHeader: React.FC<TraceSummaryHeaderProps> = ({ summary,
               </Button>
             </li>
           ))}
+          {summary.otherOutOfDateLinks > 0 && (
+            <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm">
+              <Link2 className="size-4 shrink-0 text-warning" aria-hidden />
+              <span className="min-w-0 flex-1">{t('traceability.summary.otherStale', { count: summary.otherOutOfDateLinks })}</span>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-warning hover:bg-warning/10 hover:text-warning" onClick={onShowLineage}>
+                {t('traceability.summary.showLineage')}
+                <ArrowRight className="size-3.5" aria-hidden />
+              </Button>
+            </li>
+          )}
         </ul>
       )}
     </section>

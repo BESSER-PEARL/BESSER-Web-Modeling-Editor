@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { indexTrace, resolveArtifactId } from '../traceQueries';
+import { coverageMatrix, indexTrace, resolveArtifactId } from '../traceQueries';
 import { lineageOf } from '../lineage';
 import { traceSummary } from '../traceSummary';
 import { requirementCoverage } from '../requirementCoverage';
@@ -119,6 +119,21 @@ describe('traceSummary', () => {
     expect(stale.files.map((f) => f.id)).toEqual(['f2']);
   });
 
+  // BESSER #834: the header said "16 links may be out of date" above "13 files out of date", with nothing
+  // to tell how the two relate. Each generator's row now carries its link count, and the rest is counted too.
+  it('splits the out-of-date links into those of each generator and the others', () => {
+    const index = indexTrace(library());
+    const summary = traceSummary(index, lineageOf(index, null, { history: false }));
+    const [stale] = summary.staleGenerators;
+    // run2: Book's link to its fragment and the diagram's link to the file, both in models.py.
+    expect(stale.files).toHaveLength(1);
+    expect(stale.outOfDateLinks).toBe(2);
+    // The requirement's links to Book and its title, made before the rename: no generated file involved.
+    expect(summary.otherOutOfDateLinks).toBeGreaterThanOrEqual(1);
+    const inGenerators = summary.staleGenerators.reduce((sum, entry) => sum + entry.outOfDateLinks, 0);
+    expect(inGenerators + summary.otherOutOfDateLinks).toBe(summary.outOfDateLinks);
+  });
+
   it('reports nothing to regenerate when the code is up to date', () => {
     const file = library();
     file.operations = file.operations.filter((o) => o.id !== 'rename');
@@ -168,5 +183,13 @@ describe('requirementCoverage', () => {
     const file = library();
     file.operations = file.operations.filter((o) => o.type !== 'RequirementExtraction');
     expect(requirementCoverage(indexTrace(file)).groups).toEqual([]);
+  });
+});
+
+describe('coverageMatrix', () => {
+  // BESSER #833: generating twice for the same target showed two columns, the older one of no use.
+  it('shows the newest run of each generator only', () => {
+    const matrix = coverageMatrix(indexTrace(library()), 8);
+    expect(matrix.generations.map((g) => g.id)).toEqual(['sdrun', 'run2']);
   });
 });
