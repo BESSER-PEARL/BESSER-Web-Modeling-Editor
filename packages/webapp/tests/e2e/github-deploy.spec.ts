@@ -204,7 +204,7 @@ async function signInToGitHub(page: Page) {
     try {
       localStorage.setItem(
         'besser_analytics_consent',
-        JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() })
+        JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() })
       );
       // Pin storage migrations as already-applied so runStorageMigrations
       // doesn't strip ``github_username`` (the v2 migration clears it).

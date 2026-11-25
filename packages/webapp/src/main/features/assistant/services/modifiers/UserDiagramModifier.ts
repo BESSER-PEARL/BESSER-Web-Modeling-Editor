@@ -101,6 +101,7 @@ export class UserDiagramModifier implements DiagramModifier {
     };
     if (className) nameElement.className = className;
     if (changes.classId) nameElement.classId = changes.classId;
+    if (changes.displayLabel) nameElement.displayLabel = changes.displayLabel;
 
     // Metamodel class icon child (User diagrams always render in icon view;
     // without it the box shows as a bare, empty box). Mirrors UserDiagramConverter.

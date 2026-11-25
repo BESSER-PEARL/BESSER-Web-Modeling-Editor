@@ -33,7 +33,7 @@ test.describe('Knowledge Graph diagram', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() }));
     });
     await page.reload();
     await createKnowledgeProject(page, 'KnowledgeGraph_E2E');

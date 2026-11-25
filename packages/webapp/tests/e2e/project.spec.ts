@@ -10,7 +10,7 @@ test.describe('Project management', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() }));
     });
     await page.reload();
   });
@@ -197,7 +197,7 @@ test.describe('From Data', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
-      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.3', timestamp: new Date().toISOString() }));
     });
     await page.reload();
   });

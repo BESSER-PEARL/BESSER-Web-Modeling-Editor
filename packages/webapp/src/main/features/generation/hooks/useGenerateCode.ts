@@ -13,6 +13,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { promptForGitHubStarOnce } from '../../../shared/services/githubStarPrompt';
 import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
+import { flattenUserDiagramForBackend } from '../../../shared/utils/user-profile-graph';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
@@ -328,7 +329,7 @@ export const useGenerateCode = () => {
         ...flatProject,
         name: normalizeProjectName(currentProject.name || 'project'),
         settings: {
-          ...flatProject.settings,
+          ...(flatProject.settings as Record<string, unknown> ?? {}),
           generator: generatorType,
           config: config
         }
@@ -442,7 +443,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: DiagramInput = {
         title: diagramTitle,
-        model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : modelForGeneration,
+        model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : flattenUserDiagramForBackend(modelForGeneration),
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

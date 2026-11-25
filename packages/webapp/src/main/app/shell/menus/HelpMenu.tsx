@@ -51,6 +51,7 @@ const ExternalLinkItem: React.FC<{ href: string; link: string; icon: React.React
 
 interface HelpMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenKeyboardShortcuts: () => void;
@@ -64,6 +65,7 @@ interface HelpMenuProps {
  */
 export const HelpMenu: React.FC<HelpMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenKeyboardShortcuts,

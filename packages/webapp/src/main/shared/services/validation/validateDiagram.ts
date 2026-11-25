@@ -6,6 +6,8 @@ import { ApiError } from '../../api/api-client';
 import { ApollonEditor } from '@besser/wme';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
+import { flattenUserDiagramForBackend, readUserBoxName } from '../../utils/user-profile-graph';
+import { collectPersonalizationConflicts } from '../../utils/validate-user-profile-personalization';
 import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
 import { stripStatusEmoji } from './stripStatusEmoji';
 
@@ -17,7 +19,7 @@ import { stripStatusEmoji } from './stripStatusEmoji';
  * 2. Returns any validation errors from BUML construction
  * 3. For ClassDiagram/ObjectDiagram: also runs OCL constraint checks
  * 4. Returns unified validation results with errors, warnings, and OCL results
- * 
+ *
  * @param editor - Apollon editor instance (can be null/undefined for quantum circuits)
  * @param diagramTitle - Title of the diagram being validated
  * @param modelData - Optional: Direct model data (used for quantum circuits that don't use Apollon)
@@ -58,8 +60,73 @@ export async function validateDiagram(
     };
 
     // Get model data from editor or use provided modelData (for quantum circuits)
-    const model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
+    let model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
     if (model && model._suppressToasts) delete model._suppressToasts;
+
+    // For UserDiagrams: every root User element must have a name, because that
+    // name is what appears in the personalization profile selector.
+    if (model?.type === 'UserDiagram') {
+      const elements = (model.elements ?? {}) as Record<string, any>;
+      const unnamedUsers = Object.values(elements).filter(
+        (el: any) =>
+          el?.type === 'UserModelName' &&
+          el?.className === 'User' &&
+          !readUserBoxName(el, elements),
+      );
+      if (unnamedUsers.length > 0) {
+        const msg = i18n.t('validation.toasts.unnamedUserProfile');
+        if (!suppressToasts) {
+          reportError(`❌ ${msg}`, {
+            position: 'top-right',
+            autoClose: false,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: 'dark',
+          });
+        }
+        return { isValid: false, errors: [msg] };
+      }
+    }
+
+    // Check personalization conflicts on the raw model (before backend reshaping).
+    // Conflicts are purely a frontend concern — specs are extra fields the backend
+    // ignores — so we validate them here and fail-fast before calling the server.
+    const personalizationErrors = collectPersonalizationConflicts(model);
+    if (personalizationErrors.length > 0) {
+      if (!suppressToasts) {
+        const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + personalizationErrors.join('\n\n');
+        reportError(errorMessage, {
+          position: 'top-right',
+          autoClose: false,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: 'dark',
+          style: {
+            fontSize: '16px',
+            padding: '20px',
+            width: '100%',
+            boxSizing: 'border-box' as const,
+            whiteSpace: 'pre-line' as const,
+            maxHeight: '600px',
+            overflow: 'auto',
+            overflowWrap: 'anywhere' as const,
+            wordBreak: 'break-word' as const,
+          },
+        });
+      }
+      return { isValid: false, errors: personalizationErrors };
+    }
+
+    // A UserDiagram must be reshaped for the backend's object-model conversion:
+    // give each `User` its own private copy of every reachable box (one owner
+    // per object), fuse the `single`-cardinality granular chips (age+nationality
+    // → one Personal_Information), and make all object names diagram-wide-unique.
+    // No-op for other diagram types.
+    model = flattenUserDiagramForBackend(model);
 
     if (!model) {
       if (!suppressToasts) reportError(i18n.t('validation.toasts.noDiagramToValidate'));
@@ -117,7 +184,7 @@ export async function validateDiagram(
       }
       return { isValid: false, errors: ['Validation failed'], failure: fetchError };
     }
-    
+
     // Small delay to ensure smooth transition
     if (!suppressToasts) {
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -140,7 +207,7 @@ export async function validateDiagram(
         }
       });
     }
-    
+
     // Show warnings
     if (!suppressToasts && result.warnings && result.warnings.length > 0) {
       const warningMessage = `${i18n.t('validation.toasts.warningsLabel')}\n\n` + result.warnings.map(stripStatusEmoji).join("\n\n");
@@ -157,7 +224,7 @@ export async function validateDiagram(
         }
       });
     }
-    
+
     // Show valid OCL constraints
     if (!suppressToasts && result.valid_constraints && result.valid_constraints.length > 0) {
       const validMessage = `${i18n.t('validation.toasts.validConstraintsLabel')}\n\n` + result.valid_constraints.map(stripStatusEmoji).join("\n\n");
@@ -174,7 +241,7 @@ export async function validateDiagram(
         }
       });
     }
-    
+
     // Show invalid OCL constraints
     if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
       const invalidMessage = `${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.map(stripStatusEmoji).join("\n\n");
@@ -191,7 +258,7 @@ export async function validateDiagram(
         }
       });
     }
-    
+
     // Show OCL message if available and no constraints
     if (!suppressToasts && result.ocl_message &&
         (!result.valid_constraints || result.valid_constraints.length === 0) &&
@@ -201,7 +268,7 @@ export async function validateDiagram(
         autoClose: 5000,
       });
     }
-    
+
     // Show success only if everything is valid and there are no warnings
     const hasWarnings = result.warnings && result.warnings.length > 0;
     const hasInvalidConstraints = result.invalid_constraints && result.invalid_constraints.length > 0;
@@ -216,9 +283,9 @@ export async function validateDiagram(
         progress: undefined,
       });
     }
-    
+
     return result;
-    
+
   } catch (error: unknown) {
     console.error('Error during validation:', error);
     if (!suppressToasts) {
@@ -232,10 +299,10 @@ export async function validateDiagram(
         error,
       });
     }
-    return { 
-      isValid: false, 
+    return {
+      isValid: false,
       errors: [error instanceof Error ? error.message : 'Unknown error'],
-      failure: error, 
+      failure: error,
     };
   }
 }

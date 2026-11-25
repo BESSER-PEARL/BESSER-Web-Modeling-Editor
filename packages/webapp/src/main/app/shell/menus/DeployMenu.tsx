@@ -12,6 +12,7 @@ import { HeaderTooltip } from './HeaderTooltip';
 
 interface DeployMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   isAuthenticated: boolean;
   githubLoading: boolean;
   isDeploymentAvailable: boolean;
@@ -23,6 +24,7 @@ interface DeployMenuProps {
 
 export const DeployMenu: React.FC<DeployMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   isAuthenticated,
   githubLoading,
   isDeploymentAvailable,

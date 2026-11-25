@@ -35,6 +35,7 @@ import { HeaderTooltip } from './HeaderTooltip';
 
 interface FileMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   hasProject: boolean;
   activeDiagramType: SupportedDiagramType;
   /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
@@ -56,6 +57,7 @@ export const SUBMENU_OFFSETS = { sideOffset: 6, alignOffset: -5 } as const;
 
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   hasProject,
   activeDiagramType,
   onOpenProjectHub,

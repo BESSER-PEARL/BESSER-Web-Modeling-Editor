@@ -4,6 +4,7 @@ import { UMLElementType } from '../../uml-element-type';
 import { DeepPartial } from 'redux';
 import * as Apollon from '../../../typings';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { UserPersonalizationSpec, isUserPersonalizationSpec } from '../personalization-spec';
 
 export const USER_MODEL_ATTRIBUTE_COMPARATORS = ['<', '<=', '==', '>=', '>'] as const;
 export type UserModelAttributeComparator = typeof USER_MODEL_ATTRIBUTE_COMPARATORS[number];
@@ -35,17 +36,25 @@ const extractComparatorFromName = (name?: string): UserModelAttributeComparator 
 type UserModelAttributeInit = IUMLElement & {
   attributeId?: string;
   attributeOperator?: UserModelAttributeComparator;
+  personalization?: UserPersonalizationSpec;
 };
 
 export interface IUMLUserModelAttribute extends IUMLElement {
   attributeId?: string;
   attributeOperator?: UserModelAttributeComparator;
+  personalization?: UserPersonalizationSpec;
 }
 
 export class UMLUserModelAttribute extends UMLClassifierAttribute {
   type: UMLElementType = UserModelElementType.UserModelAttribute;
   attributeId?: string;
   attributeOperator: UserModelAttributeComparator = DEFAULT_COMPARATOR;
+  /**
+   * Attribute-level personalization spec (content / presentation / modality).
+   * Aggregated together with the profile-level spec by the webapp. See
+   * personalization-spec.ts.
+   */
+  personalization?: UserPersonalizationSpec;
 
   /**
    * User-model attributes are matching criteria (e.g. `age >= 18`) rendered
@@ -66,6 +75,9 @@ export class UMLUserModelAttribute extends UMLClassifierAttribute {
     if (typeof values?.attributeOperator === 'string') {
       this.attributeOperator = normalizeUserModelAttributeComparator(values.attributeOperator);
     }
+    if (isUserPersonalizationSpec(values?.personalization)) {
+      this.personalization = values!.personalization as UserPersonalizationSpec;
+    }
   }
 
   serialize() {
@@ -73,6 +85,7 @@ export class UMLUserModelAttribute extends UMLClassifierAttribute {
       ...super.serialize(),
       attributeId: this.attributeId,
       attributeOperator: this.attributeOperator,
+      personalization: this.personalization,
     };
   }
 
@@ -85,6 +98,9 @@ export class UMLUserModelAttribute extends UMLClassifierAttribute {
       this.attributeOperator = normalizeUserModelAttributeComparator(values.attributeOperator);
     } else if (typeof this.name === 'string') {
       this.attributeOperator = extractComparatorFromName(this.name);
+    }
+    if ('personalization' in values && isUserPersonalizationSpec((values as any).personalization)) {
+      this.personalization = (values as any).personalization;
     }
   }
 }

@@ -54,6 +54,7 @@ export class UserDiagramConverter implements DiagramConverter {
     };
     if (spec.className) nameElement.className = spec.className;
     if (spec.classId) nameElement.classId = spec.classId;
+    if (spec.displayLabel) nameElement.displayLabel = spec.displayLabel;
 
     const children: Record<string, any> = {};
 

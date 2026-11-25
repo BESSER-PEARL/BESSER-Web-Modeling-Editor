@@ -21,6 +21,7 @@ import { guiTraceRecorderOf } from './guiTraceRecording';
 import i18n from '@/main/shared/i18n';
 import { track, trackFailure } from '../../../shared/services/analytics/events';
 import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
+import { READABILITY_FONT_STYLESHEETS } from '@/main/shared/utils/gui-personalization';
 
 // Personalization variant data lives on live GrapesJS page objects (set via
 // page.set(...) in setupPageSystem.ts). It must survive into the STORED GUI
@@ -536,7 +537,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     // hosts, so real typography has to come from our own origin. The agent's
     // design-system tokens reference these families.
     canvas: {
-      styles: ['/fonts/design-fonts.css'],
+      styles: ['/fonts/design-fonts.css', ...READABILITY_FONT_STYLESHEETS],
       scripts: [],
     },
 
@@ -636,12 +637,12 @@ function setupEditorFeatures(
   const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
   setupCommands(editor);
   setupKeyboardShortcuts(editor);
-  
+
   // Remove unwanted blocks after editor loads
   editor.on('load', () => {
     removeUnwantedBlocks(editor);
   });
-  
+
   // Page system (consolidated)
   if (editor.Pages) {
     setupPageSystem(editor);
@@ -649,15 +650,15 @@ function setupEditorFeatures(
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
   }
-  
+
   setupSidebarButtonHoverLabels(editor);
   setupAutoOpenTraitsPanel(editor);
-  
+
   // Additional features
   setupDataBindingTraits(editor);
   // Shared components, blocks and traits (also used by AgentGUIEditor).
   registerAllComponents(editor);
-  
+
   // Return cleanup function
   return cleanupStorage;
 }
@@ -667,7 +668,7 @@ function setupEditorFeatures(
  */
 function removeUnwantedBlocks(editor: Editor) {
   const blockManager = editor.BlockManager;
-  
+
   // Blocks to explicitly remove (unwanted blocks)
   const blocksToRemove = [
     'link-block',      // Link Block
@@ -691,7 +692,7 @@ function removeUnwantedBlocks(editor: Editor) {
     'checkbox',        // Checkbox
     'radio',           // Radio
   ];
-  
+
   // Remove unwanted blocks by ID
   blocksToRemove.forEach(blockId => {
     try {
@@ -701,7 +702,7 @@ function removeUnwantedBlocks(editor: Editor) {
       // Block might not exist, ignore
     }
   });
-  
+
   // console.log('[Block Manager] Unwanted blocks removed, keeping Basic, Layout, and Charts');
 }
 
@@ -739,12 +740,12 @@ export function setupProjectStorageIntegration(
             // console.log('[Storage] Loading GrapesJS data from project storage');
             return model;
           }
-          
+
           // Model exists but has no pages - this is a new/empty diagram (first visit)
           if (project && Array.isArray(model.pages) && model.pages.length === 0) {
             console.log('[Storage] First visit to GUI editor - initializing with default template');
             const defaultTemplate = createDefaultGUITemplate();
-            
+
             // Save the template to the project (Redux sync via useStorageSync)
             ProjectStorageRepository.updateDiagram(
               project.id,
@@ -758,11 +759,11 @@ export function setupProjectStorageIntegration(
 
             return defaultTemplate;
           }
-          
+
           // console.log('[Storage] Stored data has no pages, keeping defaults');
           return {};
         }
-        
+
         // console.log('[Storage] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
@@ -771,7 +772,7 @@ export function setupProjectStorageIntegration(
         return {};
       }
     },
-    
+
     async store(data: unknown) {
       try {
         setSaveStatus('saving');
@@ -829,23 +830,23 @@ export function setupProjectStorageIntegration(
       }
     },
   });
-  
+
   // Listen to storage events
   editor.on('storage:start', () => {
     setSaveStatus('saving');
   });
-  
+
   editor.on('storage:end', () => {
     setSaveStatus('saved');
   });
-  
+
   editor.on('storage:error', () => {
     setSaveStatus('error');
   });
-  
+
   // Wait for editor to be fully loaded before setting up auto-save
   let isEditorReady = false;
-  
+
   editor.on('load', () => {
     // Add a delay to ensure everything is fully initialized
     setTimeout(() => {
@@ -912,12 +913,12 @@ export function setupProjectStorageIntegration(
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
       };
-      
+
       // Auto-save on changes
       editor.on('component:add component:remove component:update', debouncedSave);
       editor.on('page:add page:remove page:update', debouncedSave);
       editor.on('style:update', debouncedSave);
-      
+
       // Periodic backup save every 30 seconds - store in ref so we can clear it.
       // Skipped when nothing changed: each store replaces the whole project
       // and re-renders the shell.
@@ -925,11 +926,11 @@ export function setupProjectStorageIntegration(
         if (editor.getDirtyCount() === 0) return;
         safeSave();
       }, 30000);
-      
+
       // console.log('[Storage] Auto-save listeners initialized');
     }, 2000); // Wait 2 seconds after load event
   });
-  
+
   // Return cleanup function
   return () => {
     // console.log('[Storage] Cleaning up storage integration');
@@ -971,7 +972,7 @@ function setupCommands(editor: Editor) {
         .setTitle(i18n.t('editors.gui.exportTemplate'))
         .setContent(createModalContent(downloadBtn, fullCode, 'export-code-textarea'))
         .open();
-        
+
       setTimeout(() => {
         attachDownloadHandler('download-html-btn', fullCode, 'index.html', 'text/html');
       }, 100);
@@ -988,13 +989,13 @@ function setupCommands(editor: Editor) {
         .setTitle(i18n.t('editors.gui.projectJson'))
         .setContent(createModalContent(downloadBtn, projectData, 'json-data-textarea'))
         .open();
-        
+
       setTimeout(() => {
         attachDownloadHandler('download-json-btn', projectData, 'project.json', 'application/json');
       }, 100);
     },
   });
-  
+
   // Clear canvas command
   editor.Commands.add('clear-canvas', {
     async run(editor: Editor) {
@@ -1010,7 +1011,7 @@ function setupCommands(editor: Editor) {
       }
     },
   });
-  
+
 }
 
 /**
@@ -1083,7 +1084,7 @@ function attachDownloadHandler(buttonId: string, content: string, filename: stri
 function setupKeyboardShortcuts(editor: Editor) {
   editor.on('load', () => {
     const keymaps = editor.Keymaps;
-    
+
     const shortcuts = [
       { id: 'core:save', keys: 'ctrl+s, cmd+s', action: () => { editor.store(); return false; } },
       { id: 'core:preview-toggle', keys: 'ctrl+p, cmd+p', action: () => { editor.runCommand('preview'); return false; } },
@@ -1091,7 +1092,7 @@ function setupKeyboardShortcuts(editor: Editor) {
       { id: 'core:redo', keys: 'ctrl+shift+z, cmd+shift+z', action: () => { editor.runCommand('core:redo'); return false; } },
       { id: 'core:copy', keys: 'ctrl+c, cmd+c', action: () => { editor.runCommand('core:copy'); return false; } },
       { id: 'core:paste', keys: 'ctrl+v, cmd+v', action: () => { editor.runCommand('core:paste'); return false; } },
-      { id: 'core:component-delete', keys: 'delete, backspace', action: () => { 
+      { id: 'core:component-delete', keys: 'delete, backspace', action: () => {
         const selected = editor.getSelected();
         if (selected) selected.remove();
         return false;
@@ -1121,11 +1122,11 @@ function setupKeyboardShortcuts(editor: Editor) {
       { id: 'core:export', keys: 'ctrl+e, cmd+e', action: () => { editor.runCommand('export-template'); return false; } },
       { id: 'core:show-json', keys: 'ctrl+j, cmd+j', action: () => { editor.runCommand('show-json'); return false; } },
     ];
-    
+
     shortcuts.forEach(({ id, keys, action }) => {
       keymaps.add(id, keys, action);
     });
-    
+
     // console.log('[Keyboard] Shortcuts registered');
   });
 }
@@ -1140,7 +1141,7 @@ function setupKeyboardShortcuts(editor: Editor) {
 function addAutoGenerateGUIButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
-    
+
     // Remove preview button (eye icon) - moved here from removed addPagesButton
     try {
       const previewBtn = document.querySelector('[title="Preview"]');
@@ -1150,7 +1151,7 @@ function addAutoGenerateGUIButton(editor: Editor) {
     } catch (error) {
       console.warn('[Toolbar] Could not remove preview button:', error);
     }
-    
+
     // Add button to devices panel (where monitor, tablet, cellphone icons are)
     if (!panelManager.getButton('devices-c', 'auto-generate-gui')) {
       panelManager.addButton('devices-c', {
@@ -1160,13 +1161,13 @@ function addAutoGenerateGUIButton(editor: Editor) {
         label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
       });
     }
-    
+
   });
-  
+
   // Define the command for auto-generating GUI
   editor.Commands.add('auto-generate-gui', {
     run(editor: Editor) {
-      
+
       // Show custom confirmation modal
       const modal = editor.Modal;
       modal.setTitle(i18n.t('editors.gui.autoGenerateTitle'));
@@ -1214,14 +1215,14 @@ function addAutoGenerateGUIButton(editor: Editor) {
           </div>
         </div>
       `;
-      
+
       modal.setContent(modalContent);
       modal.open();
-      
+
       // Add hover effects matching Bootstrap buttons
       const confirmBtn = document.getElementById('modal-confirm-btn');
       const cancelBtn = document.getElementById('modal-cancel-btn');
-      
+
       if (confirmBtn) {
         confirmBtn.onmouseover = () => {
           confirmBtn.style.backgroundColor = 'hsl(var(--brand-dark))';
@@ -1257,7 +1258,7 @@ function addAutoGenerateGUIButton(editor: Editor) {
           }
         };
       }
-      
+
       if (cancelBtn) {
         cancelBtn.onmouseover = () => {
           cancelBtn.style.backgroundColor = 'hsl(var(--muted))';
@@ -1342,7 +1343,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> 
   if (classes.length === 0) {
     throw new Error(i18n.t('editors.gui.noClassesFound'));
   }
-  
+
   // From clearing the pages to the last save, the GUI generator's saves are one run in the project trace.
   const traceRecorder = guiTraceRecorderOf(editor);
   traceRecorder.beginDerivation();
@@ -1355,55 +1356,55 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> 
         pages.remove(page);
       });
     }
-    
+
     // Create all pages and force render each one to ensure proper styling
     const createdPages: any[] = [];
-    
+
     classes.forEach((classOption: any, index: number) => {
       const className = classOption.label;
       const classId = classOption.value;
       const pageName = className.toLowerCase().replace(/\s+/g, '-');
       const pageRoute = `/${pageName}`;
-      
+
       // Get class metadata (attributes and methods)
       const classMetadata = getClassMetadata(classId);
       const methods = getMethodsByClassId(classId);
-      
+
       // Create the page with route_path
       const page = pages.add({
         id: `page-${pageName}-${index}`,
         name: className,
       });
-      
+
       // Set the route_path on the page
       if (page) {
         page.set('route_path', pageRoute);
       }
-      
+
       // Store created page
       createdPages.push({ page, className, classId, classMetadata, methods, index });
     });
-    
+
     // Process each page sequentially with delays to ensure GrapesJS renders each one
     // This ensures all pages get proper IDs and normalized styles
     const processPages = async () => {
       const initializations: Promise<void>[] = [];
       for (let i = 0; i < createdPages.length; i++) {
         const { page, className, classId, classMetadata, methods, index } = createdPages[i];
-        
+
         // Select the page to force GrapesJS to render it
         pages.select(page);
-        
+
         // Build the page components
         initializations.push(buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index));
-        
+
         // Wait for GrapesJS to process the page (render and assign IDs)
         await new Promise(resolve => setTimeout(resolve, 150));
-        
+
         // Trigger a canvas refresh to ensure components are processed
         editor.refresh();
       }
-      
+
       // Every page's components are initialized before the GUI is saved and recorded.
       await Promise.all(initializations);
 
@@ -1411,7 +1412,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor): Promise<number> 
       if (createdPages.length > 0) {
         pages.select(createdPages[0].page);
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 120));
       await editor.store();
 
@@ -1441,10 +1442,10 @@ function buildPageComponents(
   pageCounter: number
 ): Promise<void> {
   const wrapper = page.getMainComponent();
-  
+
   // Generate a unique table ID for this page using counter
   const tableId = `table-${className.toLowerCase()}-${pageCounter}`;
-  
+
   // Build navigation links
   const navLinksComponents = allClasses.map(c => {
     const isActive = c.label === className;
@@ -1464,12 +1465,12 @@ function buildPageComponents(
       }
     };
   });
-  
+
   // Create method buttons components
   const methodButtonsComponents: any[] = [];
   if (methods && methods.length > 0) {
     methods.forEach((method, idx) => {
-      
+
       // Create action-button component with proper traits
       const buttonComponent = {
         type: 'action-button',
@@ -1491,11 +1492,11 @@ function buildPageComponents(
         'confirmation-required': false,
         components: [{ type: 'textnode', content: method.name }],
       };
-      
+
       methodButtonsComponents.push(buttonComponent);
     });
   }
-  
+
   // Build the page structure
   const pageStructure = {
     tagName: 'div',
@@ -1592,7 +1593,7 @@ function buildPageComponents(
           (() => {
             // Pre-generate columns from class metadata (same logic as in registerTableComponent)
             const autoColumns: any[] = [];
-            
+
             // Add Field columns from class attributes
             if (classMetadata?.attributes?.length) {
               classMetadata.attributes.forEach((attr: any) => {
@@ -1604,7 +1605,7 @@ function buildPageComponents(
                 });
               });
             }
-            
+
             // Add Lookup columns from class relationship ends
             const classEnds = getEndsByClassId(classId);
             if (classEnds?.length) {
@@ -1621,7 +1622,7 @@ function buildPageComponents(
                 });
               });
             }
-            
+
             const tableComponent = {
               type: 'table',
               attributes: {
@@ -1665,14 +1666,14 @@ function buildPageComponents(
       }
     ]
   };
-  
+
   // Clear existing components and add the new structure
   wrapper.components().reset();
   wrapper.append(pageStructure);
-  
+
   // Force the page to be selected to ensure components are properly initialized
   editor.Pages?.select(page);
-  
+
   return initializePageComponents(editor, page, classId, tableId);
 }
 
@@ -1743,10 +1744,10 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
       'open-layers': i18n.t('editors.gui.sidebarLayers'),
       'open-pages-tab': i18n.t('editors.gui.sidebarPages'),
     };
-    
+
     const selector = '.gjs-pn-views .gjs-pn-btn, .gjs-pn-commands .gjs-pn-btn';
     const measurementEl = createTooltipMeasurementElement();
-    
+
     const updatePlacement = (button: HTMLElement, label: string) => {
       measurementEl.textContent = label;
       const tooltipWidth = measurementEl.getBoundingClientRect().width;
@@ -1758,23 +1759,23 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
       const placement = prefersRight ? 'right' : prefersLeft ? 'left' : 'right';
       button.setAttribute('data-tooltip-placement', placement);
     };
-    
+
     document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
       const label = resolveSidebarButtonLabel(button, labelOverrides);
       if (!label) return;
-      
+
       button.setAttribute('data-tooltip', label);
       button.setAttribute('aria-label', label);
       updatePlacement(button, label);
-      
+
       button.addEventListener('mouseenter', () => updatePlacement(button, label));
       button.addEventListener('focus', () => updatePlacement(button, label));
-      
+
       if (button.getAttribute('title')) {
         button.removeAttribute('title');
       }
     });
-    
+
     const handleResize = () => {
       document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
         const label = button.getAttribute('data-tooltip');
@@ -1782,7 +1783,7 @@ function setupSidebarButtonHoverLabels(editor: Editor) {
         updatePlacement(button, label);
       });
     };
-    
+
     window.addEventListener('resize', handleResize);
     editor.on('destroy', () => {
       window.removeEventListener('resize', handleResize);
@@ -1826,7 +1827,7 @@ function setupAutoOpenTraitsPanel(editor: Editor) {
 function createTooltipMeasurementElement(): HTMLDivElement {
   let measurementEl = document.getElementById('gjs-tooltip-measure') as HTMLDivElement | null;
   if (measurementEl) return measurementEl;
-  
+
   measurementEl = document.createElement('div');
   measurementEl.id = 'gjs-tooltip-measure';
   measurementEl.style.position = 'fixed';
@@ -1851,14 +1852,14 @@ function resolveSidebarButtonLabel(
     || button.getAttribute('aria-label')
     || button.getAttribute('title');
   if (existingLabel) return existingLabel;
-  
+
   const id = button.getAttribute('id');
   if (!id) return null;
   if (labelOverrides[id]) return labelOverrides[id];
-  
+
   const cleaned = id.replace(/^open-/, '').replace(/-/g, ' ').trim();
   if (!cleaned) return null;
-  
+
   return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
@@ -1943,7 +1944,7 @@ function setupDataBindingTraits(editor: Editor) {
       component.on('change:data-source', () => rebuildBindingTraits(component));
     }
   });
-  
+
   // Visual indicator for components with data binding
   editor.on('component:update', (component: any) => {
     const attrs = component.getAttributes();
@@ -1953,6 +1954,6 @@ function setupDataBindingTraits(editor: Editor) {
       component.removeClass('has-data-binding');
     }
   });
-  
+
   console.log('[Data Binding] System initialized');
 }

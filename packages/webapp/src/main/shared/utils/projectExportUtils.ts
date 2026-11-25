@@ -16,6 +16,7 @@ import {
   StoredUserProfile,
 } from '../services/storage/local-storage-types';
 import { normalizeProjectName } from './projectName';
+import { flattenUserDiagramForBackend } from './user-profile-graph';
 import { EDITOR_VERSION } from '../constants/constant';
 import { getCachedBesserVersion } from '../services/besserVersion';
 import { getProjectTrace } from '../traceability/traceStore';
@@ -171,6 +172,13 @@ export const buildProjectPayloadForBackend = (
     selectedDiagramTypes,
   );
   if (options.includeTrace) payload.trace = loadedTrace(project.id, payload, selectedDiagramTypes);
+
+  const userDiagrams = payload.diagrams.UserDiagram;
+  if (Array.isArray(userDiagrams)) {
+    payload.diagrams.UserDiagram = userDiagrams.map((diagram) =>
+      isUMLModel(diagram.model) ? { ...diagram, model: flattenUserDiagramForBackend(diagram.model) } : diagram,
+    );
+  }
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {

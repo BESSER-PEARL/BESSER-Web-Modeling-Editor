@@ -1,21 +1,31 @@
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import i18n from '../../../../shared/i18n';
 import { GeneratorConfigDialogs } from '../GeneratorConfigDialogs';
 import { DEFAULT_FORECASTER_CONFIG } from '../../hooks/useGenerateCode';
+import { createDefaultProject } from '../../../../shared/types/project';
 
-vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => ({ currentProject: null }) }));
+vi.stubGlobal('ResizeObserver', class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+});
 
-afterEach(cleanup);
+const projectState = vi.hoisted(() => ({ currentProject: null as any }));
+vi.mock('../../../../app/hooks/useProject', () => ({ useProject: () => projectState }));
+
+afterEach(() => { cleanup(); projectState.currentProject = null; });
+
+const CurrentPath = () => <span data-testid="current-path">{useLocation().pathname}</span>;
 
 const handlerNames = [
   'setConfigDialog', 'onDjangoProjectNameChange', 'onDjangoAppNameChange', 'onUseDockerChange',
   'onSpringProjectNameChange', 'onSpringAppNameChange', 'onSpringPackageNameChange', 'onSpringBootVersionChange',
   'onSpringJavaVersionChange', 'onSqlDialectChange', 'onSupabaseUserRootChange', 'onSqlAlchemyDbmsChange',
-  'onJsonSchemaModeChange', 'onSourceLanguageChange', 'onPendingAgentLanguageChange', 'onSelectedAgentLanguagesChange',
+  'onJsonSchemaModeChange',
   'onQiskitBackendChange', 'onQiskitShotsChange', 'onAgentModeChange', 'onStoredAgentConfigToggle',
   'onSelectedAgentVariantIdChange', 'onAgentGenerationModeChange', 'onWebAppVersionModeChange',
   'onWebAppSelectedProfileIdChange', 'onDjangoGenerate', 'onDjangoDeploy', 'onSpringGenerate', 'onSqlGenerate',
@@ -35,8 +45,7 @@ const renderDialogs = (overrides: Record<string, unknown> = {}) => {
     springProjectName: 'p', springAppName: 'App', springPackageName: 'com.example',
     springBootVersion: '3.4.5', springJavaVersion: '21',
     sqlDialect: 'sqlite', supabaseUserRoot: 'User', sqlAlchemyDbms: 'sqlite', jsonSchemaMode: 'regular',
-    sourceLanguage: 'none', pendingAgentLanguage: 'none', selectedAgentLanguages: [],
-    hasSavedAgentConfiguration: true, agentMode: 'original', storedAgentConfigurations: [], storedAgentMappings: [],
+    agentMode: 'original', storedAgentConfigurations: [], storedAgentMappings: [],
     selectedStoredAgentConfigIds: [], agentVariantOptions: [], selectedAgentVariantId: '', agentGenerationMode: 'none',
     qiskitBackend: 'aer_simulator', qiskitShots: 1024,
     forecasterConfig: { ...DEFAULT_FORECASTER_CONFIG },
@@ -46,10 +55,53 @@ const renderDialogs = (overrides: Record<string, unknown> = {}) => {
   render(
     <MemoryRouter>
       <GeneratorConfigDialogs {...(props as any)} />
+      <CurrentPath />
     </MemoryRouter>,
   );
   return handlers as Record<(typeof handlerNames)[number], ReturnType<typeof vi.fn>>;
 };
+
+describe('GeneratorConfigDialogs — Agent', () => {
+  it('shows the default notice for an untouched agent, including one with personalization variants', () => {
+    const project = createDefaultProject('Project', '', 'user');
+    project.diagrams.AgentDiagram[0].config = { personalizedVariants: [] };
+    projectState.currentProject = project;
+    renderDialogs({ configDialog: 'agent' });
+    expect(screen.getByText(i18n.t('generation.agent.usingDefaultConfig'))).toBeInTheDocument();
+  });
+
+  it.each(['runtime', 'yaml'])('does not claim defaults after %s configuration is changed', (kind) => {
+    const project = createDefaultProject('Project', '', 'user');
+    if (kind === 'runtime') project.diagrams.AgentDiagram[0].config = { agentPlatform: 'telegram' };
+    else project.diagrams.AgentDiagram[0].configYaml = 'agent:\n  check_transitions_delay: 3';
+    projectState.currentProject = project;
+    renderDialogs({ configDialog: 'agent' });
+    expect(screen.queryByText(i18n.t('generation.agent.usingDefaultConfig'))).not.toBeInTheDocument();
+  });
+
+  it('shows one configuration action and no translation controls', () => {
+    const handlers = renderDialogs({ configDialog: 'agent' });
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: i18n.t('generation.agent.title') })).toBeInTheDocument();
+    expect(within(dialog).getByText(i18n.t('generation.agent.platform'))).toBeInTheDocument();
+    expect(within(dialog).getByText(i18n.t('generation.agent.intentRecognition'))).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(i18n.t('generation.agent.sourceLanguage'))).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(i18n.t('generation.agent.addSpokenLanguage'))).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: i18n.t('generation.agent.configureTechnologies') })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: i18n.t('generation.agent.editInAgentConfig') }));
+    expect(handlers.setConfigDialog).toHaveBeenCalledWith('none');
+    expect(screen.getByTestId('current-path')).toHaveTextContent('/agent-config');
+  });
+
+  it('keeps personalized variant selection and agent generation', () => {
+    const handlers = renderDialogs({ configDialog: 'agent', agentVariantOptions: [{ id: 'v', label: 'Profile' }] });
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('radio', { name: i18n.t('generation.agent.personalizationAll') }));
+    expect(handlers.onAgentGenerationModeChange).toHaveBeenCalledWith('personalization');
+    fireEvent.submit(dialog.querySelector('form')!);
+    expect(handlers.onAgentGenerate).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('GeneratorConfigDialogs — Django', () => {
   it('orders the footer Cancel, Deploy, Generate with Generate as the submit button', () => {

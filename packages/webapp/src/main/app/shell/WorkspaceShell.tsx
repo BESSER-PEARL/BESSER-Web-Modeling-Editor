@@ -155,6 +155,9 @@ interface WorkspaceShellProps {
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
+  onOpenPersonalizeDialog?: () => void;
+  onOpenRecommendPersonalizationDialog?: () => void;
+  onOpenPersonalizationOverview?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   /** Semantic check of the class diagram, offered next to the quality check on class diagrams. */
   onSemanticCheck?: () => Promise<void>;
@@ -202,6 +205,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onOpenTemplateDialog,
   onExportProject,
   onGenerate,
+  onOpenPersonalizeDialog,
+  onOpenRecommendPersonalizationDialog,
+  onOpenPersonalizationOverview,
   onQualityCheck,
   onSemanticCheck,
   showQualityCheck = false,
@@ -745,7 +751,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     return readAgentVariants(diagram).map((variant) => ({
       id: variant.id,
-      label: `${variant.profileName} (${variant.configurationName})`,
+      label: variant.configurationName && variant.configurationName !== variant.profileName
+        ? `${variant.profileName} (${variant.configurationName})`
+        : variant.profileName,
       description: t('shell.agentVariant.createdAt', { date: new Date(variant.createdAt).toLocaleString() }),
     }));
   }, [currentProject?.currentDiagramType, diagram, t]);
@@ -1171,6 +1179,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportKg={openAssistantImportKg}
         onImportOwl={openImportOwlPicker}
         onGenerate={onGenerate}
+        onOpenPersonalizeDialog={onOpenPersonalizeDialog}
+        onOpenRecommendPersonalizationDialog={onOpenRecommendPersonalizationDialog}
+        onOpenPersonalizationOverview={onOpenPersonalizationOverview}
         onQualityCheck={handleTrackedQualityCheck}
         onSemanticCheck={semanticCheckAvailable ? handleSemanticCheck : undefined}
         qualityCheckState={activeQualityCheckState}
@@ -1294,19 +1305,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </div>
           </div>
 
-          {/* Onboarding checklist - fixed bottom-right */}
-          {onboarding && !onboarding.checklistDismissed && (
-            <div className="absolute bottom-4 right-4 z-30 w-56">
-              <OnboardingChecklist
-                checklist={onboarding.checklist}
-                completed={onboarding.checklistCompleted}
-                total={onboarding.checklistTotal}
-                allDone={onboarding.allChecklistDone}
-                isDarkTheme={isDarkTheme}
-                onDismiss={onboarding.dismissChecklist}
-              />
-            </div>
-          )}
         </main>
 
         {/*

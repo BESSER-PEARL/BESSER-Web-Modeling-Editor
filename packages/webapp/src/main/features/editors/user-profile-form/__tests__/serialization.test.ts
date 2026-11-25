@@ -7,6 +7,7 @@ import { buildMetamodelTree, MetaTree } from '../metamodel-tree';
 import {
   buildUserDiagramModel,
   parseUserDiagramModel,
+  parseUserDiagramProfiles,
   createEmptyInstance,
   instanceSignature,
 } from '../model-serialization';
@@ -176,6 +177,160 @@ describe('user-profile-form serialization', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Multiple profiles on one canvas                                    */
+/* ------------------------------------------------------------------ */
+
+describe('user-profile-form multi-profile serialization', () => {
+  const NAME_ATTR = 'name';
+
+  const namedRoot = (tree: MetaTree, name: string): Instance => {
+    const root = createEmptyInstance(tree.root!);
+    const nameAttr = root.attributes.find((a) => a.name === NAME_ATTR);
+    if (nameAttr) nameAttr.value = name;
+    return root;
+  };
+
+  it('emits several Users into one model and parses them back as separate profiles', () => {
+    const a = namedRoot(syntheticTree, 'Alice');
+    const pa = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    pa.attributes[0].operator = '>=';
+    pa.attributes[0].value = '18';
+    a.children.Personal_Information = [pa];
+
+    const b = namedRoot(syntheticTree, 'Bob');
+
+    const model = buildUserDiagramModel([a, b], syntheticTree) as any;
+    const users = Object.values(model.elements).filter(
+      (e: any) => e.type === 'UserModelName' && e.className === 'User',
+    );
+    expect(users).toHaveLength(2);
+
+    const profiles = parseUserDiagramProfiles(model, syntheticTree);
+    expect(profiles).toHaveLength(2);
+    // Order-insensitive: match by signature.
+    const sigs = profiles.map(instanceSignature).sort();
+    expect(sigs).toEqual([instanceSignature(a), instanceSignature(b)].sort());
+  });
+
+  it('does not stack profiles: each root User gets a distinct x position', () => {
+    const model = buildUserDiagramModel(
+      [namedRoot(syntheticTree, 'Alice'), namedRoot(syntheticTree, 'Bob')],
+      syntheticTree,
+    ) as any;
+    const userXs = Object.values(model.elements)
+      .filter((e: any) => e.type === 'UserModelName' && e.className === 'User')
+      .map((e: any) => e.bounds.x);
+    expect(new Set(userXs).size).toBe(2);
+  });
+
+  it('keeps a box shared between two Users as a single element on round-trip', () => {
+    // Raw model: a Culture box linked to both Users (a shared "french" culture).
+    const model = {
+      type: 'UserDiagram',
+      elements: {
+        u1: { id: 'u1', type: 'UserModelName', name: 'user_1', className: 'User', owner: null, attributes: ['u1n'] },
+        u1n: { id: 'u1n', type: 'UserModelAttribute', name: 'name = Alice', owner: 'u1' },
+        u2: { id: 'u2', type: 'UserModelName', name: 'user_2', className: 'User', owner: null, attributes: ['u2n'] },
+        u2n: { id: 'u2n', type: 'UserModelAttribute', name: 'name = Bob', owner: 'u2' },
+        cult: { id: 'cult', type: 'UserModelName', name: 'culture_1', className: 'Accessibility', owner: null, attributes: [] },
+      },
+      relationships: {
+        r1: { id: 'r1', type: 'ObjectLink', source: { element: 'u1' }, target: { element: 'cult' } },
+        r2: { id: 'r2', type: 'ObjectLink', source: { element: 'u2' }, target: { element: 'cult' } },
+      },
+    } as unknown as UMLModel;
+
+    const profiles = parseUserDiagramProfiles(model, syntheticTree);
+    expect(profiles).toHaveLength(2);
+    // The shared box shows up under each profile (same backing boxId).
+    expect(profiles.every((p) => (p.children.Accessibility?.length ?? 0) === 1)).toBe(true);
+    const sharedBoxIds = profiles.map((p) => p.children.Accessibility![0].boxId);
+    expect(sharedBoxIds[0]).toBe('cult');
+    expect(sharedBoxIds[1]).toBe('cult');
+
+    // Re-emitting must not duplicate the shared box: still exactly one Accessibility box.
+    const rebuilt = buildUserDiagramModel(profiles, syntheticTree) as any;
+    const accBoxes = Object.values(rebuilt.elements).filter(
+      (e: any) => e.type === 'UserModelName' && e.className === 'Accessibility',
+    );
+    expect(accBoxes).toHaveLength(1);
+    // And both Users still link to it (2 inbound links to the shared box).
+    const sharedId = (accBoxes[0] as any).id;
+    const inbound = Object.values(rebuilt.relationships).filter(
+      (r: any) => r.target.element === sharedId || r.source.element === sharedId,
+    );
+    expect(inbound).toHaveLength(2);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Personalization specs round-trip on both element levels            */
+/* ------------------------------------------------------------------ */
+
+describe('user-profile-form personalization round-trip', () => {
+  it('preserves profile-level and attribute-level specs through build -> parse', () => {
+    const root = createEmptyInstance(syntheticTree.root!);
+    // Profile-level spec on the root User.
+    root.personalization = { presentation: { languageComplexity: 'simple', useAbbreviations: true } };
+
+    const pi = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    pi.attributes[0].operator = '>=';
+    pi.attributes[0].value = '18';
+    // Attribute-level spec on the age criterion.
+    pi.attributes[0].personalization = {
+      presentation: { size: 18, font: 'serif' },
+      modality: { outputModalities: ['voice'], voiceSpeed: 0.9 },
+    };
+    root.children.Personal_Information = [pi];
+
+    const model = buildUserDiagramModel(root, syntheticTree) as any;
+
+    // Specs are emitted onto the model elements.
+    const userBox = Object.values(model.elements).find(
+      (e: any) => e.type === 'UserModelName' && e.className === 'User',
+    ) as any;
+    expect(userBox.personalization).toEqual(root.personalization);
+    const ageRow = Object.values(model.elements).find(
+      (e: any) => e.type === 'UserModelAttribute' && e.name.startsWith('age'),
+    ) as any;
+    expect(ageRow.personalization).toEqual(pi.attributes[0].personalization);
+
+    // And they survive the parse back into form state.
+    const parsed = parseUserDiagramModel(model, syntheticTree);
+    expect(parsed?.personalization).toEqual(root.personalization);
+    const parsedAge = parsed?.children.Personal_Information?.[0].attributes.find((a) => a.name === 'age');
+    expect(parsedAge?.personalization).toEqual(pi.attributes[0].personalization);
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+  });
+
+  it('keeps an attribute-level spec even when the criterion value is empty', () => {
+    const root = createEmptyInstance(syntheticTree.root!);
+    const pi = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    // No value on age, but a spec attached.
+    pi.attributes[0].personalization = { presentation: { contrast: 'high' } };
+    root.children.Personal_Information = [pi];
+
+    const model = buildUserDiagramModel(root, syntheticTree);
+    const parsed = parseUserDiagramModel(model, syntheticTree);
+    const parsedAge = parsed?.children.Personal_Information?.[0].attributes.find((a) => a.name === 'age');
+    expect(parsedAge?.personalization).toEqual({ presentation: { contrast: 'high' } });
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+  });
+
+  it('instanceSignature changes iff a spec changes', () => {
+    const a = createEmptyInstance(syntheticTree.root!);
+    const b = createEmptyInstance(syntheticTree.root!);
+    expect(instanceSignature(a)).toBe(instanceSignature(b));
+
+    b.personalization = { presentation: { sentenceLength: 'concise' } };
+    expect(instanceSignature(a)).not.toBe(instanceSignature(b));
+
+    a.personalization = { presentation: { sentenceLength: 'concise' } };
+    expect(instanceSignature(a)).toBe(instanceSignature(b));
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /*  Metamodel-tree derivation against the real shipped metamodel       */
 /* ------------------------------------------------------------------ */
 
@@ -187,10 +342,40 @@ describe('buildMetamodelTree (real metamodel)', () => {
     tree = buildMetamodelTree();
   });
 
-  it('roots the hierarchy at User with the expected direct parts', () => {
+  it('flattens hidden containers: User directly parents Disability/Skill/Language/Education', () => {
     expect(tree.root?.className).toBe('User');
     const parts = tree.root!.children.map((c) => c.className).sort();
-    expect(parts).toEqual(['Accessibility', 'Competence', 'Culture', 'Personal_Information'].sort());
+    // Accessibility/Competence are hidden grouping containers — dropped from
+    // User's direct children and replaced by their own children (repeatable).
+    expect(parts).toEqual(
+      ['Culture', 'Disability', 'Education', 'Goal', 'Language', 'Personal_Information', 'Skill'].sort(),
+    );
+    expect(parts).not.toContain('Accessibility');
+    expect(parts).not.toContain('Competence');
+    // The hoisted children keep their repeatable multiplicity.
+    ['Disability', 'Skill', 'Language', 'Education'].forEach((name) => {
+      expect(tree.root!.children.find((c) => c.className === name)!.multiplicity).toBe('multiple');
+    });
+  });
+
+  it('round-trips a profile with Disability + Skill directly under User (flat tree)', () => {
+    const root = createEmptyInstance(tree.root!);
+    const dis = createEmptyInstance(tree.byClassName.Disability);
+    root.children.Disability = [dis];
+    const skill = createEmptyInstance(tree.byClassName.Skill);
+    root.children.Skill = [skill];
+
+    const model = buildUserDiagramModel(root, tree);
+    const parsed = parseUserDiagramModel(model, tree);
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+    // The form model draws them flat (no Accessibility/Competence box on canvas).
+    const classNames = Object.values((model as any).elements)
+      .filter((e: any) => e.type === 'UserModelName')
+      .map((e: any) => e.className);
+    expect(classNames).toContain('Disability');
+    expect(classNames).toContain('Skill');
+    expect(classNames).not.toContain('Accessibility');
+    expect(classNames).not.toContain('Competence');
   });
 
   it('nests Disability (repeatable) under Accessibility', () => {

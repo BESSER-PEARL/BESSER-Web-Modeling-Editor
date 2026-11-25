@@ -6,6 +6,7 @@ import { settingsService } from '../../../services/settings/settings-service';
 import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
 import { UserModelElementType } from '../../user-modeling';
+import { resolveUserModelChipIcon } from '../../user-modeling/attribute-palette-config';
 import { sanitizeSvg } from '../../../utils/sanitize-svg';
 
 interface OwnProps {
@@ -48,6 +49,34 @@ const getIconWidth = (svgString?: string): number => {
   }
 };
 
+const attributeSiblings = (ownerId: string, elements: ModelState['elements']): any[] =>
+  Object.values(elements).filter(
+    (candidate: any) =>
+      candidate?.owner === ownerId && candidate?.type === UserModelElementType.UserModelAttribute,
+  ) as any[];
+
+/**
+ * Resolve a value-driven icon SVG for a User-profile element in icon view, so
+ * the glyph updates live as the user edits values on the canvas (the component
+ * subscribes to `state.elements`). Delegates to the shared
+ * `resolveUserModelChipIcon` so the box layouter (which sizes the element from
+ * this same SVG) and the render stay in lockstep. Returns null when the element
+ * keeps its stored icon unchanged.
+ */
+const resolveChipIcon = (element: UMLClassifierMember, elements: ModelState['elements']): string | null => {
+  const owner = element.owner ? (elements[element.owner] as any) : undefined;
+  if (!owner || !owner.className) return null;
+  const attributeNames = attributeSiblings(owner.id, elements)
+    .map((candidate) => candidate?.name)
+    .filter((name): name is string => typeof name === 'string');
+  return resolveUserModelChipIcon({
+    className: owner.className,
+    displayLabel: owner.displayLabel,
+    fallbackIcon: owner.icon || (element as any).icon,
+    attributeNames,
+  });
+};
+
 const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({ element, fillColor, elements }) => {
   // Check if this is an ObjectIcon and if icon view is enabled
   const isObjectIcon = element.type === ObjectElementType.ObjectIcon;
@@ -64,8 +93,9 @@ const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({
     return null;
   }
   
-  // Check if the icon content is valid before processing
-  const rawIcon = (element as any).icon;
+  // For attribute chips, derive the icon from the sibling attribute's current
+  // value (live swap); otherwise fall back to the element's stored icon.
+  const rawIcon = resolveChipIcon(element, elements) ?? (element as any).icon;
   if (!rawIcon || typeof rawIcon !== 'string' || rawIcon.trim() === '') {
     return null;
   }

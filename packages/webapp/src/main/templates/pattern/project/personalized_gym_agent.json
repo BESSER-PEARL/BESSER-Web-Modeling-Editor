@@ -753,7 +753,7 @@
             "agentStyle": "original",
             "llm": {
               "provider": "openai",
-              "model": "gpt-5"
+              "model": "gpt-6-luna"
             },
             "languageComplexity": "original",
             "sentenceLength": "original",
@@ -3075,7 +3075,7 @@
         "agentStyle": "informal",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5"
+          "model": "gpt-6-luna"
         },
         "languageComplexity": "original",
         "sentenceLength": "original",
@@ -5394,7 +5394,7 @@
         "agentStyle": "original",
         "llm": {
           "provider": "openai",
-          "model": "gpt-5"
+          "model": "gpt-6-luna"
         },
         "languageComplexity": "original",
         "sentenceLength": "original",

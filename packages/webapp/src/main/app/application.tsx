@@ -23,14 +23,18 @@ import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback'
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
-import { useOnboarding } from '../features/onboarding/useOnboarding';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { loadProjectThunk, selectProject } from './store/workspaceSlice';
 import type { RootState } from './store/store';
 import { useHasOpened } from './hooks/useHasOpened';
 import { trackPageview } from '../shared/services/analytics/events';
+import { validateDiagram } from '../shared/services/validation/validateDiagram';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
+const TutorialsPage = React.lazy(() =>
+  import('../features/tutorials/TutorialsPage').then((m) => ({ default: m.TutorialsPage })),
+);
+
 const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
@@ -77,6 +81,15 @@ const KgConsistencyConfirmModal = React.lazy(() =>
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
 );
+const PersonalizeAgentDialog = React.lazy(() =>
+  import('../features/editors/uml/PersonalizeAgentDialog').then((m) => ({ default: m.PersonalizeAgentDialog })),
+);
+const RecommendPersonalizationDialog = React.lazy(() =>
+  import('../features/editors/uml/RecommendPersonalizationDialog').then((m) => ({ default: m.RecommendPersonalizationDialog })),
+);
+const PersonalizationOverviewDialog = React.lazy(() =>
+  import('../features/editors/uml/PersonalizationOverviewDialog').then((m) => ({ default: m.PersonalizationOverviewDialog })),
+);
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
@@ -100,6 +113,9 @@ function AppContentInner() {
   const [editor, setEditor] = useState<ApollonEditor>();
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showPersonalizeDialog, setShowPersonalizeDialog] = useState(false);
+  const [showRecommendPersonalizationDialog, setShowRecommendPersonalizationDialog] = useState(false);
+  const [showPersonalizationOverview, setShowPersonalizationOverview] = useState(false);
 
   const location = useLocation();
   useEffect(() => {
@@ -170,6 +186,12 @@ function AppContentInner() {
     setShowExportDialog(true);
   };
 
+  const handleOpenRecommendPersonalizationDialog = useCallback(async () => {
+    const result = await validateDiagram(editor ?? null, activeDiagramTitle);
+    if (result.isValid) {
+      setShowRecommendPersonalizationDialog(true);
+    }
+  }, [editor, activeDiagramTitle]);
   // Lazy dialogs mount on first open so their chunks are not fetched at startup.
   const projectHubMounted = useHasOpened(showProjectHub);
   const templateDialogMounted = useHasOpened(showTemplateDialog);
@@ -189,6 +211,9 @@ function AppContentInner() {
         onGenerate={onGenerate}
         onQualityCheck={onQualityCheck}
         onSemanticCheck={handleSemanticCheck}
+        onOpenPersonalizeDialog={() => setShowPersonalizeDialog(true)}
+        onOpenRecommendPersonalizationDialog={() => { void handleOpenRecommendPersonalizationDialog(); }}
+        onOpenPersonalizationOverview={() => setShowPersonalizationOverview(true)}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating || kgFlows.isConverting}
@@ -235,6 +260,28 @@ function AppContentInner() {
         </Suspense>
       )}
 
+      <Suspense fallback={null}>
+        <PersonalizeAgentDialog
+          open={showPersonalizeDialog}
+          onOpenChange={setShowPersonalizeDialog}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <PersonalizationOverviewDialog
+          open={showPersonalizationOverview}
+          onOpenChange={setShowPersonalizationOverview}
+          onRecommend={() => { void handleOpenRecommendPersonalizationDialog(); }}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <RecommendPersonalizationDialog
+          open={showRecommendPersonalizationDialog}
+          onOpenChange={setShowRecommendPersonalizationDialog}
+        />
+      </Suspense>
+
       {/*
        * Generator configuration dialogs (Django, Spring, SQL, SQLAlchemy,
        * JSON Schema, Agent, Qiskit, Forecaster). All state lives in the useGeneratorExecution hook;
@@ -263,11 +310,7 @@ function AppContentInner() {
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
         jsonSchemaMode={configState.jsonSchemaMode}
         supabaseUserRoot={configState.supabaseUserRoot}
-        // ── Agent config (languages + advanced/personalization) ──────
-        sourceLanguage={configState.sourceLanguage}
-        pendingAgentLanguage={configState.pendingAgentLanguage}
-        selectedAgentLanguages={configState.selectedAgentLanguages}
-        hasSavedAgentConfiguration={configState.hasSavedAgentConfiguration}
+        // ── Agent configuration and personalization ──────
         agentMode={configState.agentMode}
         storedAgentConfigurations={configState.storedAgentConfigurations}
         storedAgentMappings={configState.storedAgentMappings}
@@ -299,9 +342,6 @@ function AppContentInner() {
         onSqlAlchemyDbmsChange={configState.onSqlAlchemyDbmsChange}
         onJsonSchemaModeChange={configState.onJsonSchemaModeChange}
         onSupabaseUserRootChange={configState.onSupabaseUserRootChange}
-        onSourceLanguageChange={configState.onSourceLanguageChange}
-        onPendingAgentLanguageChange={configState.onPendingAgentLanguageChange}
-        onSelectedAgentLanguagesChange={configState.onSelectedAgentLanguagesChange}
         onQiskitBackendChange={configState.onQiskitBackendChange}
         onQiskitShotsChange={configState.onQiskitShotsChange}
         onForecasterConfigChange={configState.onForecasterConfigChange}
@@ -374,7 +414,17 @@ function AppContentInner() {
 function AppContent() {
   return (
     <BrowserRouter>
-      <AppContentInner />
+      <Routes>
+        <Route
+          path="/tutorials"
+          element={
+            <Suspense fallback={<SuspenseFallback />}>
+              <TutorialsPage />
+            </Suspense>
+          }
+        />
+        <Route path="*" element={<AppContentInner />} />
+      </Routes>
     </BrowserRouter>
   );
 }

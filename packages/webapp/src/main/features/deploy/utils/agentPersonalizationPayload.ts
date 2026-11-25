@@ -1,7 +1,15 @@
 import { UMLDiagramType } from '@besser/wme';
-import type { BesserProject, ProjectDiagram } from '../../../shared/types/project';
+import type { UMLModel } from '@besser/wme';
+import type { BesserProject } from '../../../shared/types/project';
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { aggregateProfilePersonalization } from '../../../shared/utils/personalization-aggregation';
+import {
+  splitUserDiagramIntoProfiles,
+  uniquifyNames,
+  mergeSingletonBoxes,
+  reinjectHiddenContainers,
+} from '../../../shared/utils/user-profile-graph';
 
 export interface PersonalizationMappingEntry {
   name: string;
@@ -10,45 +18,24 @@ export interface PersonalizationMappingEntry {
   agent_model: Record<string, unknown>;
 }
 
-interface PersonalizedVariantSnapshot {
-  id: string;
-  profileName: string;
-  configurationId: string;
-  configurationName: string;
-  createdAt: string;
-  model: Record<string, unknown>;
-}
-
-const readVariantSnapshots = (diagram: ProjectDiagram | undefined): PersonalizedVariantSnapshot[] => {
-  const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw.filter((entry): entry is PersonalizedVariantSnapshot => {
-    if (!entry || typeof entry !== 'object') return false;
-    const variant = entry as Partial<PersonalizedVariantSnapshot>;
-    return (
-      typeof variant.id === 'string' &&
-      typeof variant.profileName === 'string' &&
-      typeof variant.configurationId === 'string' &&
-      typeof variant.configurationName === 'string' &&
-      typeof variant.createdAt === 'string' &&
-      isUMLModel(variant.model) &&
-      variant.model.type === UMLDiagramType.AgentDiagram
-    );
-  });
-};
-
+/**
+ * True when the project has at least one UserDiagram profile — personalization
+ * is now authored on the profiles themselves, so any profile means there is a
+ * personalization mapping to ship (regardless of whether specs are filled in).
+ */
 export const hasPersonalizationVariants = (project: BesserProject | null | undefined): boolean => {
   if (!project) return false;
-  const agentDiagram = getActiveDiagram(project, 'AgentDiagram');
-  return readVariantSnapshots(agentDiagram).length > 0;
+  return (project.diagrams?.UserDiagram ?? []).some(
+    (diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram,
+  );
 };
 
 /**
  * Build the personalizationMapping payload the backend's agent generator and
- * deployment flow consume. Mirrors the builder used in the generation menu so
- * deploys emit the same profile→configuration→agent-model array.
+ * deployment flow consume. Mirrors the builder in the generation menu
+ * (`useGeneratorExecution`): personalization lives on each UserDiagram profile,
+ * `aggregateProfilePersonalization` collapses its per-element specs into the
+ * flat `configuration`, and every profile layers onto the same base agent model.
  */
 export const buildPersonalizationMapping = (
   project: BesserProject | null | undefined,
@@ -56,52 +43,69 @@ export const buildPersonalizationMapping = (
   if (!project) return [];
 
   const agentDiagram = getActiveDiagram(project, 'AgentDiagram');
-  const variants = readVariantSnapshots(agentDiagram);
-  if (variants.length === 0) return [];
+  const baseAgentModel =
+    agentDiagram && isUMLModel(agentDiagram.model) && agentDiagram.model.type === UMLDiagramType.AgentDiagram
+      ? (LocalStorageRepository.getAgentBaseModel(agentDiagram.id) as UMLModel | null) ??
+        (agentDiagram.model as UMLModel)
+      : null;
+  if (!baseAgentModel) return [];
 
-  const localProfiles = LocalStorageRepository.getUserProfiles();
-  const projectProfiles = (project.diagrams?.UserDiagram ?? [])
-    .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
-    .map((diagram) => ({
-      id: diagram.id,
-      name: diagram.title,
-      model: diagram.model as Record<string, unknown>,
-    }));
-
-  const profileByName = new Map<string, { id: string; name: string; model: Record<string, unknown> }>();
-  for (const profile of localProfiles) {
-    if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
-      profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model });
+  // Build a map from profileName → stored personalized variant model, mirroring
+  // useGeneratorExecution. The Personalize button saves these into
+  // diagram.config.personalizedVariants. Using them means each profile ships its
+  // already-personalized model (no LLM add_user_context calls needed at runtime).
+  const rawStoredVariants = (agentDiagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+  const variantModelByProfileName = new Map<string, UMLModel>();
+  if (Array.isArray(rawStoredVariants)) {
+    for (const v of rawStoredVariants) {
+      if (
+        v && typeof v === 'object' &&
+        typeof (v as Record<string, unknown>).profileName === 'string' &&
+        isUMLModel((v as Record<string, unknown>).model) &&
+        ((v as Record<string, unknown>).model as UMLModel).type === UMLDiagramType.AgentDiagram
+      ) {
+        variantModelByProfileName.set(
+          (v as Record<string, unknown>).profileName as string,
+          (v as Record<string, unknown>).model as UMLModel,
+        );
+      }
     }
   }
-  for (const profile of projectProfiles) {
-    profileByName.set(profile.name, profile);
+
+  // Collect every UserDiagram model (stored profile snapshots + project tabs),
+  // then split each into its constituent profiles (a UserDiagram tab may now
+  // hold several `User` elements). Each profile becomes one mapping entry.
+  const localProfiles = LocalStorageRepository.getUserProfiles();
+  const userModels: UMLModel[] = [];
+  for (const profile of localProfiles) {
+    if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
+      userModels.push(profile.model as UMLModel);
+    }
+  }
+  for (const diagram of project.diagrams?.UserDiagram ?? []) {
+    if (isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram) {
+      userModels.push(diagram.model as UMLModel);
+    }
   }
 
-  const configs = LocalStorageRepository.getAgentConfigurations();
-  const configById = new Map(configs.map((entry) => [entry.id, entry]));
-  const variantByConfigurationId = new Map(variants.map((variant) => [variant.configurationId, variant]));
-
-  const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
-
-  return mappings
-    .map((entry) => {
-      const profile = profileByName.get(entry.userProfileName) || null;
-      const config = configById.get(entry.agentConfigurationId) || null;
-      const variantModel = variantByConfigurationId.get(entry.agentConfigurationId)?.model;
-      const fallbackAgentModel = config?.personalizedAgentModel || config?.baseAgentModel || null;
-      const agentModel = variantModel || fallbackAgentModel;
-
-      if (!profile || !agentModel || !config) {
-        return null;
-      }
-
+  const entries = userModels.flatMap((model) =>
+    splitUserDiagramIntoProfiles(model).map((profile) => {
+      // Fuse the `single`-cardinality granular chips (age+nationality → one
+      // Personal_Information) so the shipped user_profile matches the metamodel.
+      // Then re-insert hidden grouping containers (Competence, Accessibility) so
+      // the backend receives the expected nesting depth.
+      const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
+      // Use the stored personalized variant if the Personalize button was run for
+      // this profile; fall back to the base model. Mirrors useGeneratorExecution.
+      const variantModel = variantModelByProfileName.get(profile.name) ?? baseAgentModel;
       return {
         name: profile.name,
-        configuration: structuredClone(config.config) as unknown as Record<string, unknown>,
-        user_profile: structuredClone(profile.model) as unknown as Record<string, unknown>,
-        agent_model: structuredClone(agentModel) as unknown as Record<string, unknown>,
+        configuration: aggregateProfilePersonalization(merged).configuration as Record<string, unknown>,
+        user_profile: structuredClone(merged) as unknown as Record<string, unknown>,
+        agent_model: structuredClone(variantModel) as unknown as Record<string, unknown>,
       };
-    })
-    .filter((entry): entry is PersonalizationMappingEntry => Boolean(entry));
+    }),
+  );
+
+  return uniquifyNames(entries);
 };

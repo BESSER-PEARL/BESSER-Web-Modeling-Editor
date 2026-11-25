@@ -31,6 +31,10 @@ interface TopBarUtilitiesProps {
   agentVariantOptions?: AgentVariantOption[];
   activeAgentVariantId?: string;
   onAgentVariantChange?: (variantId: string) => void;
+  /** When provided, JS overrides the xl CSS breakpoint for text label visibility. */
+  showXlLabels?: boolean;
+  /** When provided, JS overrides the 2xl CSS breakpoint for text label visibility. */
+  show2xlLabels?: boolean;
   onQualityCheck: () => Promise<QualityCheckResult>;
   /** When set, the quality check button opens a menu with the syntactic and semantic checks. */
   onSemanticCheck?: () => Promise<void>;
@@ -56,6 +60,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   agentVariantOptions,
   activeAgentVariantId,
   onAgentVariantChange,
+  showXlLabels,
+  show2xlLabels,
   onQualityCheck,
   onSemanticCheck,
   onToggleTheme,
@@ -66,6 +72,18 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onSwitchDiagramType,
 }) => {
   const { t } = useTranslation();
+
+  const activeVariantLabel = !activeAgentVariantId
+    ? t('topbar.baseAgentModel')
+    : (agentVariantOptions?.find((o) => o.id === activeAgentVariantId)?.label ?? t('topbar.baseAgentModel'));
+  // Approximate text-sm char width (~7.5px) + px-2 padding + native select arrow
+  const selectWidthPx = Math.min(Math.max(100, activeVariantLabel.length * 7.5 + 48), 280);
+
+  // Helper: when parent passes a JS-computed boolean, use it; otherwise fall back to the Tailwind class.
+  const xlClass = (show: boolean | undefined, visibleClass: string, hiddenFallback: string) =>
+    show !== undefined ? (show ? visibleClass : 'hidden') : hiddenFallback;
+
+
   const qualityStateLabel = qualityCheckState === 'valid'
     ? t('topbar.quality.validated')
     : qualityCheckState === 'errors'
@@ -115,7 +133,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
             value={activeAgentVariantId ?? ''}
             onChange={(event) => onAgentVariantChange?.(event.target.value)}
             aria-label={t('topbar.selectAgentVariant')}
-            title={t('topbar.selectAgentVariant')}
+            title={activeVariantLabel}
           >
             <option value="">{t('topbar.baseAgentModel')}</option>
             {(agentVariantOptions ?? []).map((option) => (

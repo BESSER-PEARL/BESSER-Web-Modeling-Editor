@@ -120,6 +120,40 @@ export type { UMLModelCompat } from './compat';
 // can drive the editor's UI language via the `locale` setter.
 export { Locale } from './services/editor/editor-types';
 
+// User-profile modeling: which metamodel attributes are hidden from the
+// modeling frontend (editor-only concrete syntax; the model still transmits
+// them as placeholders). Consumed by the webapp's User Profile form.
+export {
+  HIDDEN_USER_MODEL_ATTRIBUTES,
+  isHiddenUserModelAttribute,
+} from './packages/user-modeling/hidden-attributes';
+
+// User-profile modeling: which grouping classes are hidden from the CANVAS
+// (empty containers whose children attach directly under User). Display-only —
+// the transmitted model still contains them. Consumed by the webapp.
+export {
+  HIDDEN_USER_MODEL_CONTAINERS,
+  isHiddenUserModelContainer,
+} from './packages/user-modeling/hidden-containers';
+
+// User-profile modeling: per-element personalization spec (content /
+// presentation / modality) attached to profile + attribute elements. Replaces
+// the separate agent-config personalization tab; consumed by the webapp form
+// and aggregation.
+export type {
+  UserPersonalizationSpec,
+  UserPresentationSpec,
+  UserModalitySpec,
+  UserContentSpec,
+  UserGuiPresentationSpec,
+  UserGuiPersonalizationSpec,
+} from './packages/user-modeling/personalization-spec';
+export {
+  isUserPersonalizationSpec,
+  EXPLANATION_STYLE_OPTIONS,
+  EXPLANATION_STYLE_HELP,
+  isPersonalizationSpecEmpty,
+} from './packages/user-modeling/personalization-spec';
 // Export the port direction enum used by the public relationship typings, so
 // consumers that build models can type `source.direction` / `target.direction`.
 export { Direction } from './services/uml-element/uml-element-port';

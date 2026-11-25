@@ -11,11 +11,15 @@ import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-eleme
 import { Text } from '../../../utils/svg/text';
 import { settingsService } from '../../../services/settings/settings-service';
 import { GeneralRelationshipType } from '../../uml-relationship-type';
+import { UserPersonalizationSpec, isUserPersonalizationSpec } from '../personalization-spec';
+import { resolveUserModelChipIcon } from '../attribute-palette-config';
 
 export interface IUMLUserModelName extends IUMLClassifier {
   classId?: string;
   className?: string;
   icon?: string;
+  displayLabel?: string;
+  personalization?: UserPersonalizationSpec;
 }
 
 export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName {
@@ -24,6 +28,19 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
   classId?: string;
   className?: string;
   icon?: string;
+  /**
+   * Optional header override. Used by attribute-level palette chips (e.g. a
+   * `gender` chip) so the node can display the attribute name while still being
+   * a real instance of its container class (`classId`/`className` unchanged) —
+   * keeping serialization and downstream generation intact.
+   */
+  displayLabel?: string;
+  /**
+   * Profile-level personalization spec (content / presentation / modality).
+   * Set on the root `User` box; the webapp aggregation collapses it plus the
+   * attribute-level specs into the agent configuration. See personalization-spec.ts.
+   */
+  personalization?: UserPersonalizationSpec;
 
   static supportedRelationships = [
     UserModelRelationshipType.UserModelLink,
@@ -41,12 +58,20 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     if (values?.icon) {
       this.icon = values.icon;
     }
+    if (values?.displayLabel) {
+      this.displayLabel = values.displayLabel;
+    }
+    if (isUserPersonalizationSpec(values?.personalization)) {
+      this.personalization = values!.personalization as UserPersonalizationSpec;
+    }
   }
 
   serialize(children: UMLElement[] = []): Apollon.UMLClassifier & {
     classId?: string;
     className?: string;
     icon?: string;
+    displayLabel?: string;
+    personalization?: UserPersonalizationSpec;
   } {
     const iconChild = children.find((child) => child.type === UserModelElementType.UserModelIcon);
     return {
@@ -54,6 +79,8 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
       classId: this.classId,
       className: this.className,
       icon: iconChild ? iconChild.id : undefined,
+      displayLabel: this.displayLabel,
+      personalization: this.personalization,
     };
   }
 
@@ -68,6 +95,12 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     if ('icon' in values && typeof values.icon === 'string') {
       this.icon = values.icon;
     }
+    if ('displayLabel' in values && typeof (values as any).displayLabel === 'string') {
+      this.displayLabel = (values as any).displayLabel;
+    }
+    if ('personalization' in values && isUserPersonalizationSpec((values as any).personalization)) {
+      this.personalization = (values as any).personalization;
+    }
   }
 
   reorderChildren(children: IUMLElement[]): string[] {
@@ -75,7 +108,12 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
       (x): x is UMLClassifierAttribute => x.type === UserModelElementType.UserModelAttribute,
     );
     const methods = children.filter((x): x is UMLClassifierMethod => x instanceof UMLClassifierMethod);
-    return [...attributes.map((element) => element.id), ...methods.map((element) => element.id)];
+    const icons = children.filter((x) => x.type === UserModelElementType.UserModelIcon);
+    return [
+      ...attributes.map((element) => element.id),
+      ...methods.map((element) => element.id),
+      ...icons.map((element) => element.id),
+    ];
   }
 
   private static extractSvgSize(svgString: string): { width: number; height: number } {
@@ -120,12 +158,16 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     baseY: number,
     minWidth: number,
     minHeight: number,
+    contentOverride?: string,
   ): { width: number; height: number } {
     icon.bounds.x = 0.5;
     icon.bounds.y = baseY + 0.5 + 5;
     let svgWidth = minWidth;
     let svgHeight = minHeight;
-    const iconContent = (icon as any).icon;
+    // Prefer the actually-rendered SVG (a value-cue composite is taller/wider
+    // than the stored glyph) so the box grows to fit exactly what is drawn.
+    const iconContent =
+      contentOverride && contentOverride.trim() !== '' ? contentOverride : (icon as any).icon;
     if (iconContent && typeof iconContent === 'string' && iconContent.trim() !== '') {
       const size = UMLUserModelName.extractSvgSize(iconContent);
       svgWidth = size.width;
@@ -190,10 +232,22 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
 
     const icon = children.find((x: any) => x.type === UserModelElementType.UserModelIcon) as any;
 
+    // The rendered icon may be a value-cue composite (glyph + value text) that is
+    // taller/wider than the stored glyph. Resolve it here with the same helper the
+    // React component uses, so the box is sized to fit exactly what gets drawn.
+    const composite = resolveUserModelChipIcon({
+      className: this.className,
+      displayLabel: this.displayLabel,
+      fallbackIcon: icon && typeof icon.icon === 'string' ? icon.icon : undefined,
+      attributeNames: attributes
+        .map((attribute) => attribute.name)
+        .filter((name): name is string => typeof name === 'string'),
+    });
+
     let iconSize = { width: 0, height: 0 };
     if (icon && icon.icon && typeof icon.icon === 'string' && icon.icon.trim() !== '') {
       try {
-        iconSize = UMLUserModelName.setupIconBounds(icon, this.bounds.height, 50, 50);
+        iconSize = UMLUserModelName.setupIconBounds(icon, this.bounds.height, 50, 50, composite ?? undefined);
         UMLUserModelName.finalizeBounds(this, layer, icon, iconSize, y);
       } catch (error) {
         const text = this.className || this.name;

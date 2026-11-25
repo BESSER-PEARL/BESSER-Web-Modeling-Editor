@@ -51,7 +51,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
     expect(screen.getByText('BPMN')).toBeInTheDocument();
-    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('User Profile')).toBeInTheDocument();
     expect(screen.getByText('Neural Net')).toBeInTheDocument();
 
     // Non-UML items
@@ -89,7 +89,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
     expect(screen.getByText('BPMN')).toBeInTheDocument();
-    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('User Profile')).toBeInTheDocument();
     expect(screen.getByText('Neural Net')).toBeInTheDocument();
     expect(screen.getByText('GUI')).toBeInTheDocument();
     expect(screen.getByText('Quantum')).toBeInTheDocument();

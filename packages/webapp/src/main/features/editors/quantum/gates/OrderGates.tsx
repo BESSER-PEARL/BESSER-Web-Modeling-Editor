@@ -4,9 +4,9 @@ import { WIRE_SPACING } from '../layout-constants';
 
 // Reusing InterleaveDrawer logic
 function interleaveBit(bit: number, len: number): number {
-    let h = Math.ceil(len / 2);
-    let group = Math.floor(bit / h);
-    let stride = bit % h;
+    const h = Math.ceil(len / 2);
+    const group = Math.floor(bit / h);
+    const stride = bit % h;
     return stride * 2 + group;
 }
 

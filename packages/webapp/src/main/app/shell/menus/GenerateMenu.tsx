@@ -48,6 +48,7 @@ import { SUBMENU_OFFSETS } from './FileMenu';
 
 interface GenerateMenuProps {
   mode: GeneratorMenuMode;
+  showXlLabels?: boolean;
   isGenerating: boolean;
   primaryGenerateClass: string;
   activeDiagramType?: SupportedDiagramType;
@@ -147,6 +148,7 @@ const renderGeneratorMenuEntry = (
 
 export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   mode,
+  showXlLabels,
   isGenerating,
   primaryGenerateClass,
   activeDiagramType,

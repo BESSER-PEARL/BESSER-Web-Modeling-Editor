@@ -193,7 +193,7 @@ export function serializeCircuit(circuit: Circuit): any {
             }
 
             // Map gate type to symbol
-            let symbol: string | number = mapGateToQuirkSymbol(gate);
+            const symbol: string | number = mapGateToQuirkSymbol(gate);
             col.push(symbol);
 
             // For multi-wire gates, add placeholders for occupied rows to preserve alignment

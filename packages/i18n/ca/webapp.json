@@ -84,7 +84,9 @@
       "unknown": "{{repo}}: no s’ha pogut accedir a GitHub",
       "unlinked": "Vincula aquest projecte a un repositori de GitHub",
       "not-in-tab": "{{repo}}: GitHub no està connectat en aquesta pestanya"
-    }
+    },
+    "baseGuiPage": "Base page",
+    "selectGuiVariant": "Select page variant"
   },
   "nav": {
     "editors": "Editors",
@@ -107,7 +109,7 @@
     },
     "route": {
       "settings": "Configuració",
-      "agentCustomization": "Personalització de l'agent",
+      "agentCustomization": "Configuració de l’agent",
       "agentPersonalization": "Personalització avançada de l'agent",
       "agentMappings": "Assignacions de l'agent",
       "agentComponents": "Components",
@@ -192,7 +194,8 @@
       "howItWorks": "Com funciona aquest editor?",
       "startTutorial": "Inicia el tutorial",
       "keyboardShortcuts": "Dreceres de teclat",
-      "aboutBesser": "Quant a BESSER"
+      "aboutBesser": "Quant a BESSER",
+      "tutorials": "Tutorials"
     }
   },
   "agentConfig": {
@@ -204,8 +207,8 @@
       "llm": "Això pot trigar una estona a elaborar la millor configuració basada en LLM per al perfil d'usuari seleccionat.",
       "transform": "Això pot trigar una estona a elaborar la millor configuració d'agent transformada i aplicar-la al teu diagrama."
     },
-    "title": "Personalització de l'agent",
-    "subtitle": "Adapta el teu agent a un perfil d'usuari específic del diagrama d'usuari. Ajusta com parla, com es veu i com es comporta perquè s'adigui amb aquest públic, i després desa el resultat com a configuració amb un nom entre les quals podràs alternar més endavant.",
+    "title": "Configuració de l’agent",
+    "subtitle": "Configura l’execució, les plataformes i les connexions de l’agent.",
     "tabsAriaLabel": "Seccions de configuració de l'agent",
     "tab": {
       "runtime": "Execució de l'agent",
@@ -771,8 +774,9 @@
       "regular": "JSON Schema estàndard"
     },
     "agent": {
-      "title": "Selecciona els idiomes de l'agent",
-      "description": "Configura els idiomes d'origen i de destinació per a la traducció de l'agent.",
+      "title": "Genera l’agent",
+      "description": "Revisa la configuració de l’agent i tria les variants personalitzades que vols generar.",
+      "usingDefaultConfig": "Aquest agent fa servir la configuració per defecte. Pots canviar-la a Configuració de l’agent.",
       "noSavedConfig": "No s'ha trobat cap configuració desada. L'agent es generarà amb la configuració per defecte.",
       "configureTechnologies": "Configura les tecnologies de l'agent",
       "sourceLanguage": "Idioma d'origen (opcional)",
@@ -782,8 +786,8 @@
       "translatedToAll": "L'agent es traduirà a tots els idiomes parlats seleccionats.",
       "warningAriaLabel": "advertència",
       "moreLanguagesWarning": "Afegir més idiomes augmentarà el temps de generació.",
-      "systemConfiguration": "Configuració del sistema",
-      "editInAgentConfig": "Edita a configuració de l'agent",
+      "systemConfiguration": "Configuració de l’agent",
+      "editInAgentConfig": "Edita la configuració",
       "platform": "Plataforma",
       "platformStreamlit": "WebSocket amb interfície Streamlit",
       "platformWebSocket": "WebSocket",
@@ -792,7 +796,7 @@
       "intentRecognition": "Reconeixement d'intencions",
       "classical": "Clàssic",
       "llmBased": "Basat en LLM",
-      "systemConfigHint": "Aquests valors provenen de la pestanya Configuració del sistema de configuració de l'agent i s'utilitzen en cada generació.",
+      "systemConfigHint": "Aquests paràmetres provenen de la configuració de l’agent.",
       "personalizationStrategy": "Estratègia de personalització",
       "none": "Cap",
       "personalizationAll": "Personalització (totes)",
@@ -2521,6 +2525,10 @@
         "errorProviderLinkText": "Política de privadesa de Sentry",
         "visitProviderIntro": "Les estadístiques de visites s'envien a Google Analytics només després que acceptis l'analítica. Google no emmagatzema la teva adreça IP, i els senyals de Google i la personalització d'anuncis estan desactivats. Veu la",
         "visitProviderLinkText": "Política de privadesa de Google"
+      },
+      "notice": {
+        "text": "This app collects anonymous interaction data to help improve BESSER.",
+        "policy": "Privacy Policy"
       }
     },
     "errors": {
@@ -4210,7 +4218,8 @@
       "invalidConstraintsLabel": "Restriccions no vàlides:",
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
-      "unknownError": "Error desconegut"
+      "unknownError": "Error desconegut",
+      "unnamedUserProfile": "Un o més elements de perfil d'usuari no tenen nom. Si us plau, doneu un nom a cada usuari; s'utilitza per identificar el perfil al diàleg de personalització."
     },
     "warningsConfirm": {
       "title_one": "El model té un avís de validació",
@@ -5094,6 +5103,129 @@
     "entry": {
       "showTraceability": "Mostra la traçabilitat",
       "viewTrace": "Mostra la traça"
+    }
+  },
+  "personalize": {
+    "title": "Personalize",
+    "description": "Create a personalized variant of the agent model using a user profile",
+    "selectProfile": "Select a User Profile",
+    "selectProfilePlaceholder": "Choose a profile...",
+    "noProfiles": "No user profiles available",
+    "noProfilesTitle": "No s'han trobat perfils d'usuari",
+    "noProfilesGuide": "Per utilitzar aquesta funció, primer modeleu els vostres usuaris finals a la perspectiva de modelatge d'usuaris. Afegiu un diagrama d'usuari, definiu-hi els vostres perfils i torneu aquí per personalitzar el vostre agent.",
+    "noAgentDiagram": "No agent diagram is currently active",
+    "notAgentDiagram": "Active diagram is not an agent diagram",
+    "profileNotFound": "Selected profile not found",
+    "noValidBase": "Could not resolve base agent model",
+    "noValidProfiles": "No valid profiles found in selected diagram",
+    "applying": "Applying personalization...",
+    "applyingLabel": "Personalitzant el model d'agent…",
+    "applyingHint": "Això pot trigar fins a un minut. Si us plau, espereu.",
+    "apply": "Apply Personalization",
+    "success": "Personalization applied successfully",
+    "transformFailed": "Personalization failed: {{message}}",
+    "transformTimeout": "Personalization request timed out (>10 minutes)",
+    "error": "Failed to apply personalization",
+    "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Recomanar personalització",
+    "description": "Obteniu configuracions de personalització recomanades basades en el model de perfil d'usuari.",
+    "reviewDescription": "Reviseu els canvis recomanats a continuació. Desmarqueu els que no voleu aplicar.",
+    "chooseMethod": "Trieu el mètode de recomanació",
+    "methodRules": "Regles predefinides",
+    "methodLlm": "LLM (IA)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Trieu els perfils d'usuari per als quals obtenir recomanacions.",
+    "noProfiles": "No s'han trobat perfils d'usuari en aquest diagrama.",
+    "noProfilesSelected": "Seleccioneu almenys un perfil d'usuari.",
+    "invalidResponse": "Resposta no vàlida rebuda del backend.",
+    "noChanges": "No es recomanen canvis per a aquest perfil.",
+    "next": "Següent",
+    "back": "Enrere",
+    "getRecommendations": "Obtenir recomanacions",
+    "fetching": "Carregant…",
+    "selectAll": "Seleccionar tot",
+    "deselectAll": "Deseleccionar tot",
+    "apply": "Aplicar recomanacions",
+    "applySelected": "Aplicar ({{count}} canvi(s))",
+    "applied": "Recomanacions de personalització aplicades correctament.",
+    "failed": "No s'ha pogut obtenir la recomanació: {{message}}",
+    "validating": "Validant...",
+    "validationFailed": "El diagrama té errors de validació. Si us plau, corregiu-los abans d'aplicar les recomanacions."
+  },
+  "personalizationOverview": {
+    "title": "Personalization overview",
+    "description": "See your user models, your default agents and web UIs, and which personalizations have been applied.",
+    "step1": "1. User models",
+    "step2": "2. Default products and applied personalization",
+    "noProfiles": "No user profile found. Add a User element to a user diagram first.",
+    "settings_one": "{{count}} setting defined",
+    "settings_other": "{{count}} settings defined",
+    "noSettings": "Missing: no personalization rules",
+    "noSettingsHint": "Missing personalization rules: a user model is defined, but no rules say how to adapt agents and web UIs for it. Double-click a profile element or attribute to add rules, or use Recommend Personalization.",
+    "noTargets": "No agent or web UI in this project yet. Create one to personalize it.",
+    "defaultAgent": "Default agent",
+    "defaultWebUi": "Default web UI",
+    "open": "Open",
+    "applied": "personalized",
+    "notApplied": "not personalized yet",
+    "personalize": "Personalize",
+    "reapply": "Re-apply",
+    "howTo": "Clicking a button opens the agent or web UI editor; use its Personalize button to apply the selected profile.",
+    "close": "Close"
+  },
+  "tutorials": {
+    "pageTitle": "Tutorials",
+    "pageDescription": "Practical guides to help you get the most out of the editor.",
+    "listHeading": "Tutorials",
+    "docsLink": "Open BESSER Documentation",
+    "personalization": {
+      "label": "Personalization",
+      "summary": "People differ in their needs, abilities, preferences, and expectations. The default application might not be inclusive, accessible, or user friendly enough for everyone. In BESSER, you start from a single base application and describe the groups of people who will use it. The tool then generates one adapted version per group automatically, while keeping the core behavior shared across all of them. This tutorial starts with the user model, shared by every target, then shows how to adapt an agent and how to adapt a GUI.",
+      "modelUsers": {
+        "title": "Model Your Users",
+        "body": "<p>Open the sidebar and switch to the <strong>User Diagram</strong>. This is where you describe the people your system is designed for, whether you adapt an agent or a GUI.</p><p>Drag a <strong>User</strong> element onto the canvas for each group you want to support, for example <code>YoungParaplegic</code> and <code>OlderAdult</code>. Each element represents a category of users, not a single individual. The same profiles are used for every target: the only difference is the model you personalize afterwards.</p>"
+      },
+      "defineSpecs": {
+        "title": "Describe What Makes Each Group Different",
+        "imageAlt": "User Diagram with a ParaplegicYoung user connected to a Disability element and an age attribute set to under 14, an Elderly user with an age attribute set to over 65, and the personalization properties panel open on the right",
+        "body": "<p>Click a User element to open its properties. Fill in the attributes that describe that group. For <code>YoungParaplegic</code>, you might indicate a young age range, a physical disability, and a need for exercise guidance adapted to limited lower-body mobility. For <code>OlderAdult</code>, you might indicate an older age range, a preference for simple and encouraging language, and a slower interaction pace.</p><p>The available attributes include age, skills, language, education, and accessibility needs. You do not need to fill in everything. Focus on the differences that actually matter for how your system should behave with each group.</p>"
+      },
+      "createVariants": {
+        "title": "Generate the Adapted Variants",
+        "imageAlt": "Agent Diagram showing a gym chatbot with the variant selector dropdown open, listing Base agent model, ParaplegicYoung, and Elderly as available variants",
+        "body": "<p>Once your users are described, open the model you want to adapt. Switch to your <strong>Agent Diagram</strong> and click the <strong>Personalize</strong> button in the top bar (the people icon). Select the user groups you want to target and confirm.</p><p>The editor creates one adapted variant of your agent per selected group. For the gym chatbot, you get a YoungParaplegic variant and an OlderAdult variant, each adjusted to fit that group while sharing the same conversation structure. You can switch between them using the selector in the top bar and edit each one independently before deploying.</p>"
+      },
+      "agentRecommendation": {
+        "title": "Optional: Let the Tool Suggest Adaptations",
+        "body": "<p>If you are not sure how your agent should behave differently for each user group, BESSER can help you figure that out. While viewing your <strong>User Diagram</strong>, click the <strong>Recommend</strong> button in the top bar (the sparkle icon). The tool looks at your user descriptions and suggests what adaptations would make sense for each group.</p><p>You can review those suggestions, adjust anything that does not fit, and then apply them to generate your variants. This works well as a starting point when you have described your users but are still thinking through what the differences should mean in practice.</p>"
+      },
+      "jumpTo": "Jump to:",
+      "sections": {
+        "agent": "Adapting an agent",
+        "gui": "Adapting a GUI"
+      },
+      "gui": {
+        "base": {
+          "title": "Start from the Base Page",
+          "imageAlt": "GUI editor showing the Madrid Residence Certificate page in its original version, with normal text size and spacing",
+          "body": "<p>Design the page once in the <strong>GUI Diagram</strong>. This is the <strong>Base</strong> version, shared by all users. The example is a city council page.</p>"
+        },
+        "rules": {
+          "title": "Define the Profile's GUI Rules",
+          "body": "<p>In the <strong>User Diagram</strong>, open the personalization settings of the profile (here <code>Elderly</code>) and set the GUI rules:</p><ul><li>a <strong>larger text size</strong></li><li>a <strong>larger line spacing</strong></li><li>a <strong>simpler language complexity</strong> and shorter sentences</li></ul>"
+        },
+        "apply": {
+          "title": "Personalize the Page",
+          "body": "<p>In the <strong>GUI Diagram</strong>, click <strong>Personalize</strong> in the top bar and choose the profile (and the pages to adapt). The defined GUI rules of the profile are applied to a copy of the page. The Base page stays unchanged.</p>"
+        },
+        "result": {
+          "title": "Review the Variant",
+          "imageAlt": "GUI editor showing the Elderly variant of the same page, with larger text, more spacing and shorter, simpler sentences",
+          "body": "<p>Use the <strong>Variant</strong> dropdown in the top bar (here <code>Elderly</code>) to switch between the Base page and the variant of the selected page: bigger text, more spacing, simpler and shorter wording. You can still edit the variant by hand.</p><p>Deploy or generate the app to get one version per profile.</p>"
+        }
+      }
     }
   }
 }

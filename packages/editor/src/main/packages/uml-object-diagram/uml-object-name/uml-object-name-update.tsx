@@ -25,6 +25,10 @@ import UMLObjectAttributeUpdate from '../uml-object-attribute/uml-object-attribu
 import { UserModelElementType } from '../../user-modeling';
 import { UMLUserModelAttribute } from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute';
 import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
+import { isHiddenUserModelAttribute } from '../../user-modeling/hidden-attributes';
+import { PersonalizationEditor } from '../../user-modeling/personalization/PersonalizationEditor';
+import { UserPersonalizationSpec } from '../../user-modeling/personalization-spec';
+import { getSuggestedPersonalizationFields } from '../../user-modeling/personalization/personalization-field-config';
 
 const Flex = styled.div`
   display: flex;
@@ -207,6 +211,10 @@ class ObjectNameComponent extends Component<Props, State> {
   render() {
     const { element, getById } = this.props;
     const isUserModelElement = element.type === (UserModelElementType as any).UserModelName;
+    // Box-level personalization is authored only on the root `User` profile
+    // element. Intermediate connected boxes (personal_Information, Culture, …)
+    // carry personalization on their attributes instead — so they don't render a
+    // redundant second "Personalization" toggle next to their attribute rows.
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const attributes = children.filter((child): child is UMLObjectAttribute | UMLUserModelAttribute => {
       if (isUserModelElement) {
@@ -214,6 +222,18 @@ class ObjectNameComponent extends Component<Props, State> {
       }
       return child instanceof UMLObjectAttribute;
     });
+    // Runtime / too-user-specific attributes (firstName, address, ...) are hidden
+    // from this edit popup so they don't confuse modellers. The underlying
+    // elements stay in `element.ownedElements` so serialization still transmits
+    // them as placeholders — this is a display-only filter, mirroring the form.
+    const ownerClassName = (element as any).className as string | undefined;
+    const visibleAttributes = isUserModelElement
+      ? attributes.filter((attribute) => {
+          const match = attribute.name.match(/^(.*?)(?:\s*(?:<=|>=|==|=|<|>)\s*)(.*)$/);
+          const attrName = (match ? match[1] : attribute.name).trim();
+          return !isHiddenUserModelAttribute(ownerClassName, attrName);
+        })
+      : attributes;
     const methods = children.filter((child) => child instanceof UMLObjectMethod);
     const attributeRefs: (Textfield<string> | null)[] = [];
     const methodRefs: (Textfield<string> | null)[] = [];
@@ -222,18 +242,25 @@ class ObjectNameComponent extends Component<Props, State> {
 
     return (
       <div>        <section>
-          <Flex>
-            <Textfield 
-              value={this.getDisplayName()} 
-              onChange={this.rename(element.id)} 
-              placeholder={this.getObjectNamePlaceholder()}
-              autoFocus 
-            />
-            <ColorButton onClick={this.toggleColor} />
-            <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
-              <TrashIcon />
-            </Button>
-          </Flex>{showClassSelection && (
+          {/* User-model box names ("personal_information", "user_1", …) are now
+              auto-generated and uniquified for the backend object model, so we
+              hide the whole name row — field, color wheel, and delete — from
+              user-model elements. The meaningful profile name is edited via the
+              `name` attribute row, and boxes are removed from the canvas. */}
+          {!isUserModelElement && (
+            <Flex>
+              <Textfield
+                value={this.getDisplayName()}
+                onChange={this.rename(element.id)}
+                placeholder={this.getObjectNamePlaceholder()}
+                autoFocus
+              />
+              <ColorButton onClick={this.toggleColor} />
+              <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
+                <TrashIcon />
+              </Button>
+            </Flex>
+          )}{showClassSelection && (
             <div style={{ marginTop: '8px' }}>
               <ClassSelectionFlex>
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.objectClass')}</Body>
@@ -279,7 +306,7 @@ class ObjectNameComponent extends Component<Props, State> {
           <Divider />
         </section>
         <section>          <Header>{this.props.translate('popup.attributes')}</Header>
-          {attributes.map((attribute, index) => {
+          {visibleAttributes.map((attribute, index) => {
             const AttributeComponent: React.ComponentType<any> = isUserModelElement
               ? UMLUserModelAttributeUpdate
               : UMLObjectAttributeUpdate;
@@ -290,7 +317,7 @@ class ObjectNameComponent extends Component<Props, State> {
               value={attribute.name}
               onChange={this.props.update}
               onSubmitKeyUp={() =>
-                index === attributes.length - 1
+                index === visibleAttributes.length - 1
                   ? this.newAttributeField.current?.focus()
                   : this.setState({
                       fieldToFocus: attributeRefs[index + 1],
@@ -342,6 +369,19 @@ class ObjectNameComponent extends Component<Props, State> {
             }}
           /> */}
         </section>
+        {isUserModelElement && (
+          <section>
+            <Divider />
+            <PersonalizationEditor
+              value={(element as any).personalization as UserPersonalizationSpec | undefined}
+              onChange={(spec) =>
+                this.props.update(element.id, { personalization: spec } as any)
+              }
+              label={this.props.translate('popup.personalization')}
+              suggestedFields={getSuggestedPersonalizationFields(ownerClassName)}
+            />
+          </section>
+        )}
         {/* <section>
           <Divider />
           <Header>{this.props.translate('popup.methods')}</Header>

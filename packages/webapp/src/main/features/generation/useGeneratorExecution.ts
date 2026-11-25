@@ -1,3 +1,5 @@
+import { aggregateProfilePersonalization, mergeProfileModels, usesProfileAuthoredPersonalization } from '../../shared/utils/personalization-aggregation';
+import { splitUserDiagramIntoProfiles, uniquifyNames, mergeSingletonBoxes, reinjectHiddenContainers } from '../../shared/utils/user-profile-graph';
 /**
  * useGeneratorExecution
  *
@@ -528,14 +530,6 @@ export interface GeneratorConfigState {
   jsonSchemaMode: JSONSchemaConfig['mode'];
 
   // ── Agent ────────────────────────────────────────────────────────────────
-  /** Source language for the agent (e.g. 'english'). 'none' = not set. */
-  sourceLanguage: string;
-  /** Language currently picked in the dropdown but not yet added. */
-  pendingAgentLanguage: string;
-  /** Languages the agent will be translated to. */
-  selectedAgentLanguages: string[];
-  /** Whether at least one saved agent configuration preset exists. */
-  hasSavedAgentConfiguration: boolean;
   /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
   agentMode: 'original' | 'configuration' | 'personalization';
   /** Stored agent configuration presets. */
@@ -571,9 +565,6 @@ export interface GeneratorConfigState {
   onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (v: JSONSchemaConfig['mode']) => void;
-  onSourceLanguageChange: (v: string) => void;
-  onPendingAgentLanguageChange: (v: string) => void;
-  onSelectedAgentLanguagesChange: (v: string[]) => void;
   onQiskitBackendChange: (v: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (v: number) => void;
   /** Merge a partial update into the forecaster settings. */
@@ -669,13 +660,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<JSONSchemaConfig['mode']>('regular');
-  const [sourceLanguage, setSourceLanguage] = useState('none');
-  const [selectedAgentLanguages, setSelectedAgentLanguages] = useState<string[]>([]);
-  const [pendingAgentLanguage, setPendingAgentLanguage] = useState('none');
   const [qiskitBackend, setQiskitBackend] = useState<QiskitConfig['backend']>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
   const [forecasterConfig, setForecasterConfig] = useState<ForecasterConfig>(DEFAULT_FORECASTER_CONFIG);
-  const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
@@ -733,7 +720,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
     try {
       const allSavedConfigurations = LocalStorageRepository.getAgentConfigurations();
-      setHasSavedAgentConfiguration(allSavedConfigurations.length > 0);
 
       if (SHOW_FULL_AGENT_CONFIGURATION) {
         const usableConfigs = allSavedConfigurations.filter((entry) =>
@@ -900,7 +886,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               reason: 'wrong_context',
             };
           }
-          const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
+          const nnResult = await runGen(editor ?? null, generatorType, activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted', reason: 'unmounted' };
           return nnResult;
         }
@@ -1334,17 +1320,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       ...systemConfig,
     };
 
-    if (selectedAgentLanguages.length > 0) {
-      baseConfig = {
-        ...baseConfig,
-        languages: { source: sourceLanguage, target: selectedAgentLanguages },
-      };
-    }
 
     let finalConfig: AgentConfig = baseConfig;
     let agentModelOverride: UMLModel | undefined;
 
-    if (agentGenerationMode === 'personalization') {
+    const profileModels = mergeProfileModels(
+      LocalStorageRepository.getUserProfiles()
+        .filter((profile) => isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram)
+        .map((profile) => ({ id: profile.id, model: profile.model as UMLModel })),
+      (currentProject?.diagrams?.UserDiagram ?? [])
+        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+        .map((diagram) => ({ id: diagram.id, model: diagram.model as UMLModel })),
+    );
+    const useProfileRules = usesProfileAuthoredPersonalization(profileModels);
+
+    if (agentGenerationMode === 'personalization' && !useProfileRules && LocalStorageRepository.getAgentProfileConfigurationMappings().length > 0) {
       const localProfiles = LocalStorageRepository.getUserProfiles();
       const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
         .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
@@ -1391,7 +1381,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         })
         .filter((entry): entry is {
           name: string;
-          configuration: Record<string, any>;
+          configuration: (typeof configs)[number]['config'];
           user_profile: Record<string, any>;
           agent_model: Record<string, any>;
         } => Boolean(entry));
@@ -1429,6 +1419,99 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         );
       }
     }
+    else if (agentGenerationMode === 'personalization') {
+      // Personalization is now authored directly on each UserDiagram profile:
+      // the per-element specs (profile-level + attribute-level) live on the
+      // model, and `aggregateProfilePersonalization` collapses them into the
+      // flat `configuration` the backend expects. There is no longer a separate
+      // stored agent-config, profile→config mapping, or per-config variant — a
+      // profile IS its configuration.
+      // A UserDiagram tab may hold several `User` elements; each is its own
+      // profile (a User plus its reachable subgraph — "Users are walls"). Gather
+      // every UserDiagram model and split it into per-profile sub-models.
+      const userModels = profileModels;
+
+      // The un-personalized agent base is the same for every profile — the
+      // backend layers each profile's configuration on top of it. Prefer the
+      // captured base snapshot so generation is deterministic; fall back to the
+      // active editor model.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      const resolvedBase: UMLModel | undefined =
+        storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram
+          ? storedBase
+          : (activeAgentDiagram?.model as UMLModel | undefined);
+
+      if (!resolvedBase) {
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
+        return;
+      }
+      if (storedBase) {
+        agentModelOverride = resolvedBase;
+      } else {
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Open the agent diagram once to capture the base.',
+        );
+      }
+
+      // Build a map from profileName → stored personalized variant model.
+      // The Personalize button saves the output of /transform-agent-model-json
+      // into diagram.config.personalizedVariants; that is the already-personalized
+      // model the backend needs per profile. Fall back to the base when a profile
+      // hasn't been personalized yet.
+      const rawStoredVariants = (activeAgentDiagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+      const variantModelByProfileName = new Map<string, UMLModel>();
+      if (Array.isArray(rawStoredVariants)) {
+        for (const v of rawStoredVariants) {
+          if (
+            v && typeof v === 'object' &&
+            typeof (v as any).profileName === 'string' &&
+            isUMLModel((v as any).model) &&
+            (v as any).model.type === UMLDiagramType.AgentDiagram
+          ) {
+            variantModelByProfileName.set((v as any).profileName, (v as any).model as UMLModel);
+          }
+        }
+      }
+
+      const personalizationMapping = uniquifyNames(
+        userModels.flatMap((model) =>
+          splitUserDiagramIntoProfiles(model).map((profile) => {
+            // Fuse the `single`-cardinality granular chips (age+nationality →
+            // one Personal_Information) so the shipped user_profile matches the
+            // metamodel. Then re-insert hidden grouping containers (Competence,
+            // Accessibility) so the backend receives the expected nesting depth
+            // (User→Competence→Language rather than the flat User→Language).
+            const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
+            // Use the stored personalized model for this profile (output of
+            // the Personalize button). Fall back to the base when not yet personalized.
+            const storedVariantModel = variantModelByProfileName.get(profile.name);
+            return {
+              name: profile.name,
+              configuration: aggregateProfilePersonalization(merged)
+                .configuration as Record<string, any>,
+              user_profile: structuredClone(merged) as Record<string, any>,
+              agent_model: prepareAgentModelForBackend(storedVariantModel ?? resolvedBase, activeAgentDiagram ?? null) as Record<string, any>,
+            };
+          }),
+        ),
+      );
+
+      if (personalizationMapping.length === 0) {
+        reportError(t('generation.toasts.noValidPersonalizationMappings'));
+        trackInvalidGeneratorInput('agent');
+        return;
+      }
+
+      finalConfig = {
+        ...baseConfig,
+        personalizationMapping,
+      };
+    }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;
     await executeGenerator(
@@ -1439,8 +1522,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     setConfigDialog('none');
   }, [
     currentProject,
-    selectedAgentLanguages,
-    sourceLanguage,
     executeGenerator,
     agentGenerationMode,
     agentVariantOptions,
@@ -1520,13 +1601,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     supabaseUserRoot,
     sqlAlchemyDbms,
     jsonSchemaMode,
-    sourceLanguage,
-    pendingAgentLanguage,
-    selectedAgentLanguages,
     qiskitBackend,
     qiskitShots,
     forecasterConfig,
-    hasSavedAgentConfiguration,
     agentMode,
     storedAgentConfigurations,
     storedAgentMappings,
@@ -1551,9 +1628,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
     onJsonSchemaModeChange: setJsonSchemaMode,
-    onSourceLanguageChange: setSourceLanguage,
-    onPendingAgentLanguageChange: setPendingAgentLanguage,
-    onSelectedAgentLanguagesChange: setSelectedAgentLanguages,
     onQiskitBackendChange: setQiskitBackend,
     onQiskitShotsChange: setQiskitShots,
     onForecasterConfigChange: handleForecasterConfigChange,

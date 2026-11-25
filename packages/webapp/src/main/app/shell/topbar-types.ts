@@ -34,6 +34,9 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportKg: () => void;
   onImportOwl: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
+  onOpenPersonalizeDialog?: () => void;
+  onOpenRecommendPersonalizationDialog?: () => void;
+  onOpenPersonalizationOverview?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   /** When set, the quality check becomes a menu offering this semantic check too. */
   onSemanticCheck?: () => Promise<void>;

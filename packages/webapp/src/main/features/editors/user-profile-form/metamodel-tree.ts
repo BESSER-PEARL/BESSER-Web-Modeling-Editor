@@ -15,7 +15,7 @@
  * when its multiplicity ends with `*`, otherwise `single`.
  */
 
-import { diagramBridge } from '@besser/wme';
+import { diagramBridge, isHiddenUserModelContainer } from '@besser/wme';
 // The fixed user metamodel is a static JSON shipped with the editor package.
 // Importing it here makes the form fully self-sufficient (frontend only): it
 // never has to wait for navigation to populate the bridge, and never calls
@@ -177,5 +177,48 @@ export const buildMetamodelTree = (): MetaTree => {
     });
   });
 
+  flattenHiddenContainers(byClassName);
+
   return { root: byClassName[ROOT_CLASS_NAME] || null, byClassName };
+};
+
+/**
+ * Rewrite every node's `children` so any child that is a hidden grouping
+ * container (`Accessibility`, `Competence`) is replaced by that container's own
+ * (recursively flattened) children, each keeping its **own** multiplicity. This
+ * mirrors the canvas, where those containers are suppressed and their children
+ * (`Disability`, `Skill`, `Language`, `Education`) attach directly under `User`.
+ * The container nodes stay in `byClassName` (harmless — nothing references them
+ * as children any more, and their backend re-nesting is handled downstream).
+ *
+ * Mutates the nodes in place. A `visited` set guards against container cycles.
+ */
+const flattenHiddenContainers = (byClassName: Record<string, MetaNode>): void => {
+  // Resolve a node's effective (flattened) children, expanding hidden containers.
+  const resolve = (node: MetaNode, visiting: Set<string>): MetaChildRef[] => {
+    const out: MetaChildRef[] = [];
+    const pushUnique = (ref: MetaChildRef) => {
+      if (!out.some((r) => r.classId === ref.classId)) out.push(ref);
+    };
+    node.children.forEach((ref) => {
+      if (isHiddenUserModelContainer(ref.className)) {
+        const containerNode = byClassName[ref.className];
+        if (!containerNode || visiting.has(ref.className)) return; // missing or cyclic
+        visiting.add(ref.className);
+        resolve(containerNode, visiting).forEach(pushUnique);
+        visiting.delete(ref.className);
+      } else {
+        pushUnique(ref);
+      }
+    });
+    return out;
+  };
+
+  const flattened: Record<string, MetaChildRef[]> = {};
+  Object.values(byClassName).forEach((node) => {
+    flattened[node.className] = resolve(node, new Set<string>([node.className]));
+  });
+  Object.values(byClassName).forEach((node) => {
+    node.children = flattened[node.className];
+  });
 };

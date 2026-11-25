@@ -1,0 +1,351 @@
+import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { selectActiveDiagram, selectWorkspaceLoading, bumpEditorRevision, refreshProjectStateThunk } from '../../../app/store/workspaceSlice';
+import { toast } from 'react-toastify';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Loader2, Users } from 'lucide-react';
+import { UMLDiagramType } from '@besser/wme';
+import { isUMLModel } from '../../../shared/types/project';
+import { ApiError } from '../../../shared/api/api-client';
+import { transformAgentModelJson } from '../../../shared/api/conversion';
+import { reportError } from '../../../shared/services/errors/reportError';
+import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { useProject } from '../../../app/hooks/useProject';
+import type { StoredUserProfile, StoredAgentConfiguration } from '../../../shared/services/storage/local-storage-types';
+import { aggregateProfilePersonalization } from '../../../shared/utils/personalization-aggregation';
+import {
+  splitUserDiagramIntoProfiles,
+  mergeSingletonBoxes,
+  reinjectHiddenContainers,
+} from '../../../shared/utils/user-profile-graph';
+import {
+  type AgentModelVariantSnapshot,
+  upsertVariantForProfile,
+  readAgentVariants,
+} from '../../../shared/services/agent-variants/agent-variants-service';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import type { UMLModel } from '@besser/wme';
+
+interface PersonalizeAgentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/** One selectable entry = one named User element from any UserDiagram. */
+interface FlatProfileOption {
+  /** Stable key: `${sourceTabId}::${rootBoxId}` */
+  key: string;
+  /** User element's `name` attribute — shown in the dropdown */
+  userName: string;
+  /** Tab title — shown when two users share the same name across tabs */
+  tabName: string;
+  /** Whether to show the tab name for disambiguation */
+  showTab: boolean;
+  /** Per-profile merged model ready for the backend */
+  model: UMLModel;
+  /** Source diagram, used when saving the mapping */
+  sourceProfile: StoredUserProfile;
+}
+
+export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const activeAgentDiagram = useAppSelector(selectActiveDiagram);
+  const { currentProject } = useProject();
+
+  const [selectedKey, setSelectedKey] = useState<string>('');
+  const [isApplying, setIsApplying] = useState(false);
+  const workspaceLoading = useAppSelector(selectWorkspaceLoading);
+
+  const availableProfiles = React.useMemo(() => {
+    const results: FlatProfileOption[] = [];
+
+    const addFromDiagram = (tabId: string, tabName: string, model: UMLModel) => {
+      splitUserDiagramIntoProfiles(model).forEach((p) => {
+        results.push({
+          key: `${tabId}::${p.rootBoxId}`,
+          userName: p.name,
+          tabName,
+          showTab: false, // filled in below after counting
+          model: reinjectHiddenContainers(mergeSingletonBoxes(p.model)),
+          sourceProfile: { id: tabId, name: tabName, model, savedAt: new Date().toISOString() },
+        });
+      });
+    };
+
+    for (const profile of LocalStorageRepository.getUserProfiles()) {
+      if (currentProject?.diagrams?.UserDiagram?.some((diagram) => diagram.id === profile.id)) continue;
+      if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
+        addFromDiagram(profile.id, profile.name, profile.model as UMLModel);
+      }
+    }
+
+    for (const diagram of currentProject?.diagrams?.UserDiagram ?? []) {
+      if (isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram) {
+        addFromDiagram(diagram.id, diagram.title, diagram.model as UMLModel);
+      }
+    }
+
+    // Mark entries whose user name appears more than once so the tab name is shown
+    const nameCounts = new Map<string, number>();
+    results.forEach((r) => nameCounts.set(r.userName, (nameCounts.get(r.userName) ?? 0) + 1));
+    results.forEach((r) => { r.showTab = (nameCounts.get(r.userName) ?? 0) > 1; });
+
+    return results;
+  }, [currentProject]);
+
+  const handleApply = useCallback(async () => {
+    if (!selectedKey) {
+      reportError(t('personalize.selectProfile'));
+      return;
+    }
+
+    if (!activeAgentDiagram || !isUMLModel(activeAgentDiagram.model)) {
+      reportError(t('personalize.noAgentDiagram'));
+      return;
+    }
+
+    if (activeAgentDiagram.model.type !== UMLDiagramType.AgentDiagram) {
+      reportError(t('personalize.notAgentDiagram'));
+      return;
+    }
+
+    const selected = availableProfiles.find((opt) => opt.key === selectedKey);
+    if (!selected) {
+      reportError(t('personalize.profileNotFound'));
+      return;
+    }
+
+    try {
+      setIsApplying(true);
+
+      // Only use the stored base when this diagram has already been successfully
+      // personalized (i.e. it carries personalizedVariants in its config). If it
+      // hasn't, any stored base is either stale (saved by old code before a failed
+      // attempt) or simply unnecessary — always start from the live model so the
+      // user's latest edits are picked up.
+      const agentDiagramConfig = (activeAgentDiagram as any)?.config ?? {};
+      const hasBeenPersonalized =
+        Array.isArray(agentDiagramConfig.personalizedVariants) &&
+        agentDiagramConfig.personalizedVariants.length > 0;
+
+      const storedBase = hasBeenPersonalized
+        ? LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id)
+        : null;
+
+      const resolvedBase: UMLModel =
+        storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram
+          ? (storedBase as UMLModel)
+          : (activeAgentDiagram.model as UMLModel);
+
+      // Extract the flat agent config from the profile's per-element personalization
+      // specs (language, modality, interface style, etc.), then attach the raw
+      // user profile model so the backend's generate_user_profile_document can
+      // build the full profile document — same structure the old "Save & Apply" sent.
+      const { configuration } = aggregateProfilePersonalization(selected.model);
+      const config: Record<string, any> = {
+        ...configuration,
+        userProfileModel: structuredClone(selected.model),
+      };
+
+      const payload = {
+        id: activeAgentDiagram.id,
+        title: activeAgentDiagram.title,
+        model: resolvedBase,
+        lastUpdate: activeAgentDiagram.lastUpdate,
+        generator: 'agent',
+        config,
+      };
+
+      let transformedModel: unknown;
+      try {
+        transformedModel = await transformAgentModelJson(payload);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          reportError(t('personalize.transformFailed', { message: err.message }));
+          return;
+        }
+        if (err instanceof DOMException && err.name === 'TimeoutError') {
+          reportError(t('personalize.transformTimeout'));
+          return;
+        }
+        throw err;
+      }
+
+      const snapshotModel: UMLModel | undefined =
+        transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel
+          ? ((transformedModel as { model: UMLModel }).model)
+          : (transformedModel as UMLModel | undefined);
+
+      if (snapshotModel && currentProject) {
+        // Save the base model on first successful personalization.
+        // Using !hasBeenPersonalized (not !storedBase) means we also overwrite any
+        // stale base that was saved by old code before a failed attempt.
+        if (!hasBeenPersonalized && activeAgentDiagram.id) {
+          LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, resolvedBase);
+        }
+
+        const now = new Date().toISOString();
+        const configId = `personalize_${Date.now()}`;
+        const variantId = `${selected.sourceProfile.id}:${configId}`;
+
+        const nextVariant: AgentModelVariantSnapshot = {
+          id: variantId,
+          profileId: selected.key,
+          profileName: selected.userName,
+          configurationId: configId,
+          configurationName: selected.userName,
+          createdAt: now,
+          model: snapshotModel,
+        };
+
+        // Find the current agent diagram index
+        const agentIndex = currentProject.currentDiagramIndices?.AgentDiagram ?? 0;
+        const latestProject =
+          ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject;
+        const agentDiagram =
+          latestProject.diagrams.AgentDiagram?.[agentIndex] ?? activeAgentDiagram;
+
+        const existingVariants = readAgentVariants(agentDiagram);
+        const updatedVariants = upsertVariantForProfile(existingVariants, nextVariant);
+
+        ProjectStorageRepository.updateDiagram(
+          currentProject.id,
+          'AgentDiagram',
+          {
+            ...agentDiagram,
+            model: structuredClone(snapshotModel),
+            config: {
+              ...(agentDiagram.config as Record<string, unknown> | undefined ?? {}),
+              personalizedVariants: updatedVariants,
+              activePersonalizedVariantId: variantId,
+            },
+          },
+          agentIndex,
+        );
+
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+
+        // Also save the profile↔config mapping for the agent config panel
+        const configEntry: StoredAgentConfiguration = {
+          id: configId,
+          name: selected.userName,
+          savedAt: now,
+          config: aggregateProfilePersonalization(selected.model).configuration as any,
+          personalizedAgentModel: snapshotModel,
+          originalAgentModel: resolvedBase,
+        };
+        LocalStorageRepository.saveAgentProfileConfigurationMapping(selected.sourceProfile, configEntry);
+      }
+
+      toast.success(t('personalize.success'));
+      onOpenChange(false);
+      setSelectedKey('');
+    } catch (error) {
+      console.error('Error personalizing agent:', error);
+      reportError(t('personalize.error'));
+    } finally {
+      setIsApplying(false);
+    }
+  }, [selectedKey, activeAgentDiagram, availableProfiles, currentProject, dispatch, onOpenChange, t]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!isApplying) {
+      onOpenChange(newOpen);
+      if (!newOpen) setSelectedKey('');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="sm:max-w-[425px]"
+        // Hide the Radix close (×) button while the request is in flight so
+        // the user cannot accidentally dismiss a non-cancellable operation.
+        onEscapeKeyDown={(e) => isApplying && e.preventDefault()}
+        onInteractOutside={(e) => isApplying && e.preventDefault()}
+        style={isApplying ? { '--close-btn-display': 'none' } as React.CSSProperties : undefined}
+        {...(isApplying ? { 'data-loading': '' } : {})}
+      >
+        <style>{`[data-loading] > button[data-radix-dialog-close] { display: none; }`}</style>
+
+        <DialogHeader>
+          <DialogTitle>{t('personalize.title')}</DialogTitle>
+          <DialogDescription>{t('personalize.description')}</DialogDescription>
+        </DialogHeader>
+
+        {isApplying ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <Loader2 className="size-10 animate-spin text-brand" />
+            <p className="text-center text-sm font-medium text-foreground">
+              {t('personalize.applyingLabel')}
+            </p>
+            <p className="text-center text-xs text-muted-foreground">
+              {t('personalize.applyingHint')}
+            </p>
+          </div>
+        ) : availableProfiles.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-md border border-border/60 bg-muted/30 px-4 py-6 text-center">
+            <Users className="size-8 text-muted-foreground/60" />
+            <p className="text-sm font-medium">{t('personalize.noProfilesTitle')}</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {t('personalize.noProfilesGuide')}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="profile-select">{t('personalize.selectProfile')}</Label>
+              <Select
+                value={selectedKey}
+                onValueChange={setSelectedKey}
+              >
+                <SelectTrigger id="profile-select">
+                  <SelectValue placeholder={t('personalize.selectProfilePlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProfiles.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                      {option.userName || t('personalize.unnamedUser')}
+                      {option.showTab ? ` — ${option.tabName}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isApplying}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="button"
+            onClick={handleApply}
+            disabled={!selectedKey || isApplying || availableProfiles.length === 0 || workspaceLoading}
+          >
+            {t('personalize.apply')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

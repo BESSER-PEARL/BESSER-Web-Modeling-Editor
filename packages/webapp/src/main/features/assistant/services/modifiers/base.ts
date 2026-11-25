@@ -10,6 +10,7 @@ export type { DiagramType };
 
 export interface ModificationTarget {
   classId?: string;
+  displayLabel?: string;
   className?: string;
   attributeId?: string;
   attributeName?: string;
@@ -68,6 +69,7 @@ export interface ModificationChanges {
   // add_class / add_object fields
   className?: string;
   classId?: string;
+  displayLabel?: string;
   // Class flags (add_class / modify_class)
   isAbstract?: boolean;
   isEnumeration?: boolean;

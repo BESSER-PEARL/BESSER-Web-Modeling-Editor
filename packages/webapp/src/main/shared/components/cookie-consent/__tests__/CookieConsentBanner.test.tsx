@@ -67,5 +67,14 @@ describe('CookieConsentBanner', () => {
       expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
       expect(applyAnalyticsConsent).toHaveBeenCalledWith('accepted');
     });
+
+    it('honors a declined current-version choice without showing the banner', () => {
+      localStorage.setItem(localStorageAnalyticsConsent, JSON.stringify({
+        status: 'declined', timestamp: '2026-10-01T00:00:00.000Z', version: '1.3',
+      }));
+      render(<CookieConsentBanner />);
+      expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+      expect(applyAnalyticsConsent).toHaveBeenCalledWith('declined');
+    });
   });
 });

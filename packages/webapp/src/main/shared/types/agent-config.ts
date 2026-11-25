@@ -2,7 +2,7 @@ import type { AgentLLMProviderType, LegacyAgentLLMProviderType } from '@besser/w
 
 export type InterfaceStyleSetting = {
   size: number;
-  font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque' | 'condensed';
+  font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque' | 'condensed' | 'hyperlegible' | 'lexend' | 'dyslexia' | 'verdana' | 'fredoka';
   lineSpacing: number;
   alignment: 'left' | 'center' | 'justify';
   color: string;
@@ -42,6 +42,8 @@ export interface AgentConfigurationPayload {
   agentPlatform: string;
   responseTiming: string;
   agentStyle: string;
+  conversationalTone?: 'original' | 'formal' | 'informal' | 'friendly' | 'technical';
+  explanationStyle?: 'original' | 'direct' | 'step-by-step' | 'narrative';
   llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never>;
   languageComplexity: AgentLanguageComplexity;
   sentenceLength: AgentSentenceLength;
