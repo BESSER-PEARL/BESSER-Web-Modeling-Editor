@@ -1,15 +1,17 @@
 import React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../shared/api/api-client';
 import {
   createLabChange,
   getLabHome,
   listLabChanges,
+  listLabIssues,
   type LabChangeDetail,
   type LabChangeSummary,
   type LabHomeResponse,
+  type LabIssueOption,
 } from '../../../shared/api/lab';
 import { resetGitHubAuthForTests, signInToGitHubForTests } from '../../../shared/services/github/githubAuth';
 import { LabAuthGate } from '../LabAuthGate';
@@ -21,6 +23,7 @@ vi.mock('../../../shared/api/lab', async (importOriginal) => ({
   getLabHome: vi.fn(),
   listLabChanges: vi.fn(),
   createLabChange: vi.fn(),
+  listLabIssues: vi.fn(),
 }));
 
 const SESSION = 'gh-session-0123456789';
@@ -112,12 +115,18 @@ async function renderHome(home: LabHomeResponse = HOME) {
 const startButton = () => screen.getByRole('button', { name: /Start change/ });
 const composer = () => screen.getByLabelText('Describe the change');
 
+const ISSUES: LabIssueOption[] = [
+  { repo: 'frontend', number: 835, title: 'Improve the readme of saved projects', author: 'jcabot', updatedAt: '2026-11-25', url: 'https://example.test/835' },
+  { repo: 'frontend', number: 744, title: 'Auto-fix for failing checks', author: 'ana', updatedAt: '2026-11-20', url: 'https://example.test/744' },
+];
+
 beforeEach(() => {
   resetGitHubAuthForTests();
   signInToGitHubForTests(SESSION, 'ana');
   vi.mocked(getLabHome).mockReset();
   vi.mocked(listLabChanges).mockReset().mockResolvedValue({ changes: [OPEN_MINE, OPEN_THEIRS, MERGED, CLOSED_UNMERGED] });
   vi.mocked(createLabChange).mockReset();
+  vi.mocked(listLabIssues).mockReset().mockResolvedValue(ISSUES);
 });
 afterEach(() => {
   cleanup();
@@ -254,13 +263,55 @@ describe('LabHome composer', () => {
     expect(await screen.findByTestId('lab-start-blocked')).toHaveTextContent(reason);
   });
 
-  it('creates a change and opens it with the message and the GitHub issue as router state', async () => {
+  it('lists the open issues of the repository, and starts the change from the one picked', async () => {
+    vi.mocked(createLabChange).mockResolvedValue({ changeId: 'feedfacecafe' } as LabChangeDetail);
+    await renderHome();
+    fireEvent.click(screen.getByRole('button', { name: 'Start from a GitHub issue' }));
+    fireEvent.change(screen.getByLabelText('Repository'), { target: { value: 'frontend' } });
+    const list = await screen.findByRole('list', { name: 'Open issues' });
+    expect(listLabIssues).toHaveBeenLastCalledWith(SESSION, 'frontend', '');
+    expect(within(list).getAllByRole('button').map((row) => row.textContent)).toEqual([
+      '#835Improve the readme of saved projects@jcabot',
+      '#744Auto-fix for failing checks@ana',
+    ]);
+
+    fireEvent.click(within(list).getByRole('button', { name: /Improve the readme/ }));
+    expect(screen.getByTestId('lab-issue-picked')).toHaveTextContent('#835Improve the readme of saved projects');
+    // With nothing written yet, the issue is the request.
+    expect(composer()).toHaveValue('Fix issue #835: Improve the readme of saved projects');
+    await act(async () => {
+      fireEvent.click(startButton());
+    });
+    expect(JSON.parse(screen.getByTestId('change-probe').textContent ?? '')).toEqual({
+      path: '/c/feedfacecafe',
+      state: {
+        labStart: { message: 'Fix issue #835: Improve the readme of saved projects', issue: { repo: 'frontend', number: 835 } },
+      },
+    });
+  });
+
+  it('searches the issues for what is typed, and keeps a message already written when one is picked', async () => {
+    await renderHome();
+    fireEvent.change(composer(), { target: { value: 'Only the link, please' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Start from a GitHub issue' }));
+    await screen.findByRole('list', { name: 'Open issues' });
+    fireEvent.change(screen.getByLabelText('Issue'), { target: { value: 'readme' } });
+    await waitFor(() => expect(listLabIssues).toHaveBeenLastCalledWith(SESSION, 'besser', 'readme'));
+    fireEvent.click(await screen.findByRole('button', { name: /Improve the readme/ }));
+    expect(composer()).toHaveValue('Only the link, please');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose another' }));
+    expect(screen.queryByTestId('lab-issue-picked')).toBeNull();
+  });
+
+  it('takes a typed number as the issue when the list cannot be read', async () => {
+    vi.mocked(listLabIssues).mockRejectedValue(new ApiError(502, 'GitHub could not be read.', 'GitHub could not be read.'));
     vi.mocked(createLabChange).mockResolvedValue({ changeId: 'feedfacecafe' } as LabChangeDetail);
     await renderHome();
     fireEvent.change(composer(), { target: { value: '  Work on the note element  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start from a GitHub issue' }));
     fireEvent.change(screen.getByLabelText('Repository'), { target: { value: 'frontend' } });
-    fireEvent.change(screen.getByLabelText('Issue number'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('Issue'), { target: { value: '12' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('You can still type the issue number.');
     await act(async () => {
       fireEvent.click(startButton());
     });
@@ -282,15 +333,6 @@ describe('LabHome composer', () => {
     expect(JSON.parse(screen.getByTestId('change-probe').textContent ?? '').state).toEqual({
       labStart: { message: 'Add a note element' },
     });
-  });
-
-  it('keeps Start disabled for an issue number that is not a positive whole number', async () => {
-    await renderHome();
-    fireEvent.change(composer(), { target: { value: 'Add a note element' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Start from a GitHub issue' }));
-    fireEvent.change(screen.getByLabelText('Issue number'), { target: { value: '-3' } });
-    expect(startButton()).toBeDisabled();
-    expect(screen.getByLabelText('Issue number')).toHaveAttribute('aria-invalid', 'true');
   });
 
   it("shows the server's refusal when the change cannot be created", async () => {

@@ -282,12 +282,12 @@ describe('lab run card: header', () => {
     expect(screen.queryByText('lab/jordi/a')).toBeNull();
   });
 
-  it('names BESSER Forge on a finished lab card, and not on a Spec-Driven one (E2E A, where am I)', () => {
+  it('names BESSER Bootstrapped on a finished lab card, and not on a Spec-Driven one (E2E A, where am I)', () => {
     renderCard(cardAfterDone(BUILD_PAYLOAD));
-    expect(screen.getByText(/BESSER Forge/)).toBeTruthy();
+    expect(screen.getByText(/BESSER Bootstrapped/)).toBeTruthy();
     cleanup();
     renderCard(cardAfterDone(undefined));
-    expect(screen.queryByText(/BESSER Forge/)).toBeNull();
+    expect(screen.queryByText(/BESSER Bootstrapped/)).toBeNull();
   });
 
   it('names the change kind in words, as the lab page does', () => {
@@ -307,9 +307,9 @@ describe('lab run card: header', () => {
     expect(screen.queryByRole('status')).toBeNull();
   });
 
-  it('names BESSER Forge, not the Spec-Driven Agent, while a lab run streams', () => {
+  it('names BESSER Bootstrapped, not the Spec-Driven Agent, while a lab run streams', () => {
     renderCard({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID, isLabRun: true });
-    expect(screen.getByText('BESSER Forge')).toBeTruthy();
+    expect(screen.getByText('BESSER Bootstrapped')).toBeTruthy();
     expect(screen.queryByText('Spec-Driven Agent')).toBeNull();
     cleanup();
     renderCard({ phases: [], warnings: [], text: '', status: 'running', runId: RUN_ID });

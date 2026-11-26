@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   createLabChange,
+  listLabIssues,
+  type LabIssueOption,
   labRefusal,
   listLabChanges,
   type LabChangeSummary,
@@ -80,6 +82,9 @@ function useStartBlock(home: LabHomeResponse, changes: LabChangeSummary[] | null
   return null;
 }
 
+/** How long typing pauses before the issues are searched. */
+const ISSUE_SEARCH_DELAY_MS = 300;
+
 /** The composer: the first message of a new change, optionally from a GitHub issue. */
 const Composer: React.FC<{ block: React.ReactNode | null }> = ({ block }) => {
   const { t } = useTranslation();
@@ -88,16 +93,57 @@ const Composer: React.FC<{ block: React.ReactNode | null }> = ({ block }) => {
   const [message, setMessage] = useState('');
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueRepo, setIssueRepo] = useState<LabRepoKey>('besser');
-  const [issueNumber, setIssueNumber] = useState('');
+  // What is typed to find an issue: words of its title, or its number.
+  const [issueQuery, setIssueQuery] = useState('');
+  const [picked, setPicked] = useState<LabIssueOption | null>(null);
+  const [options, setOptions] = useState<{ status: 'loading' | 'ready' | 'failed'; issues: LabIssueOption[]; error?: string }>({
+    status: 'loading',
+    issues: [],
+  });
   const [starting, setStarting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const trimmedNumber = issueNumber.trim();
-  const parsedNumber = Number(trimmedNumber);
-  const issueInvalid = issueOpen && trimmedNumber !== '' && !(Number.isInteger(parsedNumber) && parsedNumber > 0);
-  const issue: LabIssueRef | undefined =
-    issueOpen && trimmedNumber !== '' && !issueInvalid ? { repo: issueRepo, number: parsedNumber } : undefined;
-  const canStart = message.trim() !== '' && !block && !starting && !issueInvalid;
+  // The repository's open issues: the most recently updated, or those matching what is typed.
+  useEffect(() => {
+    if (!issueOpen || picked) return undefined;
+    let cancelled = false;
+    setOptions((previous) => ({ ...previous, status: 'loading' }));
+    const timer = window.setTimeout(() => {
+      listLabIssues(session, issueRepo, issueQuery.trim()).then(
+        (issues) => !cancelled && setOptions({ status: 'ready', issues }),
+        (error: unknown) => !cancelled && setOptions({ status: 'failed', issues: [], error: labRefusal(error).message }),
+      );
+    }, ISSUE_SEARCH_DELAY_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [issueOpen, issueRepo, issueQuery, picked, session]);
+
+  // A number typed and not picked from the list is taken as the issue's number, as before the list existed.
+  const typedNumber = /^#?\d+$/.test(issueQuery.trim()) ? Number(issueQuery.trim().replace('#', '')) : null;
+  const issue: LabIssueRef | undefined = !issueOpen
+    ? undefined
+    : picked
+      ? { repo: picked.repo, number: picked.number }
+      : typedNumber
+        ? { repo: issueRepo, number: typedNumber }
+        : undefined;
+  const canStart = message.trim() !== '' && !block && !starting;
+
+  const pick = (option: LabIssueOption) => {
+    setPicked(option);
+    // An issue is a request of its own: with nothing written yet, the message asks for it.
+    if (message.trim() === '') {
+      setMessage(
+        t('lab.app.home.issueMessage', {
+          defaultValue: 'Fix issue #{{number}}: {{title}}',
+          number: option.number,
+          title: option.title,
+        }),
+      );
+    }
+  };
 
   const start = async () => {
     if (!canStart) return;
@@ -147,7 +193,10 @@ const Composer: React.FC<{ block: React.ReactNode | null }> = ({ block }) => {
             {t('lab.app.home.issueRepo', { defaultValue: 'Repository' })}
             <select
               value={issueRepo}
-              onChange={(event) => setIssueRepo(event.target.value as LabRepoKey)}
+              onChange={(event) => {
+                setIssueRepo(event.target.value as LabRepoKey);
+                setPicked(null);
+              }}
               className={cn(inputBaseClass, 'h-9 w-44 py-1')}
             >
               {REPO_KEYS.map((repo) => (
@@ -157,29 +206,77 @@ const Composer: React.FC<{ block: React.ReactNode | null }> = ({ block }) => {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            {t('lab.app.home.issueNumber', { defaultValue: 'Issue number' })}
-            <input
-              inputMode="numeric"
-              value={issueNumber}
-              aria-invalid={issueInvalid || undefined}
-              onChange={(event) => setIssueNumber(event.target.value)}
-              placeholder="744"
-              className={cn(inputBaseClass, 'h-9 w-28 py-1 font-mono')}
-            />
-          </label>
+          {picked ? (
+            <p data-testid="lab-issue-picked" className="flex min-w-0 flex-1 items-center gap-2 self-center text-sm text-foreground">
+              <span className="shrink-0 font-mono text-muted-foreground">#{picked.number}</span>
+              <span className="min-w-0 truncate">{picked.title}</span>
+              <Button type="button" variant="ghost" size="xs" onClick={() => setPicked(null)}>
+                {t('lab.app.home.issueChange', { defaultValue: 'Choose another' })}
+              </Button>
+            </p>
+          ) : (
+            <label className="flex min-w-[14rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
+              {t('lab.app.home.issueSearch', { defaultValue: 'Issue' })}
+              <input
+                value={issueQuery}
+                onChange={(event) => setIssueQuery(event.target.value)}
+                placeholder={t('lab.app.home.issueSearchPlaceholder', { defaultValue: 'Search open issues, or type a number' })}
+                className={cn(inputBaseClass, 'h-9 py-1')}
+              />
+            </label>
+          )}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={() => {
               setIssueOpen(false);
-              setIssueNumber('');
+              setIssueQuery('');
+              setPicked(null);
             }}
           >
             <X className="size-4" aria-hidden />
             {t('lab.app.home.issueRemove', { defaultValue: 'No issue' })}
           </Button>
+          {!picked && (
+            <div className="basis-full" data-testid="lab-issue-options">
+              {options.status === 'failed' ? (
+                <p role="alert" className="text-xs text-destructive">
+                  {t('lab.app.home.issuesFailed', {
+                    defaultValue: 'The issues could not be read: {{error}} You can still type the issue number.',
+                    error: options.error,
+                  })}
+                </p>
+              ) : options.issues.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {options.status === 'loading'
+                    ? t('lab.app.home.issuesLoading', { defaultValue: 'Reading the open issues...' })
+                    : t('lab.app.home.issuesNone', { defaultValue: 'No open issue matches.' })}
+                </p>
+              ) : (
+                <ul
+                  aria-label={t('lab.app.home.issuesLabel', { defaultValue: 'Open issues' })}
+                  className={cn('max-h-56 overflow-y-auto rounded-lg border border-border bg-background', options.status === 'loading' && 'opacity-60')}
+                >
+                  {options.issues.map((option) => (
+                    <li key={`${option.repo}-${option.number}`} className="border-b border-border/60 last:border-b-0">
+                      <button
+                        type="button"
+                        onClick={() => pick(option)}
+                        className="flex w-full items-baseline gap-2 px-3 py-2 text-left text-sm hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.06] focus-visible:outline-none"
+                      >
+                        <span className="shrink-0 font-mono text-xs text-muted-foreground">#{option.number}</span>
+                        <span className="min-w-0 flex-1 truncate text-foreground">{option.title}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {option.author ? `@${option.author}` : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <button
@@ -265,7 +362,7 @@ export const LabHome: React.FC = () => {
         />
         <div aria-hidden className="grain-overlay pointer-events-none absolute inset-0 opacity-40" />
         <div className="relative z-[1] max-w-3xl">
-          <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER FORGE' })}</p>
+          <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER BOOTSTRAPPED' })}</p>
           <h1
             className="lab-rise lab-d2 mt-3 font-display text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl"
             style={{ textWrap: 'balance' }}

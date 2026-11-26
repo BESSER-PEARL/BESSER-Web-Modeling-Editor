@@ -4996,6 +4996,85 @@
         }
       }
     },
+    "/besser_api/lab/issues": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Issues",
+        "description": "Open issues of one of the lab's repositories on GitHub, for the home's issue picker: those matching ``q``,\nor the most recently updated ones. Read with the signed-in user's token; 401 when GitHub no longer accepts\nit, 502 when GitHub cannot be read.",
+        "operationId": "lab_issues_besser_api_lab_issues_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "besser",
+                "frontend",
+                "modeling_agent"
+              ],
+              "type": "string",
+              "description": "The repository whose issues to list.",
+              "title": "Repo"
+            },
+            "description": "The repository whose issues to list."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Words to search the issues for; empty lists the most recently updated.",
+              "default": "",
+              "title": "Q"
+            },
+            "description": "Words to search the issues for; empty lists the most recently updated."
+          },
+          {
+            "name": "X-GitHub-Session",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Github-Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabIssuesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/lab/review": {
       "get": {
         "tags": [
@@ -9493,6 +9572,50 @@
         "title": "LabIssue",
         "description": "An issue a change started from."
       },
+      "LabIssueOption": {
+        "properties": {
+          "repo": {
+            "type": "string",
+            "enum": [
+              "besser",
+              "frontend",
+              "modeling_agent"
+            ],
+            "title": "Repo"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "author": {
+            "type": "string",
+            "title": "Author"
+          },
+          "updatedAt": {
+            "type": "string",
+            "title": "Updatedat"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo",
+          "number",
+          "title",
+          "author",
+          "updatedAt",
+          "url"
+        ],
+        "title": "LabIssueOption",
+        "description": "An open issue the home offers to start a change from."
+      },
       "LabIssueRef": {
         "properties": {
           "repo": {
@@ -9517,6 +9640,23 @@
         ],
         "title": "LabIssueRef",
         "description": "A GitHub issue of one of the lab's repositories, by number."
+      },
+      "LabIssuesResponse": {
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/LabIssueOption"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issues"
+        ],
+        "title": "LabIssuesResponse",
+        "description": "Response of ``GET /lab/issues``: open issues of one repository, as GitHub's search orders them."
       },
       "LabLimitsView": {
         "properties": {

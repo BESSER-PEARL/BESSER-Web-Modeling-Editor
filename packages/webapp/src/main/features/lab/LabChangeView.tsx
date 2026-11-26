@@ -151,7 +151,7 @@ export const LabChangeView: React.FC<LabChangeViewProps> = ({ changeId, onLeave 
   const notInTheLab = useCallback(() => {
     reportError(
       t('lab.change.notInTheLab', {
-        defaultValue: 'This belongs to the public editor. In BESSER Forge, describe the change in the conversation.',
+        defaultValue: 'This belongs to the public editor. In BESSER Bootstrapped, describe the change in the conversation.',
       }),
     );
   }, [t]);
@@ -511,7 +511,7 @@ export const LabChangeView: React.FC<LabChangeViewProps> = ({ changeId, onLeave 
         onOpenTemplateDialog={notInTheLab}
         onExportProject={notInTheLab}
         onGenerate={notInTheLab}
-        onQualityCheck={() => Promise.reject(new Error('The quality check is not part of BESSER Forge.'))}
+        onQualityCheck={() => Promise.reject(new Error('The quality check is not part of BESSER Bootstrapped.'))}
         showQualityCheck={false}
         generatorMode={generatorMenuMode}
         lab={{ actions, conversation }}

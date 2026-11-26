@@ -296,7 +296,7 @@ describe('a lab run', () => {
     expect(vi.mocked(startLabRun).mock.calls.map(([params]) => params.project)).toEqual([null, null]);
   });
 
-  it('names BESSER Forge on the card from the start of the run', async () => {
+  it('names BESSER Bootstrapped on the card from the start of the run', async () => {
     let release: () => void = () => undefined;
     const hold = new Promise<void>((resolve) => {
       release = resolve;
@@ -321,7 +321,7 @@ describe('a lab run', () => {
     [429, { detail: { code: 'runs_full', message: '2 of 2 runs are in progress.' } }, /2 of 2 runs are in progress\./],
     [409, { detail: 'A lab run or another change action is in progress.' }, /busy with another run or change action/],
     [401, { detail: 'GitHub session expired' }, /GitHub session has expired\. Sign in again/],
-    [403, { detail: 'Not allowed' }, /not allowed to use BESSER Forge/],
+    [403, { detail: 'Not allowed' }, /not allowed to use BESSER Bootstrapped/],
     [503, { detail: 'BESSER_LAB_WORKSPACE_ROOT is not set.' }, /not available on this server: BESSER_LAB_WORKSPACE_ROOT is not set\./],
   ])('says why the server refused the run (%s), not only its status', async (status, body, expected) => {
     vi.mocked(startLabRun).mockReturnValue({
@@ -374,7 +374,7 @@ describe('a lab run', () => {
     expect(readActiveSpecDrivenRun('proj-lab')).toBeNull();
   });
 
-  it('follows the run after a reload: a BESSER Forge card that gets the done payload', async () => {
+  it('follows the run after a reload: a BESSER Bootstrapped card that gets the done payload', async () => {
     writeActiveSpecDrivenRun({ runId: RUN, projectId: 'proj-lab', lastSequence: 4, startedAt: Date.now(), kind: 'lab' });
     vi.mocked(sseClient.followSpecDrivenRun).mockReturnValue(scriptedHandle([start, labDoneEvent()]));
     // The tab's sign-in: the lab's run routes need its session (E2E C-D6).
@@ -505,7 +505,7 @@ describe('a lab run', () => {
     });
     expect(translate).toHaveBeenCalledWith(
       'lab.chat.startFailed',
-      expect.objectContaining({ defaultValue: 'BESSER Forge failed to start: {{error}}', error: 'offline' }),
+      expect.objectContaining({ defaultValue: 'BESSER Bootstrapped failed to start: {{error}}', error: 'offline' }),
     );
     translate.mockRestore();
   });
@@ -525,7 +525,7 @@ describe('a lab run', () => {
       await api.current!.handleLabMessage({ message: 'Two', githubSession: SESSION, changeId: CHANGE });
     });
     expect(startLabRun).toHaveBeenCalledTimes(1);
-    expect(contents()).toContain('BESSER Forge is already running — please wait for it to finish or click Stop.');
+    expect(contents()).toContain('BESSER Bootstrapped is already running — please wait for it to finish or click Stop.');
     await act(async () => {
       release();
       await first;
@@ -545,7 +545,7 @@ describe('a lab run', () => {
       await api.current!.handleLabMessage({ message: 'Fix it', githubSession: SESSION, changeId: CHANGE });
     });
     expect(window.sessionStorage.getItem(sessionStorageLlmApiKey)).toBe('sk-user');
-    expect(contents()).toContain('❌ BESSER Forge error (INVALID_KEY): The key was refused.');
+    expect(contents()).toContain('❌ BESSER Bootstrapped error (INVALID_KEY): The key was refused.');
     expect(card()?.status).toBe('error');
     // A failed lab run is not reported to the modeling agent either.
     expect(onRunFinished).not.toHaveBeenCalled();
@@ -674,7 +674,7 @@ describe('a lab run', () => {
       await act(async () => {
         await api.current!.handleLabMessage({ message: 'Build it', githubSession: SESSION, changeId: CHANGE });
       });
-      expect(contents()).toContain('BESSER Forge stream error: network error');
+      expect(contents()).toContain('BESSER Bootstrapped stream error: network error');
       expect(card()?.status).toBe('error');
     });
   });
@@ -714,7 +714,7 @@ describe('a lab run', () => {
       await api.current!.handleLabMessage({ message: 'Add it', githubSession: SESSION, changeId: CHANGE });
     });
     expect(card()?.status).toBe('error');
-    expect(contents()).toContain('BESSER Forge failed to start: offline');
+    expect(contents()).toContain('BESSER Bootstrapped failed to start: offline');
     expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 });

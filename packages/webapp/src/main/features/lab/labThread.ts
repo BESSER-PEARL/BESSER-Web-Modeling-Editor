@@ -57,14 +57,14 @@ function runMessage(item: LabThreadRun): ChatKitMessage | null {
   }
   if (item.status === 'failed') {
     const line = i18n.t('lab.chat.runError', {
-      defaultValue: 'BESSER Forge error ({{code}}): {{message}}',
+      defaultValue: 'BESSER Bootstrapped error ({{code}}): {{message}}',
       code: item.error?.code ?? 'INTERNAL',
       message: item.error?.message ?? '',
     });
     return { ...base, content: `❌ ${line}`, isError: true };
   }
   if (item.status === 'cancelled') {
-    return { ...base, content: `⏹ ${i18n.t('lab.chat.stopped', { defaultValue: 'BESSER Forge run stopped by user.' })}` };
+    return { ...base, content: `⏹ ${i18n.t('lab.chat.stopped', { defaultValue: 'BESSER Bootstrapped run stopped by user.' })}` };
   }
   // A run in progress has no card here: following it makes its live card (`labRunInProgress`).
   return null;

@@ -2096,6 +2096,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/lab/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Issues
+         * @description Open issues of one of the lab's repositories on GitHub, for the home's issue picker: those matching ``q``,
+         *     or the most recently updated ones. Read with the signed-in user's token; 401 when GitHub no longer accepts
+         *     it, 502 when GitHub cannot be read.
+         */
+        get: operations["lab_issues_besser_api_lab_issues_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/besser_api/lab/review": {
         parameters: {
             query?: never;
@@ -3756,6 +3778,27 @@ export interface components {
             closes: boolean;
         };
         /**
+         * LabIssueOption
+         * @description An open issue the home offers to start a change from.
+         */
+        LabIssueOption: {
+            /**
+             * Repo
+             * @enum {string}
+             */
+            repo: "besser" | "frontend" | "modeling_agent";
+            /** Number */
+            number: number;
+            /** Title */
+            title: string;
+            /** Author */
+            author: string;
+            /** Updatedat */
+            updatedAt: string;
+            /** Url */
+            url: string;
+        };
+        /**
          * LabIssueRef
          * @description A GitHub issue of one of the lab's repositories, by number.
          */
@@ -3767,6 +3810,14 @@ export interface components {
             repo: "besser" | "frontend" | "modeling_agent";
             /** Number */
             number: number;
+        };
+        /**
+         * LabIssuesResponse
+         * @description Response of ``GET /lab/issues``: open issues of one repository, as GitHub's search orders them.
+         */
+        LabIssuesResponse: {
+            /** Issues */
+            issues: components["schemas"]["LabIssueOption"][];
         };
         /**
          * LabLimitsView
@@ -8731,6 +8782,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LabRefusalResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_issues_besser_api_lab_issues_get: {
+        parameters: {
+            query: {
+                /** @description The repository whose issues to list. */
+                repo: "besser" | "frontend" | "modeling_agent";
+                /** @description Words to search the issues for; empty lists the most recently updated. */
+                q?: string;
+            };
+            header?: {
+                "X-GitHub-Session"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabIssuesResponse"];
                 };
             };
             /** @description Validation Error */

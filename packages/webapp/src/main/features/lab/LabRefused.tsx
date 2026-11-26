@@ -39,7 +39,7 @@ export const LabRefused: React.FC<{ login: string | null }> = ({ login }) => {
   const { t } = useTranslation();
   return (
     <LabEntryColumn testId="lab-refused">
-      <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER FORGE' })}</p>
+      <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER BOOTSTRAPPED' })}</p>
       <h1 className="lab-rise lab-d2 mt-3 font-display text-4xl leading-[1.05] tracking-tight text-foreground">
         {t('lab.app.refused.heading', { defaultValue: 'This lab is for the BESSER team' })}
       </h1>

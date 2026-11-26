@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "The lab could not be opened: {{error}}",
-        "loading": "Opening BESSER Forge…",
+        "loading": "Opening BESSER Bootstrapped…",
         "notReady": "The lab's working copies are not ready: {{detail}}. An administrator needs to run the lab setup.",
-        "off": "This server does not run BESSER Forge.",
+        "off": "This server does not run BESSER Bootstrapped.",
         "retry": "Try again",
         "unreachable": "The lab server could not be reached."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "What your lab runs cost this month",
         "settings": "Settings and usage",
         "signOut": "Sign out",
-        "title": "BESSER Forge",
+        "title": "BESSER Bootstrapped",
         "keyOwn": "Your key: {{provider}}",
         "keyLab": "Lab's key",
         "keyMissing": "Add your API key",
@@ -5069,7 +5069,6 @@
         "composerLabel": "Describe the change",
         "heading": "What do you want to change in <em>BESSER</em>?",
         "instanceCap": "The lab has used its {{cap}} for this month.",
-        "issueNumber": "Issue number",
         "issueOpen": "Start from a GitHub issue",
         "issueRemove": "No issue",
         "issueRepo": "Repository",
@@ -5080,7 +5079,15 @@
         "shortcut": "Ctrl+Enter to start",
         "start": "Start change",
         "subtitle": "Describe a change to BESSER, the web editor or the modeling agent. The lab agent plans it, you correct the plan, it builds it on lab branches, and you open the pull requests.",
-        "userCap": "You have used {{spent}} of your {{cap}} this month. Runs start again on {{date}}."
+        "userCap": "You have used {{spent}} of your {{cap}} this month. Runs start again on {{date}}.",
+        "issueMessage": "Fix issue #{{number}}: {{title}}",
+        "issueChange": "Choose another",
+        "issueSearch": "Issue",
+        "issueSearchPlaceholder": "Search open issues, or type a number",
+        "issuesFailed": "The issues could not be read: {{error}} You can still type the issue number.",
+        "issuesLoading": "Reading the open issues...",
+        "issuesNone": "No open issue matches.",
+        "issuesLabel": "Open issues"
       },
       "phase": {
         "built": "Built",
@@ -5106,7 +5113,7 @@
         "body": "For the BESSER team. Sign in with GitHub; the lab checks that you are on its list or a member of its organization.",
         "button": "Sign in with GitHub",
         "heading": "Change <em>BESSER</em> from inside BESSER.",
-        "kicker": "BESSER FORGE",
+        "kicker": "BESSER BOOTSTRAPPED",
         "note": "Changes are made on lab branches and opened as draft pull requests. Nothing is merged without a person."
       }
     },
@@ -5173,34 +5180,34 @@
       "allChanges": "All changes",
       "hideChat": "Hide the conversation",
       "showChat": "Show the conversation",
-      "notInTheLab": "This belongs to the public editor. In BESSER Forge, describe the change in the conversation."
+      "notInTheLab": "This belongs to the public editor. In BESSER Bootstrapped, describe the change in the conversation."
     },
     "chat": {
       "addressCommentsMessage_one": "Address the selected review comment on the {{repo}} pull request.",
       "addressCommentsMessage_other": "Address the {{count}} selected review comments on the {{repo}} pull request.",
-      "alreadyRunning": "BESSER Forge is already running — please wait for it to finish or click Stop.",
+      "alreadyRunning": "BESSER Bootstrapped is already running — please wait for it to finish or click Stop.",
       "closeFailed": "The change was merged, but the lab could not close it: {{reason}}",
       "fixCiMessage": "Fix the failing checks of the {{repo}} pull request.",
-      "noAttachments": "BESSER Forge reads text only: describe the change in your message.",
+      "noAttachments": "BESSER Bootstrapped reads text only: describe the change in your message.",
       "noOpenChange": "Open a change or start a new one first.",
       "noPullRequests": "No pull request was opened: the change has no changed files.",
       "pullRequestsBy": "@{{login}} opened or updated the draft pull requests:",
       "refused": {
-        "busy": "BESSER Forge is busy with another run or change action. Send your message again when it has finished.",
-        "notAllowed": "Your GitHub login is not allowed to use BESSER Forge on this instance.",
+        "busy": "BESSER Bootstrapped is busy with another run or change action. Send your message again when it has finished.",
+        "notAllowed": "Your GitHub login is not allowed to use BESSER Bootstrapped on this instance.",
         "sessionExpired": "Your GitHub session has expired. Sign in again, then send your message again.",
-        "unavailable": "BESSER Forge is not available on this server: {{detail}}"
+        "unavailable": "BESSER Bootstrapped is not available on this server: {{detail}}"
       },
       "resolveConflictsMessage": "Resolve the merge conflicts in {{repo}}.",
-      "runError": "BESSER Forge error ({{code}}): {{message}}",
-      "signInPrompt": "Sign in with GitHub to use BESSER Forge, then send your message again.",
+      "runError": "BESSER Bootstrapped error ({{code}}): {{message}}",
+      "signInPrompt": "Sign in with GitHub to use BESSER Bootstrapped, then send your message again.",
       "stalled": "the live progress stream went quiet (no events for {{seconds}} s) and was closed. The run may still be going on the server.",
-      "startFailed": "BESSER Forge failed to start: {{error}}",
-      "stopped": "BESSER Forge run stopped by user.",
+      "startFailed": "BESSER Bootstrapped failed to start: {{error}}",
+      "stopped": "BESSER Bootstrapped run stopped by user.",
       "streamClosed": "The lab run stream closed before reporting a result.",
-      "streamError": "BESSER Forge stream error: {{error}}",
+      "streamError": "BESSER Bootstrapped stream error: {{error}}",
       "threadFailed": "This change's conversation could not be read: {{reason}}",
-      "voiceUnavailable": "BESSER Forge does not take voice messages: type the change instead."
+      "voiceUnavailable": "BESSER Bootstrapped does not take voice messages: type the change instead."
     },
     "diff": {
       "addComment": "Add comment",
@@ -5569,6 +5576,6 @@
       "max_turns": "It reached its turn limit. What it did so far is in the working copy.",
       "timeout": "It reached its time limit. What it did so far is in the working copy."
     },
-    "title": "BESSER Forge"
+    "title": "BESSER Bootstrapped"
   }
 }

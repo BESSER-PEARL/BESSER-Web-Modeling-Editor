@@ -120,7 +120,7 @@ export const LabAuthGate: React.FC<{ children: React.ReactNode }> = ({ children 
   const loading = (
     <LabScreenNote testId="lab-loading">
       <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
-      <span role="status">{t('lab.app.gate.loading', { defaultValue: 'Opening BESSER Forge…' })}</span>
+      <span role="status">{t('lab.app.gate.loading', { defaultValue: 'Opening BESSER Bootstrapped…' })}</span>
     </LabScreenNote>
   );
   const unreachable = (
@@ -133,7 +133,7 @@ export const LabAuthGate: React.FC<{ children: React.ReactNode }> = ({ children 
   );
   const off = (
     <LabScreenNote testId="lab-off">
-      <p>{t('lab.app.gate.off', { defaultValue: 'This server does not run BESSER Forge.' })}</p>
+      <p>{t('lab.app.gate.off', { defaultValue: 'This server does not run BESSER Bootstrapped.' })}</p>
     </LabScreenNote>
   );
 

@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "Das Lab konnte nicht geöffnet werden: {{error}}",
-        "loading": "BESSER Forge wird geöffnet…",
+        "loading": "BESSER Bootstrapped wird geöffnet…",
         "notReady": "Die Arbeitskopien des Labs sind nicht bereit: {{detail}}. Eine Administratorin oder ein Administrator muss die Lab-Einrichtung ausführen.",
-        "off": "Auf diesem Server läuft kein BESSER Forge.",
+        "off": "Auf diesem Server läuft kein BESSER Bootstrapped.",
         "retry": "Erneut versuchen",
         "unreachable": "Der Lab-Server ist nicht erreichbar."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "Was deine Lab-Läufe diesen Monat kosten",
         "settings": "Einstellungen und Verbrauch",
         "signOut": "Abmelden",
-        "title": "BESSER Forge",
+        "title": "BESSER Bootstrapped",
         "keyOwn": "Ihr Schlüssel: {{provider}}",
         "keyLab": "Schlüssel des Labs",
         "keyMissing": "API-Schlüssel hinzufügen",
@@ -5069,7 +5069,6 @@
         "composerLabel": "Beschreibe die Änderung",
         "heading": "Was möchtest du an <em>BESSER</em> ändern?",
         "instanceCap": "Das Lab hat seine {{cap}} für diesen Monat verbraucht.",
-        "issueNumber": "Issue-Nummer",
         "issueOpen": "Von einem GitHub-Issue ausgehen",
         "issueRemove": "Kein Issue",
         "issueRepo": "Repository",
@@ -5080,7 +5079,15 @@
         "shortcut": "Strg+Eingabe zum Starten",
         "start": "Änderung starten",
         "subtitle": "Beschreibe eine Änderung an BESSER, am Web-Editor oder am Modellierungsagenten. Der Lab-Agent plant sie, du korrigierst den Plan, er baut sie auf Lab-Branches, und du öffnest die Pull-Requests.",
-        "userCap": "Du hast diesen Monat {{spent}} von deinen {{cap}} verbraucht. Läufe starten wieder am {{date}}."
+        "userCap": "Du hast diesen Monat {{spent}} von deinen {{cap}} verbraucht. Läufe starten wieder am {{date}}.",
+        "issueMessage": "Issue #{{number}} beheben: {{title}}",
+        "issueChange": "Anderes wählen",
+        "issueSearch": "Issue",
+        "issueSearchPlaceholder": "Offene Issues durchsuchen oder eine Nummer eingeben",
+        "issuesFailed": "Die Issues konnten nicht gelesen werden: {{error}} Sie können weiterhin die Issue-Nummer eingeben.",
+        "issuesLoading": "Offene Issues werden gelesen...",
+        "issuesNone": "Kein offenes Issue passt.",
+        "issuesLabel": "Offene Issues"
       },
       "phase": {
         "built": "Gebaut",
@@ -5106,7 +5113,7 @@
         "body": "Für das BESSER-Team. Melden Sie sich mit GitHub an; das Lab prüft, ob Sie auf seiner Liste stehen oder Mitglied seiner Organisation sind.",
         "button": "Mit GitHub anmelden",
         "heading": "<em>BESSER</em> aus BESSER heraus ändern.",
-        "kicker": "BESSER FORGE",
+        "kicker": "BESSER BOOTSTRAPPED",
         "note": "Änderungen entstehen auf Lab-Branches und werden als Draft-Pull-Requests geöffnet. Nichts wird ohne einen Menschen gemergt."
       }
     },
@@ -5173,34 +5180,34 @@
       "allChanges": "Alle Änderungen",
       "hideChat": "Unterhaltung ausblenden",
       "showChat": "Unterhaltung einblenden",
-      "notInTheLab": "Das gehört zum öffentlichen Editor. Beschreiben Sie die Änderung in BESSER Forge in der Unterhaltung."
+      "notInTheLab": "Das gehört zum öffentlichen Editor. Beschreiben Sie die Änderung in BESSER Bootstrapped in der Unterhaltung."
     },
     "chat": {
       "addressCommentsMessage_one": "Bearbeite den ausgewählten Review-Kommentar im {{repo}}-Pull-Request.",
       "addressCommentsMessage_other": "Bearbeite die {{count}} ausgewählten Review-Kommentare im {{repo}}-Pull-Request.",
-      "alreadyRunning": "BESSER Forge läuft bereits – warte bitte, bis der Lauf fertig ist, oder klicke auf Stopp.",
+      "alreadyRunning": "BESSER Bootstrapped läuft bereits – warte bitte, bis der Lauf fertig ist, oder klicke auf Stopp.",
       "closeFailed": "Die Änderung wurde gemergt, aber das Lab konnte sie nicht schließen: {{reason}}",
       "fixCiMessage": "Behebe die fehlschlagenden Prüfungen des {{repo}}-Pull-Requests.",
-      "noAttachments": "BESSER Forge liest nur Text: Beschreibe die Änderung in deiner Nachricht.",
+      "noAttachments": "BESSER Bootstrapped liest nur Text: Beschreibe die Änderung in deiner Nachricht.",
       "noOpenChange": "Öffne zuerst eine Änderung oder starte eine neue.",
       "noPullRequests": "Es wurde kein Pull-Request geöffnet: Die Änderung hat keine geänderten Dateien.",
       "pullRequestsBy": "@{{login}} hat die Draft-Pull-Requests geöffnet oder aktualisiert:",
       "refused": {
-        "busy": "BESSER Forge ist mit einem anderen Lauf oder einer Änderungsaktion beschäftigt. Sende deine Nachricht erneut, wenn sie beendet ist.",
-        "notAllowed": "Dein GitHub-Login darf BESSER Forge auf dieser Instanz nicht nutzen.",
+        "busy": "BESSER Bootstrapped ist mit einem anderen Lauf oder einer Änderungsaktion beschäftigt. Sende deine Nachricht erneut, wenn sie beendet ist.",
+        "notAllowed": "Dein GitHub-Login darf BESSER Bootstrapped auf dieser Instanz nicht nutzen.",
         "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Melde dich erneut an und sende deine Nachricht dann noch einmal.",
-        "unavailable": "BESSER Forge ist auf diesem Server nicht verfügbar: {{detail}}"
+        "unavailable": "BESSER Bootstrapped ist auf diesem Server nicht verfügbar: {{detail}}"
       },
       "resolveConflictsMessage": "Löse die Merge-Konflikte in {{repo}}.",
       "runError": "BESSER-Lab-Fehler ({{code}}): {{message}}",
-      "signInPrompt": "Melde dich mit GitHub an, um BESSER Forge zu nutzen, und sende deine Nachricht dann erneut.",
+      "signInPrompt": "Melde dich mit GitHub an, um BESSER Bootstrapped zu nutzen, und sende deine Nachricht dann erneut.",
       "stalled": "der Live-Fortschritt blieb still (seit {{seconds}} s keine Ereignisse) und wurde geschlossen. Der Lauf kann auf dem Server noch weiterlaufen.",
-      "startFailed": "BESSER Forge konnte nicht starten: {{error}}",
+      "startFailed": "BESSER Bootstrapped konnte nicht starten: {{error}}",
       "stopped": "BESSER-Lab-Lauf vom Nutzer gestoppt.",
       "streamClosed": "Der Stream des Lab-Laufs wurde geschlossen, bevor ein Ergebnis kam.",
-      "streamError": "Stream-Fehler von BESSER Forge: {{error}}",
+      "streamError": "Stream-Fehler von BESSER Bootstrapped: {{error}}",
       "threadFailed": "Die Unterhaltung dieser Änderung konnte nicht gelesen werden: {{reason}}",
-      "voiceUnavailable": "BESSER Forge nimmt keine Sprachnachrichten an: Tippe die Änderung stattdessen ein."
+      "voiceUnavailable": "BESSER Bootstrapped nimmt keine Sprachnachrichten an: Tippe die Änderung stattdessen ein."
     },
     "diff": {
       "addComment": "Kommentar hinzufügen",
@@ -5569,6 +5576,6 @@
       "max_turns": "Das Rundenlimit wurde erreicht. Was bis dahin gemacht wurde, liegt in der Arbeitskopie.",
       "timeout": "Das Zeitlimit wurde erreicht. Was bis dahin gemacht wurde, liegt in der Arbeitskopie."
     },
-    "title": "BESSER Forge"
+    "title": "BESSER Bootstrapped"
   }
 }

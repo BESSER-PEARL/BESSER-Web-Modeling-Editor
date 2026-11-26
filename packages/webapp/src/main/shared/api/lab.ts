@@ -302,6 +302,14 @@ export const getLabDiff = (
 export const getLabReview = (githubSession: string, changeId: string): Promise<LabReviewResponse> =>
   get(githubSession, `/lab/review?${query({ changeId })}`, REVIEW_TIMEOUT_MS);
 
+export type LabIssueOption = components['schemas']['LabIssueOption'];
+
+/** `GET /lab/issues`: open issues of one repository, those matching `q` or the most recently updated. */
+export const listLabIssues = (githubSession: string, repo: LabRepoKey, q = ''): Promise<LabIssueOption[]> =>
+  get<components['schemas']['LabIssuesResponse']>(githubSession, `/lab/issues?${query({ repo, q })}`, REVIEW_TIMEOUT_MS).then(
+    (response) => response.issues,
+  );
+
 /** `GET /lab/preview`: every preview slot and the change it shows. */
 export const getLabPreview = (githubSession: string): Promise<LabPreviewView> => get(githubSession, '/lab/preview');
 

@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "De Lab konnt net opgemaach ginn: {{error}}",
-        "loading": "BESSER Forge gëtt opgemaach…",
+        "loading": "BESSER Bootstrapped gëtt opgemaach…",
         "notReady": "D’Aarbechtskopie vum Lab sinn net prett: {{detail}}. En Administrateur muss d’Lab-Installatioun ausféieren.",
-        "off": "Op dësem Server leeft kee BESSER Forge.",
+        "off": "Op dësem Server leeft kee BESSER Bootstrapped.",
         "retry": "Nach eng Kéier probéieren",
         "unreachable": "De Lab-Server ass net z’erreechen."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "Wat deng Lab-Leef dëse Mount kaschten",
         "settings": "Astellungen a Verbrauch",
         "signOut": "Ofmellen",
-        "title": "BESSER Forge",
+        "title": "BESSER Bootstrapped",
         "keyOwn": "Äre Schlëssel: {{provider}}",
         "keyLab": "Schlëssel vum Lab",
         "keyMissing": "API-Schlëssel derbäisetzen",
@@ -5069,7 +5069,6 @@
         "composerLabel": "Beschreif d’Ännerung",
         "heading": "Wat wëlls du un <em>BESSER</em> änneren?",
         "instanceCap": "De Lab huet seng {{cap}} fir dëse Mount verbraucht.",
-        "issueNumber": "Issue-Nummer",
         "issueOpen": "Vun engem GitHub-Issue ausgoen",
         "issueRemove": "Keen Issue",
         "issueRepo": "Repository",
@@ -5080,7 +5079,15 @@
         "shortcut": "Ctrl+Enter fir unzefänken",
         "start": "Ännerung ufänken",
         "subtitle": "Beschreif eng Ännerung un BESSER, um Web-Editor oder um Modelléierungsagent. De Lab-Agent plangt se, du korrigéiers de Plang, hie baut se op Lab-Branchen, an du méchs d’Pull-Requesten op.",
-        "userCap": "Du hues dëse Mount {{spent}} vun dengen {{cap}} verbraucht. D’Leef fänken den {{date}} erëm un."
+        "userCap": "Du hues dëse Mount {{spent}} vun dengen {{cap}} verbraucht. D’Leef fänken den {{date}} erëm un.",
+        "issueMessage": "Issue #{{number}} flécken: {{title}}",
+        "issueChange": "En aneren eraussichen",
+        "issueSearch": "Issue",
+        "issueSearchPlaceholder": "Oppen Issuen duerchsichen oder eng Nummer aginn",
+        "issuesFailed": "D'Issue konnten net gelies ginn: {{error}} Dir kënnt nach ëmmer d'Issue-Nummer aginn.",
+        "issuesLoading": "Oppen Issue gi gelies...",
+        "issuesNone": "Keen oppenen Issue passt.",
+        "issuesLabel": "Oppen Issuen"
       },
       "phase": {
         "built": "Gebaut",
@@ -5106,7 +5113,7 @@
         "body": "Fir d'BESSER-Equipe. Mellt Iech mat GitHub un; de Lab kuckt, ob Dir op senger Lëscht stitt oder Member vu senger Organisatioun sidd.",
         "button": "Mat GitHub umellen",
         "heading": "<em>BESSER</em> vu bannen aus BESSER änneren.",
-        "kicker": "BESSER FORGE",
+        "kicker": "BESSER BOOTSTRAPPED",
         "note": "Ännerunge ginn op Lab-Branche gemaach an als Draft-Pull-Requesten opgemaach. Näischt gëtt ouni e Mënsch gemergt."
       }
     },
@@ -5173,34 +5180,34 @@
       "allChanges": "All Ännerungen",
       "hideChat": "Gespréich verstoppen",
       "showChat": "Gespréich weisen",
-      "notInTheLab": "Dat gehéiert zum ëffentlechen Editor. Beschreift d'Ännerung am BESSER Forge am Gespréich."
+      "notInTheLab": "Dat gehéiert zum ëffentlechen Editor. Beschreift d'Ännerung am BESSER Bootstrapped am Gespréich."
     },
     "chat": {
       "addressCommentsMessage_one": "Beaarbecht de gewielte Review-Kommentar am {{repo}}-Pull-Request.",
       "addressCommentsMessage_other": "Beaarbecht déi {{count}} gewielte Review-Kommentaren am {{repo}}-Pull-Request.",
-      "alreadyRunning": "BESSER Forge leeft schonn – waart w.e.g., bis e fäerdeg ass, oder klick op Stopp.",
+      "alreadyRunning": "BESSER Bootstrapped leeft schonn – waart w.e.g., bis e fäerdeg ass, oder klick op Stopp.",
       "closeFailed": "D’Ännerung gouf gemergt, mee de Lab konnt se net zoumaachen: {{reason}}",
       "fixCiMessage": "Flécke déi feelgeschloe Kontrolle vum {{repo}}-Pull-Request.",
-      "noAttachments": "BESSER Forge liest just Text: beschreif d’Ännerung an dengem Message.",
+      "noAttachments": "BESSER Bootstrapped liest just Text: beschreif d’Ännerung an dengem Message.",
       "noOpenChange": "Maach fir d’éischt eng Ännerung op oder fänk eng nei un.",
       "noPullRequests": "Kee Pull-Request gouf opgemaach: d’Ännerung huet keng geännert Fichieren.",
       "pullRequestsBy": "@{{login}} huet d’Draft-Pull-Requesten opgemaach oder aktualiséiert:",
       "refused": {
-        "busy": "BESSER Forge ass mat engem anere Laf oder enger Ännerungsaktioun beschäftegt. Schéck däi Message nach eng Kéier, wann dat fäerdeg ass.",
-        "notAllowed": "Däi GitHub-Login däerf BESSER Forge op dëser Instanz net benotzen.",
+        "busy": "BESSER Bootstrapped ass mat engem anere Laf oder enger Ännerungsaktioun beschäftegt. Schéck däi Message nach eng Kéier, wann dat fäerdeg ass.",
+        "notAllowed": "Däi GitHub-Login däerf BESSER Bootstrapped op dëser Instanz net benotzen.",
         "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Mell dech nees un a schéck däi Message dann nach eng Kéier.",
-        "unavailable": "BESSER Forge ass op dësem Server net disponibel: {{detail}}"
+        "unavailable": "BESSER Bootstrapped ass op dësem Server net disponibel: {{detail}}"
       },
       "resolveConflictsMessage": "Léis d’Merge-Konflikter an {{repo}}.",
       "runError": "BESSER-Lab-Feeler ({{code}}): {{message}}",
-      "signInPrompt": "Mell dech mat GitHub un, fir BESSER Forge ze benotzen, a schéck däi Message dann nach eng Kéier.",
+      "signInPrompt": "Mell dech mat GitHub un, fir BESSER Bootstrapped ze benotzen, a schéck däi Message dann nach eng Kéier.",
       "stalled": "de Live-Fortschrëtt ass roueg bliwwen (zënter {{seconds}} s keng Evenementer) a gouf zougemaach. De Laf kann um Server nach weiderlafen.",
-      "startFailed": "BESSER Forge konnt net starten: {{error}}",
+      "startFailed": "BESSER Bootstrapped konnt net starten: {{error}}",
       "stopped": "BESSER-Lab-Laf vum Benotzer gestoppt.",
       "streamClosed": "De Stream vum Lab-Laf gouf zougemaach, ier e Resultat koum.",
-      "streamError": "Streamfeeler vu BESSER Forge: {{error}}",
+      "streamError": "Streamfeeler vu BESSER Bootstrapped: {{error}}",
       "threadFailed": "D’Gespréich vun dëser Ännerung konnt net gelies ginn: {{reason}}",
-      "voiceUnavailable": "BESSER Forge hëlt keng Sproochmessagen: tipp d’Ännerung amplaz."
+      "voiceUnavailable": "BESSER Bootstrapped hëlt keng Sproochmessagen: tipp d’Ännerung amplaz."
     },
     "diff": {
       "addComment": "Kommentar derbäisetzen",
@@ -5569,6 +5576,6 @@
       "max_turns": "D’Ronnelimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie.",
       "timeout": "D’Zäitlimit gouf erreecht. Wat bis dohi gemaach gouf, ass an der Aarbechtskopie."
     },
-    "title": "BESSER Forge"
+    "title": "BESSER Bootstrapped"
   }
 }

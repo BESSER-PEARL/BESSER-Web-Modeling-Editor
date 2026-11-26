@@ -31,7 +31,7 @@ export const LabSignIn: React.FC = () => {
   const { login, isLoading } = useGitHubAuth();
   return (
     <LabEntryColumn glow testId="lab-sign-in">
-      <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER FORGE' })}</p>
+      <p className="lab-rise lab-d1 ui-kicker text-brand">{t('lab.app.signIn.kicker', { defaultValue: 'BESSER BOOTSTRAPPED' })}</p>
       <h1
         className="lab-rise lab-d2 mt-3 font-display text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style={{ textWrap: 'balance' }}

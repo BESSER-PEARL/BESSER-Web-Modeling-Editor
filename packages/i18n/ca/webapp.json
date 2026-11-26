@@ -5038,9 +5038,9 @@
       },
       "gate": {
         "failed": "No s’ha pogut obrir el lab: {{error}}",
-        "loading": "S’està obrint BESSER Forge…",
+        "loading": "S’està obrint BESSER Bootstrapped…",
         "notReady": "Les còpies de treball del lab no estan a punt: {{detail}}. Un administrador ha d’executar la configuració del lab.",
-        "off": "Aquest servidor no executa BESSER Forge.",
+        "off": "Aquest servidor no executa BESSER Bootstrapped.",
         "retry": "Torna-ho a provar",
         "unreachable": "No s’ha pogut contactar amb el servidor del lab."
       },
@@ -5057,7 +5057,7 @@
         "meterTitle": "El que costen aquest mes les teves execucions del lab",
         "settings": "Configuració i consum",
         "signOut": "Tanca la sessió",
-        "title": "BESSER Forge",
+        "title": "BESSER Bootstrapped",
         "keyOwn": "La vostra clau: {{provider}}",
         "keyLab": "Clau del lab",
         "keyMissing": "Afegiu la vostra clau d'API",
@@ -5069,7 +5069,6 @@
         "composerLabel": "Descriu el canvi",
         "heading": "Què vols canviar a <em>BESSER</em>?",
         "instanceCap": "El lab ha fet servir els seus {{cap}} d’aquest mes.",
-        "issueNumber": "Número de la issue",
         "issueOpen": "Parteix d’una issue de GitHub",
         "issueRemove": "Cap issue",
         "issueRepo": "Repositori",
@@ -5080,7 +5079,15 @@
         "shortcut": "Ctrl+Retorn per començar",
         "start": "Inicia el canvi",
         "subtitle": "Descriu un canvi a BESSER, a l’editor web o a l’agent de modelatge. L’agent del lab el planifica, tu corregeixes el pla, ell el construeix en branques del lab i tu obres les pull requests.",
-        "userCap": "Aquest mes has fet servir {{spent}} dels teus {{cap}}. Les execucions es reprenen el {{date}}."
+        "userCap": "Aquest mes has fet servir {{spent}} dels teus {{cap}}. Les execucions es reprenen el {{date}}.",
+        "issueMessage": "Corregir la incidència #{{number}}: {{title}}",
+        "issueChange": "Tria'n una altra",
+        "issueSearch": "Incidència",
+        "issueSearchPlaceholder": "Cerca incidències obertes o escriu un número",
+        "issuesFailed": "No s'han pogut llegir les incidències: {{error}} Encara podeu escriure el número de la incidència.",
+        "issuesLoading": "Llegint les incidències obertes...",
+        "issuesNone": "Cap incidència oberta coincideix.",
+        "issuesLabel": "Incidències obertes"
       },
       "phase": {
         "built": "Construït",
@@ -5106,7 +5113,7 @@
         "body": "Per a l'equip de BESSER. Inicieu la sessió amb GitHub; el lab comprova que sou a la seva llista o membre de la seva organització.",
         "button": "Inicia la sessió amb GitHub",
         "heading": "Canvia <em>BESSER</em> des de dins de BESSER.",
-        "kicker": "BESSER FORGE",
+        "kicker": "BESSER BOOTSTRAPPED",
         "note": "Els canvis es fan en branques del lab i s’obren com a pull requests en esborrany. No es fusiona res sense una persona."
       }
     },
@@ -5173,34 +5180,34 @@
       "allChanges": "Tots els canvis",
       "hideChat": "Amaga la conversa",
       "showChat": "Mostra la conversa",
-      "notInTheLab": "Això pertany a l'editor públic. A BESSER Forge, descriviu el canvi a la conversa."
+      "notInTheLab": "Això pertany a l'editor públic. A BESSER Bootstrapped, descriviu el canvi a la conversa."
     },
     "chat": {
       "addressCommentsMessage_one": "Atén el comentari de revisió seleccionat a la pull request de {{repo}}.",
       "addressCommentsMessage_other": "Atén els {{count}} comentaris de revisió seleccionats a la pull request de {{repo}}.",
-      "alreadyRunning": "BESSER Forge ja s’està executant: espera que acabi o fes clic a Atura.",
+      "alreadyRunning": "BESSER Bootstrapped ja s’està executant: espera que acabi o fes clic a Atura.",
       "closeFailed": "El canvi s’ha fusionat, però el lab no l’ha pogut tancar: {{reason}}",
       "fixCiMessage": "Corregeix les comprovacions fallides de la pull request de {{repo}}.",
-      "noAttachments": "BESSER Forge només llegeix text: descriu el canvi al missatge.",
+      "noAttachments": "BESSER Bootstrapped només llegeix text: descriu el canvi al missatge.",
       "noOpenChange": "Primer obre un canvi o comença’n un de nou.",
       "noPullRequests": "No s’ha obert cap pull request: el canvi no té fitxers modificats.",
       "pullRequestsBy": "@{{login}} ha obert o actualitzat les pull requests en esborrany:",
       "refused": {
-        "busy": "BESSER Forge està ocupat amb una altra execució o acció sobre un canvi. Torna a enviar el missatge quan acabi.",
-        "notAllowed": "El teu usuari de GitHub no té permís per fer servir BESSER Forge en aquesta instància.",
+        "busy": "BESSER Bootstrapped està ocupat amb una altra execució o acció sobre un canvi. Torna a enviar el missatge quan acabi.",
+        "notAllowed": "El teu usuari de GitHub no té permís per fer servir BESSER Bootstrapped en aquesta instància.",
         "sessionExpired": "La teva sessió de GitHub ha caducat. Torna a iniciar la sessió i envia de nou el missatge.",
-        "unavailable": "BESSER Forge no està disponible en aquest servidor: {{detail}}"
+        "unavailable": "BESSER Bootstrapped no està disponible en aquest servidor: {{detail}}"
       },
       "resolveConflictsMessage": "Resol els conflictes de fusió a {{repo}}.",
-      "runError": "Error de BESSER Forge ({{code}}): {{message}}",
-      "signInPrompt": "Inicia la sessió amb GitHub per fer servir BESSER Forge i torna a enviar el missatge.",
+      "runError": "Error de BESSER Bootstrapped ({{code}}): {{message}}",
+      "signInPrompt": "Inicia la sessió amb GitHub per fer servir BESSER Bootstrapped i torna a enviar el missatge.",
       "stalled": "el flux de progrés en directe ha deixat d’enviar esdeveniments (cap en {{seconds}} s) i s’ha tancat. Pot ser que l’execució continuï al servidor.",
-      "startFailed": "BESSER Forge no s’ha pogut iniciar: {{error}}",
-      "stopped": "Execució de BESSER Forge aturada per l’usuari.",
+      "startFailed": "BESSER Bootstrapped no s’ha pogut iniciar: {{error}}",
+      "stopped": "Execució de BESSER Bootstrapped aturada per l’usuari.",
       "streamClosed": "El flux de l’execució del lab s’ha tancat abans de donar un resultat.",
-      "streamError": "Error del flux de BESSER Forge: {{error}}",
+      "streamError": "Error del flux de BESSER Bootstrapped: {{error}}",
       "threadFailed": "No s’ha pogut llegir la conversa d’aquest canvi: {{reason}}",
-      "voiceUnavailable": "BESSER Forge no accepta missatges de veu: escriu el canvi."
+      "voiceUnavailable": "BESSER Bootstrapped no accepta missatges de veu: escriu el canvi."
     },
     "diff": {
       "addComment": "Afegeix el comentari",
@@ -5569,6 +5576,6 @@
       "max_turns": "Ha arribat al límit de torns. El que ha fet fins ara és a la còpia de treball.",
       "timeout": "Ha arribat al límit de temps. El que ha fet fins ara és a la còpia de treball."
     },
-    "title": "BESSER Forge"
+    "title": "BESSER Bootstrapped"
   }
 }

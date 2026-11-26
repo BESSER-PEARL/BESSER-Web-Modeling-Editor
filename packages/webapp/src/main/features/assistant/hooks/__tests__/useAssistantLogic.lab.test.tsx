@@ -305,7 +305,7 @@ describe('sending a message in the lab build', () => {
     await openChange(CHANGE_A);
     await submit(api, 'Add a note element');
     expect(startLabRun).not.toHaveBeenCalled();
-    expect(contents()).toContain('assistant: Sign in with GitHub to use BESSER Forge, then send your message again.');
+    expect(contents()).toContain('assistant: Sign in with GitHub to use BESSER Bootstrapped, then send your message again.');
   });
 
   it('refuses attachments instead of dropping them silently', async () => {
@@ -315,7 +315,7 @@ describe('sending a message in the lab build', () => {
     const files = { 0: file, length: 1, item: () => file, [Symbol.iterator]: [file][Symbol.iterator].bind([file]) };
     await submit(api, 'Use this', files as unknown as FileList);
     expect(startLabRun).not.toHaveBeenCalled();
-    expect(reportError).toHaveBeenCalledWith('BESSER Forge reads text only: describe the change in your message.');
+    expect(reportError).toHaveBeenCalledWith('BESSER Bootstrapped reads text only: describe the change in your message.');
   });
 
   it('answers a voice message instead of sending it to the modeling agent', async () => {
@@ -325,7 +325,7 @@ describe('sending a message in the lab build', () => {
     });
     expect(lab.sendVoiceCalls).toBe(0);
     expect(startLabRun).not.toHaveBeenCalled();
-    expect(contents()).toEqual(['assistant: BESSER Forge does not take voice messages: type the change instead.']);
+    expect(contents()).toEqual(['assistant: BESSER Bootstrapped does not take voice messages: type the change instead.']);
   });
 });
 
@@ -590,7 +590,7 @@ describe('what a lab message asks for', () => {
       await api.current!.handleSubmit(undefined);
     });
     expect(startLabRun).toHaveBeenCalledTimes(1);
-    expect(reportError).toHaveBeenCalledWith('BESSER Forge is already running — please wait for it to finish or click Stop.');
+    expect(reportError).toHaveBeenCalledWith('BESSER Bootstrapped is already running — please wait for it to finish or click Stop.');
     expect(api.current!.inputValue).toBe('Also add a docs page');
     expect(contents().filter((line) => line.startsWith('user:'))).toEqual(['user: Add a note element', 'user: Add a note element']);
   });
@@ -648,6 +648,6 @@ describe('Push to the pull requests', () => {
       await api.current!.openPullRequest(CHANGE_A);
     });
     expect(openLabPullRequests).not.toHaveBeenCalled();
-    expect(contents()).toEqual(['assistant: Sign in with GitHub to use BESSER Forge, then send your message again.']);
+    expect(contents()).toEqual(['assistant: Sign in with GitHub to use BESSER Bootstrapped, then send your message again.']);
   });
 });
