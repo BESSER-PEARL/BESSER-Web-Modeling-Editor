@@ -941,8 +941,9 @@ export class ClassDiagramModifier implements DiagramModifier {
    * Remove one OCL constraint. `constraintId` names a whole ClassOCLConstraint box;
    * `constraintName` names one `context` block inside a box, by the label the agent lists
    * (modeling-agent `ocl_constraint_blocks`): the block's own name, else `Class::op pre` /
-   * `Class inv`. A box keeps its other blocks and is deleted, with its links, once empty.
-   * Nothing matching leaves the model unchanged.
+   * `Class inv`. Only the first matching block goes: invariant names are unique in a model,
+   * and two unnamed blocks sharing a label are removed by one op each. A box keeps its other
+   * blocks and is deleted, with its links, once empty. Nothing matching leaves the model unchanged.
    */
   private removeOclConstraint(model: BESSERModel, target: ModificationTarget): BESSERModel {
     const deleteBox = (boxId: string) => {
@@ -960,26 +961,26 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
 
     const wanted = (constraintName || '').trim().toLowerCase();
-    let removed = 0;
     for (const [boxId, box] of Object.entries(model.elements)) {
       if (box.type !== 'ClassOCLConstraint' || typeof box.constraint !== 'string') continue;
       const { preamble, blocks } = ClassDiagramModifier.oclBlocks(box.constraint);
-      const kept = blocks.filter((block) => block.label.toLowerCase() !== wanted);
-      if (kept.length === blocks.length) continue;
-      removed += blocks.length - kept.length;
+      const index = blocks.findIndex((block) => block.label.toLowerCase() === wanted);
+      if (index < 0) continue;
+      const kept = blocks.filter((_, i) => i !== index);
       if (kept.length === 0) deleteBox(boxId);
       else box.constraint = [preamble, ...kept.map((block) => block.text)].filter(Boolean).join('\n\n');
+      return model;
     }
-    if (!removed) {
-      console.warn(`[ClassDiagramModifier] removeElement: no OCL constraint named '${constraintName}' — model unchanged.`);
-    }
+    console.warn(`[ClassDiagramModifier] removeElement: no OCL constraint named '${constraintName}' — model unchanged.`);
     return model;
   }
 
   /** The `context` blocks of an OCL box, split at each header the way BESSER's ocl_parser reads them,
    *  and the text before the first one. */
   private static oclBlocks(text: string): { preamble: string; blocks: Array<{ label: string; text: string }> } {
-    const header = /\bcontext\s+(\w+)(?:::(\w+)\s*\([^)]*\))?\s+(inv|pre|post)\b(?:\s+(\w+))?\s*:/gi;
+    // Python's Unicode \w and \b (the agent labels blocks with them); JS's are ASCII-only.
+    const header =
+      /(?<![\p{L}\p{N}_])context\s+([\p{L}\p{N}_]+)(?:::([\p{L}\p{N}_]+)\s*\([^)]*\))?\s+(inv|pre|post)(?![\p{L}\p{N}_])(?:\s+([\p{L}\p{N}_]+))?\s*:/giu;
     const matches = [...text.matchAll(header)];
     const blocks = matches.map((match, i) => {
       const [, cls, op, kw, name] = match;

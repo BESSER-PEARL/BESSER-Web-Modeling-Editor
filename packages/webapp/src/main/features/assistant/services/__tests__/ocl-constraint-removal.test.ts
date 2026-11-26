@@ -9,7 +9,7 @@
  * blocks, so a name removes its block; the box goes only once it is empty.
  */
 import { ClassDiagramModifier } from '../modifiers/ClassDiagramModifier';
-import type { ModelModification } from '../modifiers/base';
+import { classesNamedForRemoval, type ModelModification } from '../modifiers/base';
 import type { BESSERModel } from '../UMLModelingService';
 
 function libraryModel(): BESSERModel {
@@ -97,6 +97,27 @@ describe('ClassDiagramModifier — remove an OCL constraint', () => {
     expect(Object.values(model.relationships).filter((rel: any) => rel.type === 'ClassOCLLink')).toHaveLength(0);
     expect(model.elements['c-book']).toBeDefined();
     expect(model.elements['c-account']).toBeDefined();
+  });
+
+  it('removes one of two unnamed blocks per op, so "remove all" removes both', () => {
+    const model = libraryModel();
+    model.elements['ocl-book'].constraint = "context Book inv: self.title <> ''\n\ncontext Book inv: self.title.size() < 200";
+
+    const once = modifier.applyModification(model, remove({ constraintName: 'Book inv' }));
+    expect(once.elements['ocl-book'].constraint).toBe('context Book inv: self.title.size() < 200');
+    const twice = modifier.applyModification(once, remove({ constraintName: 'Book inv' }));
+    expect(twice.elements['ocl-book']).toBeUndefined();
+  });
+
+  it('finds non-ASCII names, as the agent lists them', () => {
+    const model = libraryModel();
+    model.elements['ocl-book'].constraint = "context Bücher inv größe_ok: self.title <> ''";
+    const result = modifier.applyModification(model, remove({ constraintName: 'größe_ok' }));
+    expect(result.elements['ocl-book']).toBeUndefined();
+  });
+
+  it('is not an intended class removal for the collateral-deletion check', () => {
+    expect([...classesNamedForRemoval([remove({ className: 'Book', constraintName: 'book_has_title' })])]).toEqual([]);
   });
 
   it('removes a whole box by its id', () => {
