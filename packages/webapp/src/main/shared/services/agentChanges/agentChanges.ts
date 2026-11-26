@@ -56,11 +56,15 @@ function apollon(model: unknown): ApollonModel {
 const isBounds = (value: unknown): value is Bounds =>
   isObject(value) && ['x', 'y', 'width', 'height'].every((key) => typeof value[key] === 'number');
 
-/** JSON with sorted keys, so two equal objects read the same whatever order their keys came in. */
+/**
+ * JSON with sorted keys, so two equal objects read the same whatever order their keys came in. An undefined
+ * key is left out, as JSON does: the editor keeps unset fields as undefined, a JSON copy of the model drops them.
+ */
 function stable(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
   if (isObject(value)) {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
+    const keys = Object.keys(value).filter((key) => value[key] !== undefined).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value) ?? 'null';
 }

@@ -49,6 +49,19 @@ describe('diffDiagramModels', () => {
     ]);
   });
 
+  it('marks only the new class when a JSON copy drops the editor\'s unset fields', () => {
+    // The editor serializes unset fields as undefined; the assistant's modifier deep-copies through JSON, which drops them.
+    const unset = { highlight: undefined, fillColor: undefined, strokeColor: undefined, textColor: undefined, description: undefined };
+    const before = model(
+      [{ ...book, ...unset }, { ...title, ...unset }, { ...loan, ...unset }],
+      [{ ...lends, ...unset, source: { ...lends.source, multiplicity: undefined } }],
+    );
+    const after = JSON.parse(JSON.stringify(before));
+    after.elements.c3 = { id: 'c3', type: 'Class', name: 'Human', owner: null, bounds: bounds(600, 0), attributes: [], methods: [] };
+
+    expect(diffDiagramModels(before, after)).toEqual({ added: ['c3'], modified: [], deleted: [] });
+  });
+
   it('ignores moves, resizes and re-routed lines', () => {
     const before = model([book, title, loan], [lends]);
     const after = model(
