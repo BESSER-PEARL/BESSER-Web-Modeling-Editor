@@ -2025,6 +2025,19 @@
       "stats": "Durada, torns del LLM i cost estimat d’aquest pas",
       "costEstimate": "Estimat a partir dels tokens a preus de llista. Aproximat, no és una factura.",
       "stepElapsed": "{{duration}} en aquest pas"
+    },
+    "changes": {
+      "title": "Canviat per l'assistent",
+      "added": "Afegit: {{items}}",
+      "modified": "Canviat: {{items}}",
+      "deleted": "Eliminat: {{items}}",
+      "earlier": "Els canvis anteriors de l'assistent es marquen més tènues.",
+      "clear": "Esborra les marques",
+      "chip": {
+        "added": "Nou",
+        "modified": "Canviat",
+        "deleted": "Eliminat"
+      }
     }
   },
   "deploy": {

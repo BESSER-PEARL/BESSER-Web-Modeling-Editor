@@ -31,6 +31,7 @@ import {
   recordElementLineage,
 } from '../../shared/traceability/traceStore';
 import type { DiagramChangeSource } from '../../shared/traceability/traceStore';
+import { dropLatestAgentIteration, recordAgentIteration } from '../../shared/services/agentChanges/agentChanges';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -288,12 +289,14 @@ export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' 
   /** Who made the change, for the project trace: the user on the canvas (default), the assistant, or a model
    *  generator (a template, an import, a derivation from another diagram). */
   traceSource?: DiagramChangeSource;
+  /** The user undoes the assistant's last edit: its change marks are dropped with it. */
+  undoesAssistantEdit?: boolean;
 };
 
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (
-    { traceSource = 'user', ...updates }: DiagramModelUpdate,
+    { traceSource = 'user', undoesAssistantEdit, ...updates }: DiagramModelUpdate,
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -334,6 +337,9 @@ export const updateDiagramModelThunk = createAsyncThunk(
       recordDiagramUpdate(project, activeDiagramType, updated, current.model, updated.model, traceSource);
     }
     if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
+    // What the assistant changed is marked on the canvas until the user clears the marks (view only).
+    if (updates.model && traceSource === 'assistant') recordAgentIteration(project.id, current.id, current.model, updated.model);
+    if (undoesAssistantEdit) dropLatestAgentIteration(project.id, current.id);
     return updated;
   },
 );

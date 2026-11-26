@@ -2025,6 +2025,19 @@
       "stats": "Durée, tours de LLM et coût estimé de cette étape",
       "costEstimate": "Estimé à partir du nombre de jetons aux prix catalogue. Approximatif, pas une facture.",
       "stepElapsed": "{{duration}} sur cette étape"
+    },
+    "changes": {
+      "title": "Modifié par l'assistant",
+      "added": "Ajouté : {{items}}",
+      "modified": "Modifié : {{items}}",
+      "deleted": "Supprimé : {{items}}",
+      "earlier": "Les modifications précédentes de l'assistant sont marquées plus pâles.",
+      "clear": "Effacer les marques",
+      "chip": {
+        "added": "Nouveau",
+        "modified": "Modifié",
+        "deleted": "Supprimé"
+      }
     }
   },
   "deploy": {

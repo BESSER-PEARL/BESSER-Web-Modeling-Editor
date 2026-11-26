@@ -112,6 +112,10 @@ First-class part of the app, with two independent backends.
   `KnowledgeGraphDiagram` is not supported (its model is not Apollon's; injection refuses to write one). A new type
   needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
+- What the assistant changed is marked on the canvas (`components/AgentChangeLayer.tsx`): `updateDiagramModelThunk`
+  diffs each `traceSource: 'assistant'` write of an Apollon diagram (`shared/services/agentChanges/`) and keeps the
+  last 3 edits' marks in `localStorage` (`agentChangeMarks.ts`), never in the model. The marks, chips and box
+  tracking are shared with the GitHub attribution layer in `shared/components/model-marks/ModelMarks.tsx`.
 
 **Spec-Driven Agent — HTTP + SSE to the BESSER backend.**
 - Endpoints in `shared/constants/constant.ts`: `/spec-driven/generate` (SSE), `/config`, `/cancel/<runId>`,

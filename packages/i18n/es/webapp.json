@@ -2025,6 +2025,19 @@
       "stats": "Duración, turnos del LLM y coste estimado de este paso",
       "costEstimate": "Estimado a partir de los tokens a precios de lista. Aproximado, no es una factura.",
       "stepElapsed": "{{duration}} en este paso"
+    },
+    "changes": {
+      "title": "Cambiado por el asistente",
+      "added": "Añadido: {{items}}",
+      "modified": "Cambiado: {{items}}",
+      "deleted": "Eliminado: {{items}}",
+      "earlier": "Los cambios anteriores del asistente se marcan más tenues.",
+      "clear": "Borrar marcas",
+      "chip": {
+        "added": "Nuevo",
+        "modified": "Cambiado",
+        "deleted": "Eliminado"
+      }
     }
   },
   "deploy": {

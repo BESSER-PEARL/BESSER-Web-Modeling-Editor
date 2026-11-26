@@ -3,4 +3,3 @@ export { useGitHubRepo } from './hooks/useGitHubRepo';
 export type { CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from './hooks/useGitHubRepo';
 export { GitHubAutosaveSetting } from './components/GitHubAutosaveSetting';
 export { offerGeneratedCodeOnGitHub, openSaveToGitHub } from './saveToGitHub';
-export { ElementMark, RelationshipMark, relationshipLine, useElementBoxes } from './components/ModelAttributionLayer';
