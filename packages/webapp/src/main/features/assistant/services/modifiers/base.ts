@@ -17,6 +17,9 @@ export interface ModificationTarget {
   methodName?: string;
   relationshipId?: string;
   relationshipName?: string;
+  /** remove_element of an OCL constraint: a ClassOCLConstraint box id, or the label of one block in it. */
+  constraintId?: string;
+  constraintName?: string;
   sourceClass?: string;
   targetClass?: string;
   stateId?: string;
@@ -404,6 +407,8 @@ export function classesNamedForRemoval(modifications: any[]): Set<string> {
     if (target.sourceClass || target.targetClass) continue;
     if (target.attributeName || target.attributeId) continue;
     if (target.methodName || target.methodId) continue;
+    // A constraint removal's className is the constraint's context.
+    if (target.constraintName || target.constraintId) continue;
     if (typeof target.className === 'string' && target.className.trim()) {
       named.add(target.className.trim());
     }
