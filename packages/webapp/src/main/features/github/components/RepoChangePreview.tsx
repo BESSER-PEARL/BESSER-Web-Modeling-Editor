@@ -23,9 +23,10 @@ import { getActiveDiagram, type BesserProject } from '../../../shared/types/proj
 import { useGetLatest } from '../hooks/useGetLatest';
 import { closeRepoChangePreview, useRepoChangePreviewOpen } from '../hooks/useRepoChangePreview';
 import { useRepoSync, type RepoSyncState } from '../hooks/useRepoSync';
-import { AuthorLine, Chip, RelationshipMark, authorColor, joinNames, useElementBoxes } from './ModelAttributionLayer';
+import { CHANGE_COLORS, Chip, RelationshipMark, joinNames, useElementBoxes } from '../../../shared/components/model-marks/ModelMarks';
+import { AuthorLine, authorColor } from './ModelAttributionLayer';
 
-const REMOVED_COLOR = '#be123c';
+const REMOVED_COLOR = CHANGE_COLORS.deleted;
 const NO_AUTHOR_COLOR = 'hsl(var(--brand))';
 
 // States in which nothing is left to preview. A check still running, or one that failed, is not one of them.

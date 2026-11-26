@@ -2025,6 +2025,19 @@
       "stats": "Dauer, LLM-Ronnen a geschate Käschte vun dësem Schrëtt",
       "costEstimate": "Aus Tokenzuelen zu Lëschtepräisser geschat. Ongeféier, keng Rechnung.",
       "stepElapsed": "{{duration}} an dësem Schrëtt"
+    },
+    "changes": {
+      "title": "Vum Assistent geännert",
+      "added": "Derbäigesat: {{items}}",
+      "modified": "Geännert: {{items}}",
+      "deleted": "Ewechgeholl: {{items}}",
+      "earlier": "Méi fréi Ännerunge vum Assistent si méi blass markéiert.",
+      "clear": "Markéierunge läschen",
+      "chip": {
+        "added": "Nei",
+        "modified": "Geännert",
+        "deleted": "Ewechgeholl"
+      }
     }
   },
   "deploy": {

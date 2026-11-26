@@ -2025,6 +2025,19 @@
       "stats": "Dauer, LLM-Runden und geschätzte Kosten dieses Schritts",
       "costEstimate": "Aus Tokenzahlen zu Listenpreisen geschätzt. Ungefähr, keine Rechnung.",
       "stepElapsed": "{{duration}} in diesem Schritt"
+    },
+    "changes": {
+      "title": "Vom Assistenten geändert",
+      "added": "Hinzugefügt: {{items}}",
+      "modified": "Geändert: {{items}}",
+      "deleted": "Entfernt: {{items}}",
+      "earlier": "Frühere Änderungen des Assistenten sind blasser markiert.",
+      "clear": "Markierungen entfernen",
+      "chip": {
+        "added": "Neu",
+        "modified": "Geändert",
+        "deleted": "Entfernt"
+      }
     }
   },
   "deploy": {

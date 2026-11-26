@@ -2025,6 +2025,19 @@
       "stats": "Duration, LLM turns and estimated cost of this step",
       "costEstimate": "Estimated from token counts at list prices. Approximate, not a bill.",
       "stepElapsed": "{{duration}} on this step"
+    },
+    "changes": {
+      "title": "Changed by the assistant",
+      "added": "Added: {{items}}",
+      "modified": "Changed: {{items}}",
+      "deleted": "Removed: {{items}}",
+      "earlier": "Earlier assistant edits are marked fainter.",
+      "clear": "Clear marks",
+      "chip": {
+        "added": "New",
+        "modified": "Changed",
+        "deleted": "Removed"
+      }
     }
   },
   "deploy": {

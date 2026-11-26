@@ -84,6 +84,8 @@ export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
 // the GitHub repo a project is linked to (suffix: `<projectId>`); see projectGitHubLink.ts
 export const localStorageGitHubLinkPrefix = localStoragePrefix + 'github_link_';
+// what the assistant changed, marked on the canvas (suffix: `<projectId>`); see agentChangeMarks.ts
+export const localStorageAgentChangesPrefix = localStoragePrefix + 'agent_changes_';
 
 // external service URLs
 export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
