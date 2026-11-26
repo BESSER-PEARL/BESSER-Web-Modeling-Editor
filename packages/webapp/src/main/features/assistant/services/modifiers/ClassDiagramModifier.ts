@@ -3,7 +3,7 @@
  * Handles all modification operations for Class Diagrams
  */
 
-import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
+import { DiagramModifier, ModelModification, ModificationTarget, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
 import { applyAssistantRelationshipType, isWholePartType } from '../shared/relationshipMapping';
@@ -790,6 +790,12 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
+    // An OCL constraint removal is terminal: its className is the constraint's context,
+    // never a class to delete (modeling-agent#98 deleted Book for "remove book_has_title").
+    if (modification.target?.constraintId || modification.target?.constraintName) {
+      return this.removeOclConstraint(model, modification.target);
+    }
+
     let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
       modification.target;
 
@@ -929,6 +935,62 @@ export class ClassDiagramModifier implements DiagramModifier {
       `treating as already removed (no-op).`
     );
     return model;
+  }
+
+  /**
+   * Remove one OCL constraint. `constraintId` names a whole ClassOCLConstraint box;
+   * `constraintName` names one `context` block inside a box, by the label the agent lists
+   * (modeling-agent `ocl_constraint_blocks`): the block's own name, else `Class::op pre` /
+   * `Class inv`. A box keeps its other blocks and is deleted, with its links, once empty.
+   * Nothing matching leaves the model unchanged.
+   */
+  private removeOclConstraint(model: BESSERModel, target: ModificationTarget): BESSERModel {
+    const deleteBox = (boxId: string) => {
+      delete model.elements[boxId];
+      for (const [relId, rel] of Object.entries(model.relationships || {})) {
+        if (rel.source?.element === boxId || rel.target?.element === boxId) delete model.relationships[relId];
+      }
+    };
+
+    const { constraintId, constraintName } = target;
+    if (constraintId) {
+      if (model.elements[constraintId]?.type === 'ClassOCLConstraint') deleteBox(constraintId);
+      else console.warn(`[ClassDiagramModifier] removeElement: no OCL constraint '${constraintId}' — model unchanged.`);
+      return model;
+    }
+
+    const wanted = (constraintName || '').trim().toLowerCase();
+    let removed = 0;
+    for (const [boxId, box] of Object.entries(model.elements)) {
+      if (box.type !== 'ClassOCLConstraint' || typeof box.constraint !== 'string') continue;
+      const { preamble, blocks } = ClassDiagramModifier.oclBlocks(box.constraint);
+      const kept = blocks.filter((block) => block.label.toLowerCase() !== wanted);
+      if (kept.length === blocks.length) continue;
+      removed += blocks.length - kept.length;
+      if (kept.length === 0) deleteBox(boxId);
+      else box.constraint = [preamble, ...kept.map((block) => block.text)].filter(Boolean).join('\n\n');
+    }
+    if (!removed) {
+      console.warn(`[ClassDiagramModifier] removeElement: no OCL constraint named '${constraintName}' — model unchanged.`);
+    }
+    return model;
+  }
+
+  /** The `context` blocks of an OCL box, split at each header the way BESSER's ocl_parser reads them,
+   *  and the text before the first one. */
+  private static oclBlocks(text: string): { preamble: string; blocks: Array<{ label: string; text: string }> } {
+    const header = /\bcontext\s+(\w+)(?:::(\w+)\s*\([^)]*\))?\s+(inv|pre|post)\b(?:\s+(\w+))?\s*:/gi;
+    const matches = [...text.matchAll(header)];
+    const blocks = matches.map((match, i) => {
+      const [, cls, op, kw, name] = match;
+      const end = i + 1 < matches.length ? matches[i + 1].index ?? text.length : text.length;
+      return {
+        label: name || `${op ? `${cls}::${op}` : cls} ${kw.toLowerCase()}`,
+        text: text.slice(match.index ?? 0, end).trim(),
+      };
+    });
+    const preamble = matches.length ? text.slice(0, matches[0].index ?? 0).trim() : text.trim();
+    return { preamble, blocks };
   }
 
   // ─── Refactoring action handlers ───────────────────────────────────────────

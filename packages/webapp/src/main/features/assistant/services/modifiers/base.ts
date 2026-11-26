@@ -17,6 +17,9 @@ export interface ModificationTarget {
   methodName?: string;
   relationshipId?: string;
   relationshipName?: string;
+  /** remove_element of an OCL constraint: a ClassOCLConstraint box id, or the label of one block in it. */
+  constraintId?: string;
+  constraintName?: string;
   sourceClass?: string;
   targetClass?: string;
   stateId?: string;
