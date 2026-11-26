@@ -17,6 +17,8 @@ export interface ModificationTarget {
   methodName?: string;
   relationshipId?: string;
   relationshipName?: string;
+  constraintId?: string;
+  constraintName?: string;
   sourceClass?: string;
   targetClass?: string;
   stateId?: string;

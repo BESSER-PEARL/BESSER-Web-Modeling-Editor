@@ -790,7 +790,7 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
+    let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName, constraintId, constraintName } =
       modification.target;
 
     // ---- Relationship removal, handled FIRST and always terminal ----------
@@ -911,6 +911,107 @@ export class ClassDiagramModifier implements DiagramModifier {
           }
         }
       }
+      return model;
+    }
+
+    // Remove OCL constraint(s)
+    // Handles both specific constraint removal and bulk removal ("remove all constraints")
+
+    // Check if this is a constraint-related request
+    const targetStr = JSON.stringify(modification.target || {}).toLowerCase();
+    const changesStr = JSON.stringify(modification.changes || {}).toLowerCase();
+    const constraintNameLower = (constraintName || '').toLowerCase();
+
+    const isAboutConstraints = targetStr.includes('constraint') ||
+                                targetStr.includes('ocl') ||
+                                changesStr.includes('constraint') ||
+                                changesStr.includes('ocl') ||
+                                constraintNameLower.includes('constraint') ||
+                                constraintNameLower.includes('ocl');
+
+    // Check if constraintName is a bulk keyword
+    const bulkKeywords = ['all', 'constraints', 'ocl constraints', 'all constraints'];
+    const isBulkConstraintName = constraintName &&
+      bulkKeywords.some(keyword => constraintNameLower.includes(keyword));
+
+    // If this is about constraints, handle it
+    if (constraintId || constraintName || isAboutConstraints) {
+      // Determine target class if specified
+      const targetClassId = className ? this.findClassIdByName(model, className) : null;
+
+      // Try to remove a specific constraint first if we have an ID or non-bulk name
+      if (constraintId || (constraintName && !isBulkConstraintName)) {
+        const resolvedConstraintId = constraintId ||
+          this.findConstraintIdByName(model, constraintName);
+
+        if (resolvedConstraintId && model.elements[resolvedConstraintId]) {
+          // Successfully found the specific constraint - remove it
+          if (model.relationships) {
+            for (const [relId, rel] of Object.entries(model.relationships)) {
+              if (rel.type === 'ClassOCLLink' &&
+                  (rel.source?.element === resolvedConstraintId ||
+                   rel.target?.element === resolvedConstraintId)) {
+                delete model.relationships[relId];
+                break;
+              }
+            }
+          }
+          delete model.elements[resolvedConstraintId];
+          return model;
+        }
+
+        // Couldn't find the specific constraint by name or ID
+        // If this is clearly about constraints (name contains "ocl" or "constraint"),
+        // remove ALL constraints instead of failing
+        if (!isAboutConstraints) {
+          console.warn(
+            `[ClassDiagramModifier] removeElement: could not find constraint '${constraintName || constraintId}'`
+          );
+          return model;
+        }
+
+        console.log(
+          `[ClassDiagramModifier] removeElement: specific constraint '${constraintName || constraintId}' not found, removing all constraints instead`
+        );
+      }
+
+      // Bulk removal: remove all constraints (optionally filtered by class)
+      const constraintsToRemove: string[] = [];
+
+      for (const [elementId, element] of Object.entries(model.elements)) {
+        if (element.type === 'ClassOCLConstraint') {
+          if (targetClassId) {
+            // Only remove constraints linked to the specified class
+            const isLinkedToClass = model.relationships &&
+              Object.values(model.relationships).some(rel =>
+                rel.type === 'ClassOCLLink' &&
+                rel.source?.element === elementId &&
+                rel.target?.element === targetClassId
+              );
+            if (isLinkedToClass) {
+              constraintsToRemove.push(elementId);
+            }
+          } else {
+            // No class specified, remove all constraints
+            constraintsToRemove.push(elementId);
+          }
+        }
+      }
+
+      // Remove all identified constraints and their links
+      for (const constraintId of constraintsToRemove) {
+        if (model.relationships) {
+          for (const [relId, rel] of Object.entries(model.relationships)) {
+            if (rel.type === 'ClassOCLLink' &&
+                (rel.source?.element === constraintId ||
+                 rel.target?.element === constraintId)) {
+              delete model.relationships[relId];
+            }
+          }
+        }
+        delete model.elements[constraintId];
+      }
+
       return model;
     }
 
@@ -1711,6 +1812,29 @@ export class ClassDiagramModifier implements DiagramModifier {
       }
       if (method.name.toLowerCase().includes(methodName.toLowerCase())) {
         return methodId;
+      }
+    }
+    return null;
+  }
+
+  private findConstraintIdByName(model: BESSERModel, constraintName?: string): string | null {
+    if (!constraintName) return null;
+
+    for (const [elementId, element] of Object.entries(model.elements)) {
+      if (element.type === 'ClassOCLConstraint') {
+        // Try matching by element name first
+        if (element.name?.toLowerCase() === constraintName.toLowerCase()) {
+          return elementId;
+        }
+
+        // Extract constraint name from OCL expression: "context X inv <name>: ..."
+        if (element.constraint) {
+          const match = element.constraint.match(/\binv\s+(\w+)\s*:/);
+          const extractedName = match ? match[1] : null;
+          if (extractedName?.toLowerCase() === constraintName.toLowerCase()) {
+            return elementId;
+          }
+        }
       }
     }
     return null;
