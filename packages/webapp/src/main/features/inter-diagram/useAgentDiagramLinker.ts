@@ -18,6 +18,7 @@ import {
   updateDiagramModelThunk,
 } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { MODEL_GENERATORS } from '../../shared/traceability/traceStore';
 import { MAX_DIAGRAMS_PER_TYPE, isUMLModel } from '../../shared/types/project';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
 import { reportDerivationWarnings } from './derivation-warnings';
@@ -157,7 +158,9 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
       //    active type on BPMN; step 3 resyncs before the switch.
       let newDiagramId: string;
       try {
-        const added = await dispatch(addDiagramThunk({ diagramType: 'AgentDiagram', title: suggestedTitle })).unwrap();
+        // Created by the derivation when it derives the agent, else an empty diagram the user asked for.
+        const traceSource = derivation?.ok ? { generator: MODEL_GENERATORS.laneToAgent } : 'user';
+        const added = await dispatch(addDiagramThunk({ diagramType: 'AgentDiagram', title: suggestedTitle, traceSource })).unwrap();
         newDiagramId = added.diagram.id;
       } catch (err) {
         console.error('[agent-diagram-linker] adding the Agent diagram failed:', err);
@@ -194,9 +197,15 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<ApollonEditor 
 
       if (derivation?.ok) {
         try {
-          await dispatch(updateDiagramModelThunk({ model: derivation.model })).unwrap();
+          const generator = MODEL_GENERATORS.laneToAgent;
+          await dispatch(updateDiagramModelThunk({ model: derivation.model, traceSource: { generator } })).unwrap();
           await dispatch(
-            setElementLineageThunk({ derivedDiagramId: newDiagramId, mapping: derivation.elementMapping }),
+            setElementLineageThunk({
+              derivedDiagramId: newDiagramId,
+              mapping: derivation.elementMapping,
+              generator,
+              sourceDiagramId: sourceDiagram.id,
+            }),
           ).unwrap();
           dispatch(bumpEditorRevision());
         } catch (err) {

@@ -39,12 +39,13 @@ const FOLLOW_UP_HEADING = '## Subsequent user request, verbatim';
  * The user's own words in a run's instructions, or null when the assistant
  * framed none. It frames them as "## Assistant's notes ...", then the original
  * request after one framing sentence, then any "## Subsequent user request,
- * verbatim" sections. Kept are the original request and those sections, as
- * the assistant remembers them; its notes and any other section it adds are
- * dropped. The assistant decides what is content-free and never frames such
- * a follow-up as verbatim.
+ * verbatim" sections. Kept are the original request and those sections; its
+ * notes and any other section it adds are dropped. A retry or a fix is framed
+ * as the last such section too: with `rememberNewest` false (the assistant's
+ * `remember_newest`) that section is dropped, as the assistant does not
+ * remember it either.
  */
-export function runRequestFromInstructions(instructions: string): string | null {
+export function runRequestFromInstructions(instructions: string, rememberNewest = true): string | null {
   const text = instructions.trim();
   const start = text.startsWith("## Assistant's notes") ? text.indexOf(ORIGINAL_REQUEST_HEADING) : -1;
   if (start < 0) return null;
@@ -54,6 +55,7 @@ export function runRequestFromInstructions(instructions: string): string | null 
   const paragraphs = original.trim().split(/\n\s*\n/);
   if (/^This is the authority\b/.test(paragraphs[0] ?? '')) paragraphs.shift();
   const followUps = sections.filter((section) => section.startsWith(FOLLOW_UP_HEADING)).map((section) => section.trim());
+  if (!rememberNewest) followUps.pop();
   return [paragraphs.join('\n\n').trim(), ...followUps].filter(Boolean).join('\n\n') || null;
 }
 
@@ -75,8 +77,8 @@ export function readProjectRunRequest(projectId: string): string | null {
  * `runRequestFromInstructions`): a pasted key removed, then cut to
  * MAX_RUN_REQUEST_LENGTH. Instructions without them keep the previous request.
  */
-export function recordProjectRunRequest(projectId: string, instructions: string): void {
-  const request = runRequestFromInstructions(instructions);
+export function recordProjectRunRequest(projectId: string, instructions: string, rememberNewest = true): void {
+  const request = runRequestFromInstructions(instructions, rememberNewest);
   if (!projectId || !request) return;
   try {
     window.localStorage.setItem(runRequestKey(projectId), llmKeyRedactor()(request).slice(0, MAX_RUN_REQUEST_LENGTH));

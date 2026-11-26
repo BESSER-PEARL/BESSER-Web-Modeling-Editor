@@ -19,6 +19,7 @@ import { useRepoSync } from '../../features/github/hooks/useRepoSync';
 import { isGoLiveAvailable } from '../../shared/api/github';
 import { ModelAttributionBanner, ModelAttributionLayer } from '../../features/github/components/ModelAttributionLayer';
 import { ModelFocusLayer } from '../../features/assistant/components/ModelFocusLayer';
+import { AgentChangeBanner, AgentChangeLayer } from '../../features/assistant/components/AgentChangeLayer';
 import { RepoChangePreview } from '../../features/github/components/RepoChangePreview';
 import { useRepoChangePreviewOpen } from '../../features/github/hooks/useRepoChangePreview';
 import { ModelProposalBanner } from '../../features/github/components/ModelProposalBanner';
@@ -1251,7 +1252,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         </DialogPortal>
       </Dialog>
 
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      {/* overflow-clip, not hidden: the closed assistant drawer is parked below this box by a transform, and a
+          hidden box is still scrollable by that overflow, so focusing anything pushed the page up and left a blank gap. */}
+      <div className="relative flex min-h-0 flex-1 overflow-clip">
         <WorkspaceSidebar
           isDarkTheme={isDarkTheme}
           isSidebarExpanded={isSidebarExpanded}
@@ -1272,7 +1275,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           onTestAgent={testAgent}
         />
 
-        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none">
+        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-clip focus:outline-none">
           <HiddenPerspectivesBanner />
           {location.pathname === '/' && (
             <DiagramTabs
@@ -1283,12 +1286,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {children}
             {location.pathname === '/' && <ModelAttributionLayer />}
+            {location.pathname === '/' && <AgentChangeLayer />}
             {location.pathname === '/' && <ModelFocusLayer />}
             {location.pathname === '/' && <RepoChangePreview />}
             {/* The model BESSER read from a linked repo's code, until the user accepts it. */}
-            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-4">
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex flex-col items-center gap-2 px-4">
               <ModelProposalBanner />
               {location.pathname === '/' && <ModelAttributionBanner />}
+              {location.pathname === '/' && <AgentChangeBanner />}
             </div>
           </div>
 

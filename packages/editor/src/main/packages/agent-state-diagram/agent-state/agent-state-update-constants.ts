@@ -105,6 +105,7 @@ export type MemberSnapshot = {
   ws_message: string;
   ws_audio_speed: number | null;
   ws_options: string;
+  ws_options_label: string;
   ws_latitude: number;
   ws_longitude: number;
   guiId: string;
@@ -204,7 +205,11 @@ export const snapshotMember = (a: AgentStateMember): MemberSnapshot => ({
   ws_message: a.ws_message,
   ws_audio_speed: a.ws_audio_speed,
   ws_options: a.ws_options,
+  ws_options_label: a.ws_options_label,
   ws_latitude: a.ws_latitude,
   ws_longitude: a.ws_longitude,
   guiId: a.guiId,
 });
+
+/** Text shown with the option buttons of a new options reply (BAF's own default; personalization translates it). */
+export const DEFAULT_OPTIONS_LABEL = 'Choose an option';

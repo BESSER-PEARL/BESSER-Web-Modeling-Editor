@@ -213,3 +213,17 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   kg: KG_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };
+
+/** The Generate menu's name of a generator: its action's, or its group's where the group offers it in several forms
+ *  (PyTorch: Subclassing, Sequential). Undefined for a generator the menu does not offer. */
+export function generatorMenuName(generator: string): Pick<GeneratorMenuAction, 'label' | 'labelKey'> | undefined {
+  for (const entries of Object.values(GENERATOR_MENU_CONFIG)) {
+    for (const entry of entries) {
+      if (entry.kind === 'action' && entry.generator === generator) return entry;
+      if (entry.kind !== 'group') continue;
+      const actions = entry.actions.filter((action) => action.generator === generator);
+      if (actions.length > 0) return actions.length > 1 ? entry : actions[0];
+    }
+  }
+  return undefined;
+}

@@ -72,6 +72,14 @@ The assistant understands natural-language modeling requests such as:
   the :doc:`Spec-Driven Agent <spec-driven-agent>`.
 * **Export, deploy, or import from GitHub** — the same actions available from
   the top-bar menus.
+* **Ask about the trace** — *"Why does Book have an isbn?"*, *"What is out of
+  date?"*, *"Which requirements are not covered?"*, *"What did you change in
+  the last session?"* The answer ends with a button that opens the
+  Traceability page on the matching view (lineage, coverage or timeline).
+  This works only in a project that records traces, once something has been
+  recorded; otherwise the assistant says so. To turn recording on, see
+  :doc:`traceability`. See *Asking the assistant about
+  the trace* in :doc:`../webapp/traceability-recording` for what is sent.
 
 Suggested **quick actions** appear as one-click chips underneath the
 assistant's replies (for example *Generate web app*, *Open the GUI*, *Replace* /
@@ -174,6 +182,25 @@ Your messages and the diagram data needed to answer them are sent to the
 modeling-agent service. Projects themselves stay in your browser — the assistant
 is sent a snapshot of the current project so it can reason about it, not a copy
 that is stored. The chat header links to a privacy summary.
+
+When the project records traces, each message also carries a bounded summary of
+the trace (recent operations, requirements, out-of-date links and the history of
+the elements your message names), never generated file contents. Nothing of the
+trace is sent when recording is off or nothing has been recorded.
+
+Recording is **off** for a new project: you turn it on with the switch at the
+top of the project's Traceability page. From then on every message carries this
+summary. It includes who made each change, by name (the project owner's name as
+entered in the project settings, or "anonymous"), and the values of the changes
+it lists: names, types, and also longer values such as a method's code or a
+constraint's expression, each cut at 500 characters. Turning recording off again
+keeps this out of your messages; the trace already recorded stays in your
+browser and is no longer sent.
+
+While recording is on, the assistant also lists the requirements a long request
+for a class diagram states and reports which classes realize each one, for the
+trace's Requirements view. This takes one more, small LLM call per such request;
+with recording off the assistant skips it.
 
 Research study mode
 ~~~~~~~~~~~~~~~~~~~

@@ -10,6 +10,7 @@ import { styled } from '../../components/theme/styles';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../utils/actions/actions';
+import { TraceabilityLink } from '../../components/traceability/TraceabilityLink';
 import { LineageSourceLink } from '../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
@@ -60,6 +61,7 @@ class DefaultPopupComponent extends Component<Props, State> {
         />
         {/* Self-gating: only renders for derived elements. */}
         <LineageSourceLink elementId={element.id} />
+        <TraceabilityLink elementId={element.id} />
       </div>
     );
   }

@@ -3,7 +3,7 @@
  * GitHub collaboration's own marks in the brand colour, until the next click.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ElementMark, RelationshipMark, relationshipLine, useElementBoxes } from '../../github';
+import { ElementMark, RelationshipMark, relationshipLine, useElementBoxes } from '../../../shared/components/model-marks/ModelMarks';
 import { subscribeToElementFocus } from '../../../shared/utils/elementFocusSignal';
 
 const BRAND = 'hsl(var(--brand))';

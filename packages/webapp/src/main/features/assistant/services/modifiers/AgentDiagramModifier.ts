@@ -7,6 +7,7 @@ import { AgentComponentType, UMLModel, normalizeAgentComponents } from '@besser/
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { buildAgentStateBody } from '../converters/AgentDiagramConverter';
+import { buildTransitionTrigger } from '../agentTransitionTrigger';
 
 /**
  * An agent model as the modifier edits it: canvas `elements` plus the off-canvas
@@ -355,19 +356,14 @@ export class AgentDiagramModifier implements DiagramModifier {
     };
 
     if (!isInitialTransition) {
-      const condition = changes.condition || 'when_intent_matched';
-      transition.transitionType = 'predefined';
-      if (condition === 'when_intent_matched') {
-        transition.predefined = {
-          predefinedType: 'when_intent_matched',
-          intentName: changes.intentName || changes.name || '',
-        };
-      } else if (condition === 'when_no_intent_matched') {
-        transition.predefined = { predefinedType: 'when_no_intent_matched' };
-      } else {
-        transition.predefined = { predefinedType: condition };
-      }
-      transition.custom = { condition: [] };
+      // A transition that does not say what triggers it continues unconditionally, like a new arrow in the
+      // editor (an intent-matched one with no intent is an error at generation time).
+      Object.assign(transition, buildTransitionTrigger({
+        condition: changes.condition || 'auto',
+        intentName: changes.intentName || changes.name,
+        conditionValue: changes.conditionValue,
+        conditionCode: changes.conditionCode,
+      }));
     }
 
     model.relationships[transitionId] = transition;

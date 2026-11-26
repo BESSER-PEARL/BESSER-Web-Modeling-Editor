@@ -18,6 +18,21 @@ import {
 import { normalizeProjectName } from './projectName';
 import { EDITOR_VERSION } from '../constants/constant';
 import { getCachedBesserVersion } from '../services/besserVersion';
+import { getProjectTrace } from '../traceability/traceStore';
+import { traceOfDiagrams } from '../traceability/traceSubset';
+import type { TraceFile } from '../types/traceability';
+
+/**
+ * The project's trace for an export of `payload`; the caller loads it first (`loadProjectTrace`). An export of
+ * some diagram types carries only the part of the trace about the diagrams it holds (`traceOfDiagrams`).
+ */
+function loadedTrace(projectId: string, payload: ExportableProjectPayload, selectedDiagramTypes?: SupportedDiagramType[]): TraceFile {
+  const trace = getProjectTrace(projectId);
+  if (!trace) throw new Error(`The trace of project ${projectId} is not loaded: call loadProjectTrace before exporting it.`);
+  if (!selectedDiagramTypes?.length) return trace;
+  const exported = new Set(Object.values(payload.diagrams).flatMap((diagrams) => diagrams.map((d) => d.id)));
+  return traceOfDiagrams(trace, exported);
+}
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
 
@@ -149,8 +164,13 @@ export const buildExportableProjectPayload = (
 export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
+  options: { includeTrace?: boolean } = {},
 ): Record<string, unknown> => {
-  const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
+  const payload: ExportableProjectPayload & { trace?: TraceFile } = buildExportableProjectPayload(
+    project,
+    selectedDiagramTypes,
+  );
+  if (options.includeTrace) payload.trace = loadedTrace(project.id, payload, selectedDiagramTypes);
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {
@@ -205,6 +225,8 @@ export interface ProjectExportEnvelope {
   agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
   activeAgentConfigurationId?: string | null;
   agentBaseModels?: Record<string, UMLModel>;
+  /** The project trace, when the user exports the project with it. Kept apart from `project`. */
+  trace?: TraceFile;
 }
 
 export interface BuildProjectExportEnvelopeOptions {
@@ -215,6 +237,9 @@ export interface BuildProjectExportEnvelopeOptions {
    * profiles don't end up in a public repo.
    */
   includePersonalization?: boolean;
+  /** Bundle the project trace (kept in IndexedDB, see `traceStore.ts`). Default: ``false``; the user opts in per
+   *  export. An export of some diagram types bundles only the part of the trace about them. */
+  includeTrace?: boolean;
 }
 
 /**
@@ -243,6 +268,8 @@ export function buildProjectExportEnvelope(
     version: PROJECT_EXPORT_VERSION,
     ...versionMetadata(),
   };
+
+  if (options.includeTrace) envelope.trace = loadedTrace(project.id, envelope.project, diagramTypes);
 
   if (includePersonalization) {
     const agentConfigurations = LocalStorageRepository.getAgentConfigurations();

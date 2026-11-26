@@ -18,6 +18,21 @@ import {
   stripAgentConfigToSystem,
 } from '../../deploy';
 import type { GenerationOptions, GenerationResult } from '../types';
+import { getActiveDiagram } from '../../../shared/types/project';
+import type { BesserProject } from '../../../shared/types/project';
+import {
+  generateFromProjectWithTrace,
+  generateWithTrace,
+  tracedFileBlob,
+  type TracedGenerationResponse,
+} from '../../../shared/api/traceability';
+import {
+  isTraceabilityEnabled,
+  recordGenerationTrace,
+  traceActorName,
+} from '../../../shared/traceability/traceStore';
+import { toastTraced, type TraceabilityTarget } from '../../traceability';
+import { offerGeneratedCodeOnGitHub } from '../../github';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
 // Add type definitions
@@ -184,6 +199,94 @@ function reportGenerationFailure(error: unknown, t: TFunction, opts?: Generation
   return { ok: false, error: errorMessage, cause: error };
 }
 
+/** The file name a generation response's `Content-Disposition` gives, else a default. */
+function fileNameOf(headers: Headers): string {
+  const contentDisposition = headers.get('Content-Disposition');
+  if (contentDisposition) {
+    for (const pattern of [/filename="([^"]+)"/, /filename=([^;\s]+)/, /filename="?([^";\s]+)"?/]) {
+      const match = contentDisposition.match(pattern);
+      if (match) return match[1];
+    }
+  }
+  return 'generated_code.txt';
+}
+
+/** Statuses that say the backend has no traced endpoint (an older BESSER): 404, 405, 501. */
+const NO_TRACED_ENDPOINT_STATUSES = new Set([404, 405, 501]);
+
+/**
+ * A refusal only the traced endpoint makes: a diagram without the id the trace refers to it by (BESSER's
+ * `traced_generation.py`: "A traced generation needs the diagram id..." / "...the id of every diagram it reads"),
+ * or a request field only it has (`actorName`).
+ */
+const TRACE_ONLY_REFUSAL = /\btraced generation\b[^]*\bid\b|\bactorName\b/i;
+
+/**
+ * Whether a failed traced request is worth repeating on the plain endpoint: only when the traced endpoint itself is
+ * the problem, never when the generation failed (it would fail again, and a failing web app can take minutes):
+ * the backend has no traced endpoint ({@link NO_TRACED_ENDPOINT_STATUSES}), or refused what only a traced request
+ * carries ({@link TRACE_ONLY_REFUSAL}, a 400 or 422). A 500 is not retried: the backend answers a failure building
+ * the trace with the same generic 500 as a generator crash, so the two cannot be told apart.
+ */
+function isTraceFallbackError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  if (NO_TRACED_ENDPOINT_STATUSES.has(error.status)) return true;
+  return (error.status === 400 || error.status === 422) && TRACE_ONLY_REFUSAL.test(`${error.detail ?? ''}\n${error.message}`);
+}
+
+/**
+ * Run a generation and deliver its file: through the traced endpoint when `traced` is given (the project records
+ * traces), recording the run's trace fragment, else through the plain one. A traced request that fails in a way
+ * the plain endpoint may not ({@link isTraceFallbackError}) is repeated on the plain endpoint, so the user still
+ * gets the file, and is told the trace of this run was not recorded.
+ *
+ * The file is delivered before its trace is recorded, and recording never throws: a trace that cannot be
+ * recorded (the user is warned) never costs the user a generation that succeeded.
+ */
+async function runGenerationRequest(
+  project: BesserProject | null,
+  traced: (() => Promise<TracedGenerationResponse>) | null,
+  plain: () => Promise<{ blob: Blob; headers: Headers }>,
+  deliver: (blob: Blob, filename: string) => GenerationResult,
+  announce: (traced: boolean) => void,
+  t: TFunction,
+  opts?: GenerationOptions,
+): Promise<GenerationResult> {
+  let traceLost = false;
+  if (traced && project) {
+    let received: { response: TracedGenerationResponse; blob: Blob } | null = null;
+    try {
+      const response = await traced();
+      received = { response, blob: tracedFileBlob(response) };
+    } catch (error) {
+      if (!isTraceFallbackError(error)) return reportGenerationFailure(error, t, opts);
+      console.warn('The traced generation failed; generating without a trace.', error);
+      traceLost = true;
+    }
+    if (received) {
+      const result = deliver(received.blob, received.response.fileName);
+      announce(recordGenerationTrace(project.id, { ...received.response.trace, projectId: project.id }));
+      return result;
+    }
+  }
+  try {
+    const { blob, headers } = await plain();
+    if (traceLost) toast.warn(t('generation.toasts.traceNotRecorded'));
+    const result = deliver(blob, fileNameOf(headers));
+    announce(false);
+    return result;
+  } catch (error) {
+    return reportGenerationFailure(error, t, opts);
+  }
+}
+
+/** The success toast of a generation: with a link to the run's lineage when its trace was recorded. */
+function announceGenerated(t: TFunction, traced: TraceabilityTarget | null): void {
+  const message = t('generation.toasts.codeGenerationCompleted');
+  if (traced) toastTraced(message, traced);
+  else toast.success(message);
+}
+
 export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
   const { t } = useTranslation();
@@ -238,41 +341,29 @@ export const useGenerateCode = () => {
         : 0;
       const requestTimeoutMs =
         webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
-      try {
-        const { blob, headers } = await generateFromProject(projectWithSettings, requestTimeoutMs);
-
-        // Get the filename from the response headers
-        const contentDisposition = headers.get('Content-Disposition');
-        let filename = 'generated_code.txt'; // Default filename
-
-        if (contentDisposition) {
-          const patterns = [
-            /filename="([^"]+)"/,
-            /filename=([^;\s]+)/,
-            /filename="?([^";\s]+)"?/
-          ];
-
-          for (const pattern of patterns) {
-            const match = contentDisposition.match(pattern);
-            if (match) {
-              filename = match[1];
-              break;
-            }
-          }
-        }
-
-        // Deferred download (assistant flow): return the blob so the caller
-        // can render a result card with a manual Download button instead of
-        // auto-saving. The menu path leaves autoDownload at its default (true).
-        if (opts?.autoDownload === false) {
-          return { ok: true, filename, blob };
-        }
-        downloadFile({ file: blob, filename });
-        toast.success(t('generation.toasts.codeGenerationCompleted'));
-        return { ok: true, filename };
-      } catch (error) {
-        return reportGenerationFailure(error, t, opts);
-      }
+      // A project that records traces gets the run's trace along with the file (same bytes, same download).
+      const traced = isTraceabilityEnabled(currentProject)
+        ? () => generateFromProjectWithTrace(projectWithSettings, traceActorName(currentProject), requestTimeoutMs)
+        : null;
+      return runGenerationRequest(
+        currentProject,
+        traced,
+        () => generateFromProject(projectWithSettings, requestTimeoutMs),
+        (blob, filename) => {
+          // Deferred download (assistant flow): return the blob so the caller
+          // can render a result card with a manual Download button instead of
+          // auto-saving. The menu path leaves autoDownload at its default (true).
+          if (opts?.autoDownload === false) return { ok: true, filename, blob };
+          downloadFile({ file: blob, filename });
+          offerGeneratedCodeOnGitHub(blob, filename);
+          return { ok: true, filename };
+        },
+        (traced) => {
+          if (opts?.autoDownload !== false) announceGenerated(t, traced ? { tab: 'lineage' } : null);
+        },
+        t,
+        opts,
+      );
     },
     [downloadFile, t],
   );
@@ -370,39 +461,30 @@ export const useGenerateCode = () => {
         }
       }
 
-      try {
-        const { blob, headers } = await generateFromDiagram(body, 300000);
-
-        // Get the filename from the response headers
-        const contentDisposition = headers.get('Content-Disposition');
-        let filename = 'generated_code.txt'; // Default filename
-
-        if (contentDisposition) {
-          // Try multiple patterns to extract filename
-          const patterns = [
-            /filename="([^"]+)"/,
-            /filename=([^;\s]+)/,
-            /filename="?([^";\s]+)"?/
-          ];
-
-          for (const pattern of patterns) {
-            const match = contentDisposition.match(pattern);
-            if (match) {
-              filename = match[1];
-              break;
-            }
-          }
-        }
-
-        if (opts?.autoDownload === false) {
-          return { ok: true, filename, blob };
-        }
-        downloadFile({ file: blob, filename });
-        toast.success(t('generation.toasts.codeGenerationCompleted'));
-        return { ok: true, filename };
-      } catch (error) {
-        return reportGenerationFailure(error, t, opts);
-      }
+      // A project that records traces gets the run's trace along with the file, from the traced endpoint (same
+      // file, same download), whatever the generator. The trace refers to the model by its diagram's id: the one
+      // the caller names (a model read from storage), else the open diagram's.
+      const project = ProjectStorageRepository.getCurrentProject();
+      const diagramId = opts?.traceDiagramId ?? (project ? getActiveDiagram(project, project.currentDiagramType)?.id : undefined);
+      const traced = project && diagramId && isTraceabilityEnabled(project)
+        ? () => generateWithTrace({ ...body, id: diagramId, actorName: traceActorName(project) })
+        : null;
+      return runGenerationRequest(
+        project,
+        traced,
+        () => generateFromDiagram(body, 300000),
+        (blob, filename) => {
+          if (opts?.autoDownload === false) return { ok: true, filename, blob };
+          downloadFile({ file: blob, filename });
+          offerGeneratedCodeOnGitHub(blob, filename);
+          return { ok: true, filename };
+        },
+        (traced) => {
+          if (opts?.autoDownload !== false) announceGenerated(t, traced ? { tab: 'lineage', root: diagramId } : null);
+        },
+        t,
+        opts,
+      );
     },
     [downloadFile, generateCodeFromProject, t],
   );

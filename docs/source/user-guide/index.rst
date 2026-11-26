@@ -9,6 +9,7 @@ Manage your work
 
    projects
    diagrams/index
+   traceability
 
 Use AI
 ------

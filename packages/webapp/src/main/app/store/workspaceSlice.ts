@@ -23,6 +23,15 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { track, trackFailure } from '../../shared/services/analytics/events';
 import { DeepPartial } from '../../shared/utils/types';
+import {
+  recordDiagramCreated,
+  recordDiagramDeleted,
+  recordDiagramRenamed,
+  recordDiagramUpdate,
+  recordElementLineage,
+} from '../../shared/traceability/traceStore';
+import type { DiagramChangeSource } from '../../shared/traceability/traceStore';
+import { dropLatestAgentIteration, recordAgentIteration } from '../../shared/services/agentChanges/agentChanges';
 import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -276,10 +285,18 @@ export const openDiagramThunk = createAsyncThunk(
   },
 );
 
+export type DiagramModelUpdate = Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>> & {
+  /** Who made the change, for the project trace: the user on the canvas (default), the assistant, or a model
+   *  generator (a template, an import, a derivation from another diagram). */
+  traceSource?: DiagramChangeSource;
+  /** The user undoes the assistant's last edit: its change marks are dropped with it. */
+  undoesAssistantEdit?: boolean;
+};
+
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (
-    updates: Partial<Pick<ProjectDiagram, 'model' | 'title' | 'description'>>,
+    { traceSource = 'user', undoesAssistantEdit, ...updates }: DiagramModelUpdate,
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -314,13 +331,42 @@ export const updateDiagramModelThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update diagram');
+    // Every diagram type is recorded, except the user's GUI edits, which the GUI editor records from its own saves
+    // (an assistant's or a generator's GUI written here is compared with the same baseline, so none is recorded twice).
+    if (updates.model && !(activeDiagramType === 'GUINoCodeDiagram' && traceSource === 'user')) {
+      recordDiagramUpdate(project, activeDiagramType, updated, current.model, updated.model, traceSource);
+    }
+    if (updates.title !== undefined) recordDiagramRenamed(project, current.id, current.title, updates.title);
+    // What the assistant changed is marked on the canvas until the user clears the marks (view only).
+    if (updates.model && traceSource === 'assistant') recordAgentIteration(project.id, current.id, current.model, updated.model);
+    if (undoesAssistantEdit) dropLatestAgentIteration(project.id, current.id);
     return updated;
+  },
+);
+
+/** Turn trace recording on or off for the open project (view-only, no revision bump). */
+export const setTraceabilityEnabledThunk = createAsyncThunk(
+  'workspace/setTraceabilityEnabled',
+  async (enabled: boolean, { getState }) => {
+    const { project } = (getState() as { workspace: WorkspaceState }).workspace;
+    if (!project) throw new Error('No active project');
+    const updatedProject: BesserProject = {
+      ...project,
+      settings: { ...project.settings, traceabilityEnabled: enabled },
+    };
+    ProjectStorageRepository.withoutNotify(() => {
+      ProjectStorageRepository.saveProject(updatedProject);
+    });
+    return enabled;
   },
 );
 
 export const updateQuantumDiagramThunk = createAsyncThunk(
   'workspace/updateQuantumDiagram',
-  async ({ model }: { model: QuantumCircuitData }, { getState }) => {
+  async (
+    { model, traceSource = 'user' }: { model: QuantumCircuitData; traceSource?: DiagramChangeSource },
+    { getState },
+  ) => {
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
@@ -346,6 +392,7 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
       );
     });
     if (!success) throw new Error('Failed to update quantum diagram');
+    recordDiagramUpdate(project, 'QuantumCircuitDiagram', updated, current.model, model, traceSource);
     return updated;
   },
 );
@@ -515,11 +562,14 @@ export const addDiagramThunk = createAsyncThunk(
       diagramType,
       title,
       derivedFrom,
+      traceSource = 'user',
     }: {
       diagramType: SupportedDiagramType;
       title?: string;
       /** Lineage metadata set by inter-diagram derivation hooks. */
       derivedFrom?: DiagramLineage;
+      /** Who added the diagram, for the project trace (the user by default). */
+      traceSource?: DiagramChangeSource;
     },
     { getState },
   ) => {
@@ -545,6 +595,7 @@ export const addDiagramThunk = createAsyncThunk(
     if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    recordDiagramCreated(project, diagramType, diagram, traceSource);
     return { diagramType, index: newIndex, diagram };
   },
 );
@@ -557,19 +608,36 @@ export const addDiagramThunk = createAsyncThunk(
 export const setElementLineageThunk = createAsyncThunk(
   'workspace/setElementLineage',
   async (
-    { derivedDiagramId, mapping }: { derivedDiagramId: string; mapping: ElementLineageMap },
+    {
+      derivedDiagramId,
+      mapping,
+      generator,
+      sourceDiagramId,
+    }: {
+      derivedDiagramId: string;
+      mapping: ElementLineageMap;
+      /** The diagram the mapping's source elements are in, when the derived diagram has no `derivedFrom`. */
+      sourceDiagramId?: string;
+      /** The model generator that derived the diagram (`MODEL_GENERATORS`), recorded in the project trace. */
+      generator?: string;
+    },
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    let saved: BesserProject | null = null;
     ProjectStorageRepository.withoutNotify(() => {
       const p = ProjectStorageRepository.loadProject(project.id);
       if (!p) return;
       p.elementLineage = { ...(p.elementLineage ?? {}), [derivedDiagramId]: mapping };
       ProjectStorageRepository.saveProject(p);
+      saved = p;
     });
+    // The lineage is also the trace's: each derived element is linked from its source element.
+    const savedProject = saved as BesserProject | null;
+    if (savedProject && generator) recordElementLineage(savedProject, derivedDiagramId, mapping, generator, sourceDiagramId);
 
     return { derivedDiagramId, mapping };
   },
@@ -585,6 +653,7 @@ export const removeDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    const removed = project.diagrams[diagramType]?.[index];
     let success = false;
     let updatedProject: BesserProject | null = null;
     ProjectStorageRepository.withoutNotify(() => {
@@ -595,6 +664,7 @@ export const removeDiagramThunk = createAsyncThunk(
     });
     if (!success) throw new Error('Cannot remove diagram');
     if (!updatedProject) throw new Error('Failed to reload project after removal');
+    if (removed) recordDiagramDeleted(project, removed.id, removed.title);
     return { project: updatedProject as BesserProject, diagramType };
   },
 );
@@ -634,6 +704,7 @@ export const renameDiagramThunk = createAsyncThunk(
     ProjectStorageRepository.withoutNotify(() => {
       ProjectStorageRepository.updateDiagram(project.id, diagramType, updated, index);
     });
+    recordDiagramRenamed(project, updated.id, diagrams[index].title, newTitle);
     return { diagramType, index, diagram: updated };
   },
 );
@@ -919,6 +990,14 @@ const workspaceSlice = createSlice({
             perspectives,
           };
         }
+      })
+      .addCase(setTraceabilityEnabledThunk.fulfilled, (state, action) => {
+        if (state.project) {
+          state.project.settings = { ...state.project.settings, traceabilityEnabled: action.payload };
+        }
+      })
+      .addCase(setTraceabilityEnabledThunk.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update traceability';
       })
       .addCase(applyPerspectivePresetThunk.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to apply perspective preset';

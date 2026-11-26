@@ -12,6 +12,7 @@ import { CookieConsentBanner } from '../shared/components/cookie-consent/CookieC
 import { ApplicationStore } from './store/application-store';
 import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
+import { StorageQuotaWarning } from './shell/StorageQuotaWarning';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
@@ -43,6 +44,10 @@ const ProjectSettingsPanel = React.lazy(() =>
 );
 const KnowledgeGraphSettingsPanel = React.lazy(() =>
   import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
+);
+// The page itself, not the feature's index: the index holds what eager code imports (links into the page).
+const TraceabilityPage = React.lazy(() =>
+  import('../features/traceability/TraceabilityPage').then((m) => ({ default: m.TraceabilityPage })),
 );
 
 const AgentSimulationPage = React.lazy(() =>
@@ -197,6 +202,7 @@ function AppContentInner() {
             <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
+            <Route path="/traceability" element={<TraceabilityPage />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -212,6 +218,7 @@ function AppContentInner() {
           />
         </Suspense>
       )}
+      <StorageQuotaWarning />
       {templateDialogMounted && (
         <Suspense fallback={null}>
           <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />

@@ -84,6 +84,8 @@ export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
 // the GitHub repo a project is linked to (suffix: `<projectId>`); see projectGitHubLink.ts
 export const localStorageGitHubLinkPrefix = localStoragePrefix + 'github_link_';
+// what the assistant changed, marked on the canvas (suffix: `<projectId>`); see agentChangeMarks.ts
+export const localStorageAgentChangesPrefix = localStoragePrefix + 'agent_changes_';
 
 // external service URLs
 export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
@@ -218,6 +220,8 @@ export const localStorageLegacyGitHubLinkedRepos = localStoragePrefix + 'github_
 export const localStorageLegacyGitHubAutoCommit = localStoragePrefix + 'github_auto_commit';
 // Pre-projects agent config; migrated once into per-project storage.
 export const localStorageLegacyAgentConfig = 'agentConfig';
+// Project traces before IndexedDB, one per project id; moved over when first read, removed with the project.
+export const localStorageLegacyTracePrefix = localStoragePrefix + 'traces_';
 // Unprefixed keys of the pre-v7 webapp, removed by the v2 storage migration and by "Reset and reload".
 // Literals on purpose: the keys of a past version must not follow a rename of a live constant.
 // 'github_username' and 'umlAgentRateLimiterState' are still live: clearing them is intended (Reset

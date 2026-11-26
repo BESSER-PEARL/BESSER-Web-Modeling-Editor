@@ -1,0 +1,228 @@
+Traceability: what the editor records
+=====================================
+
+A project that records traces (``settings.traceabilityEnabled``: opt-in, off for a new project until
+the user turns it on on the Traceability page) keeps a *trace file* next to it (see :doc:`local-projects` for where it is stored). Its format
+mirrors the backend's traceability metamodel (``besser/BUML/metamodel/traceability``) and is typed in
+``shared/types/traceability.ts``: actors, tools, artifacts, operations and the trace links between
+artifacts. This page lists what is recorded, by whom, and how the trace is kept bounded. How to
+turn recording on and read the Traceability page: :doc:`../user-guide/traceability`.
+
+Schema version
+--------------
+
+The trace is version 6 (``TRACE_SCHEMA_VERSION``; 6 added ``revisionOfId`` on a code artifact, a file
+version an LLM edited). Older traces, stored or imported, are migrated when read
+(``traceMigration.ts``). A trace newer than the editor reads is refused with its own message. When a
+backend refuses the version of a trace in a B-UML export, the export is sent again with the trace
+written as version 5 (``downgradeTraceFile``); when an older backend leaves the trace out of the file,
+the user is told.
+
+Every trace that comes from outside the tab's own recording (the stored trace, an imported project's, a
+generation's fragment from the backend) is also checked item by item (``sanitizeTraceFile`` in
+``traceSanitize.ts``): an item of the wrong shape or with an id already used is dropped, a reference to an
+item the trace does not have is dropped (a backend fragment may name the project trace's own items), and a
+``parentId`` that closes a cycle is removed. A trace with more items than ``TRACE_LIMITS`` allows (300,000
+artifacts, 100,000 operations, 600,000 links) is refused with a message saying so; a file content over
+8 MB is dropped (its hash kept) and other texts are cut at 1 MB. Every walk up an artifact's parents is
+also capped (``MAX_PARENT_DEPTH``).
+
+Model edits
+-----------
+
+Every save of a diagram is compared with the previous version and recorded as a *modeling session*
+(change by change: created, updated, deleted, with the feature, old and new value). Layout is never
+a change. The comparison reduces each version to a snapshot of the elements that reach the B-UML
+model, named by their B-UML metaclass (``Class``, ``State``, ``Task``, ``Conv2D``, ``Qubit``, ``KGClass``,
+...):
+
+* class diagrams: ``classModelDiff.ts``;
+* GUI diagrams: ``guiModelDiff.ts`` (with the class-diagram elements each component is bound to);
+* object, user, state machine, agent, BPMN, neural network, component and deployment diagrams: one
+  generic builder, ``snapshotApollonModel`` in ``diagramModelDiff.ts``, driven by a table per type
+  (``APOLLON_TABLES``: element type to metaclass, and members folded into their owner, such as an
+  intent's training sentences or a layer's attribute elements);
+* quantum circuits and knowledge graphs: their own builders in the same file (a gate is known by its
+  cell, so moving it is a deletion and a creation).
+
+What is recorded follows what the backend's ``json_to_buml`` processors build, since a generation's trace refers
+to model elements by the editor's element id and B-UML metaclass:
+
+* an agent state whose ``stateType`` is ``reasoning`` is a ``ReasoningState``; its actions and fallback actions,
+  which the backend builds into one id-less ``Body`` each, are list features of the state (``actions``,
+  ``fallbackActions``), so editing an action is a change of the state, which code is linked to;
+* a transition from an initial node is no transition: its target state gets ``initial`` (one to a state machine's
+  final node marks its source ``final``); a state machine state's bodies (references to code blocks) are features
+  of the state; a code block is the ``Body``;
+* BPMN: ``data association`` flows are ``DataAssociation``; an ``isAgentic`` task, gateway or lane is an
+  ``AgenticTask``, ``AgenticGateway`` or ``AgenticLane``;
+* deployment: an association between two nodes is a ``CommunicationPath``, one from an artifact or component to a
+  node a ``DeploymentRelation``; component: the stereotype makes a component a ``Skill``, ``Tool``, ``LLM``,
+  ``Database``, ``RAG`` or ``AgenticComponent`` and a dependency an ``AgenticEdge``, read as the backend reads it;
+* quantum: a gate over several wires (a swap, a two-qubit rotation, a function gate of some height) is one gate,
+  at its first wire's cell (``<diagramId>:gate:<column>:<wire>``, the cell the backend keys it on), with the
+  backend's gate class (``SGate``, ``QFTGate``, ``ComparisonGate``, ...; ``CustomGate`` for an unknown symbol); the
+  controls of a column are a ``controls`` feature of its gates.
+
+Some elements have no backend counterpart, so code can never be linked to them: an agent's LLM
+(``LLMWrapper``), fork, merge, action and object nodes, an NN ``Configuration`` and ``NNReference``, NN edges,
+qubits, GUI table columns. They are marked ``traceable: false`` in ``APOLLON_TABLES`` and listed in
+``UNTRACEABLE_METACLASSES``; they are recorded as history (the Diagrams and Timeline views show their changes), but
+the Coverage view has no row for them (the gates a qubit holds are rows in its place), so they never show as
+elements without code. Requirements are realized by class-diagram elements, all traceable.
+
+A trace recorded by an earlier version, under the old metaclasses and ids, is brought in line with a diagram's
+next recorded edit (``alignDiagramArtifacts``): an artifact whose element is still recorded takes its current
+metaclass (a relabelling, not a change), and one the editor recorded that the current recording no longer has
+(an agent action recorded as a ``Body``, the transition from an initial node, a control cell, the second wire of a
+two-wire gate) is recorded as deleted in that edit's session. Artifacts a generation's trace brought are left
+as they are. There is never a second artifact for one element id.
+
+An element that keeps its id but changes metaclass (a class toggled to an enumeration, its attributes then
+literals) is one update of its ``elementType`` feature (old and new metaclass), not a deletion and a
+creation: it stays the live element it is, its artifact takes the new metaclass, and the code generated from
+it is marked out of date.
+
+The workspace store (``updateDiagramModelThunk``, ``updateQuantumDiagramThunk``) records every type;
+the GUI, circuit and knowledge-graph editors, which save straight to storage, record their own saves.
+Adding a diagram is recorded as its creation.
+
+Who made a change
+-----------------
+
+* **The user**: a session of the editor tool, performed by the project owner.
+* **The assistant**: a session performed by the owner and the assistant, its elements linked from
+  the prompt of the request they answer (and from the requirements the assistant extracted). An edit
+  that comes more than 30 s after its turn's last answer (``TURN_GRACE_MS``) answers no request.
+  Undoing an assistant edit is the user's edit.
+* **A model generator**: a session of a ``ModelGenerator`` tool, never merged with another, for
+  everything the editor writes that the user did not draw: template loads, diagram and picture
+  imports, the knowledge-graph to class-diagram conversion, the agent personalization restoring a
+  base model, the GUI generator, and the inter-diagram derivations (BPMN to components, components
+  to deployment, a lane to an agent). ``MODEL_GENERATORS`` in ``traceStore.ts`` names them. The
+  element lineage a derivation writes (``project.elementLineage``) is recorded as trace links from
+  each source element to the element derived from it (``recordElementLineage``); the KG conversion,
+  which reports no lineage, links elements of the same name.
+
+The GUI editor and the store compare a GUI with one baseline (``setGuiBaseline``), so a GUI the
+assistant wrote is recorded once, and what the GUI generator produced is recorded when it ends, not
+attributed to the user's next auto-save.
+
+The assistant's model
+---------------------
+
+Each turn with the assistant is a call to an LLM in a *conversation* operation. A terminal reply of the
+modeling agent carries ``llmUsage`` (model, provider, input and output tokens; running totals of the
+turn): the turn is then filed under that model with its tokens, and the latest totals win. An ``agent_error``
+from the agent is recorded as the turn's error, with its message and, when it carries one, its ``llmUsage``;
+the client's own notices (a reply it could not read is an error, the "still running" notice is not recorded)
+carry no usage. An agent
+that does not report it leaves the turn under a tool named "unknown model (not reported by the
+assistant)".
+
+Asking the assistant about the trace
+------------------------------------
+
+The assistant can answer questions about the trace ("why does Book have an isbn?", "what is out of date?",
+"which requirements are not covered?"). With each user message the editor sends a *trace digest*
+(``context.traceDigest``, built by ``shared/traceability/traceDigest.ts``; the wire format is section 3 of the
+cross-repo traceability contract). It is sent **only when the project records traces and its trace holds at
+least one operation**; otherwise the field is left out and the assistant answers that nothing is recorded and
+how to turn recording on. A voice message carries the digest too, its focus taken from the canvas selection
+only (its transcript is not known when the context is sent). The digest is built on the main thread, so its cost per message is kept to the
+message: the trace's index and the parts that do not depend on the message are computed once per trace revision
+(``traceIndexOf``), and the focus is found by looking the message's runs of words up in the model's names,
+indexed once per revision, rather than by searching the message for every name.
+
+The digest is a bounded summary, at most about 12,000 characters, never the trace itself:
+
+* counts of artifacts, links, out-of-date links and operations by type;
+* the 15 newest operations (who, with which tools, a one-line summary), the current requirements (at most 40,
+  with what realizes them and whether the model covers them), the links that may be out of date (at most 30),
+  and the 10 newest generations (files and out-of-date files);
+* a *focus* of at most 5 model elements whose name, or qualified ``Owner.member`` name, the message mentions as
+  a whole word: their change history, what they were derived from (requirements, prompts, models, with the kind
+  of evidence) and the code derived from them (path, lines, why it may be out of date). When the message names
+  none, the elements and relationships selected on the UML canvas are the focus (in selection order, a selected
+  attribute beating its class), so "what does changing this affect?" or "who changed this?" is answered about
+  the selection.
+
+Generated file contents and prompt texts are never sent; a requirement's statement and quote are cut at 500
+characters.
+
+**Privacy.** Recording is off for a new project; once the user turns it on, every message to the assistant
+carries the digest, and ``context.traceabilityEnabled`` tells the agent to extract the requirements of a
+long class-diagram request (an LLM call it skips when recording is off). The digest names who made each change (``Person:<owner>``, the project owner's name
+as entered, or ``anonymous``; ``Agent:...`` for the assistant) and carries the old and new values of the changes in
+the focus history, which include longer values such as a method's code or a constraint's expression (each cut
+at 500 characters). Turning recording off for the project stops sending it; the user guide says the same
+(:doc:`../user-guide/ai-assistant`, *Privacy*).
+
+When the digest is too large, lists are shortened from their end, the least valuable first: recent
+operations, generations, requirements, out-of-date links, and last the focus.
+
+A trace answer can end with a button (the agent's ``show_trace`` action) that opens the Traceability page on the
+lineage, coverage or timeline view, on the artifact the question was about: the lineage starts at it, the coverage
+highlights its row (a member's, its element's) and scrolls to it, and the timeline of an artifact opens its own
+history (the Diagrams view with it selected) rather than the project's. It is shown under the answer like a
+suggested action and never navigates by itself; an unknown view is ignored.
+
+Generation runs
+---------------
+
+When the project records traces, every generator goes through the traced endpoints
+(``shared/api/traceability.ts``): ``/traceability/generate-output`` for one diagram (the diagram's id names
+the model in the trace) and ``/traceability/generate-output-from-project`` for the project generators.
+Each returns the same file as the plain endpoint plus a trace fragment, merged into the project trace
+(``mergeTraceFragment``): models are matched by element id, artifacts the trace already has (a
+requirement) by id, actors by name and tools by name, version and provider; a fragment merged twice is
+merged once. When the traced endpoint itself is the problem, the plain endpoint is called so the file is
+still delivered, and the user is told the trace of this run was not recorded: an older backend without it
+(404, 405, 501), or a refusal only it makes (a 400 or 422 about a diagram without the id the trace refers to
+it by, or about ``actorName``; the owner's name is cut to the backend's 200 characters). Any other failure is
+the generation's and is reported as is, without generating a second time; a 500 is not retried either, since
+the backend answers a failure building the trace with the same generic 500 as a generator crash. The file is
+delivered before its trace is recorded, and a trace that cannot be recorded never fails the generation.
+
+Two server-side generations are **not** recorded: *Deploy locally* (``POST /deploy-app``, which answers with
+no body) and *Deploy to GitHub* (``POST /github/deploy-webapp``, which answers with the repository, its links
+and a count of files uploaded). Neither response says which diagrams the generator read or which files it
+wrote (no paths, no hashes), so the editor cannot record the run without guessing; the trace has no operation
+for them, and code deployed this way has no trace links. Generate the code from the Generate menu to have it
+traced. Closing the gap needs a traced variant of these endpoints in the backend.
+
+A Spec-Driven run is recorded from the ``trace`` its ``done`` event carries; the requirements sent with
+the run are RequirementArtifact ids, so its requirement-to-code links join them. A backend that sends
+no trace still leaves the run in the trace: one operation built from the stream's events
+(``recordSpecDrivenRun``), marked as a stream summary by its first log record
+(``SPEC_DRIVEN_STREAM_SUMMARY``, so the mark survives export and import). Both can reach one run id (a
+resumed run, ``POST /spec-driven/resume/{run_id}``, keeps its id; a reattach or another tab can deliver the
+backend's trace after the summary was recorded): the backend's trace always wins. It replaces a stream summary
+in place, and the actors and tools only the summary used are dropped; a summary arriving after the backend's
+trace is left out. A later ``done.trace`` of the same run (a resumed run's) supersedes the earlier one with what
+it wrote and its links, since the backend builds it from the run's whole, append-only run log; an earlier one
+arriving late is left out.
+
+Retention
+---------
+
+The trace must fit in the browser, so generation runs are bounded per generator (the tools a run
+called; for a Spec-Driven run, the deterministic generator it started from, whatever LLM served it, so runs on
+different models share one cap; ``pruneOldGenerations``):
+
+#. the newest 5 runs keep everything: links, line ranges and files;
+#. runs 6 to 20 keep their operation and their whole files, with hashes but no content; their links
+   and line ranges are dropped;
+#. older runs are removed with every file they wrote.
+
+Independently, only the newest 3 files of each path keep their content (``pruneStoredContents``), and
+only the newest one when the storage is full. Modeling sessions and conversations are kept.
+
+Export and import
+-----------------
+
+An export of the whole project bundles the whole trace. An export of some diagram types bundles the
+part about them (``traceOfDiagrams`` in ``traceSubset.ts``): their elements, the files of the runs that
+read them, the prompts and requirements they come from, and the operations, links, actors and tools
+about those. Importing a project checks its trace first and stores it only once the project itself
+is stored.

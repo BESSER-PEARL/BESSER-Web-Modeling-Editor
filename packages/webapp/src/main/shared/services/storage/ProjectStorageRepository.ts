@@ -28,6 +28,8 @@ import { clearStoredConversation, clearStoredConversations } from './assistantSt
 import { clearProjectRunRecords } from './specDrivenRunRecords';
 import { checkLocalStorageQuota } from './localStorageQuota';
 import { nextDiagramTitle } from '../../utils/diagramTitles';
+import { deleteProjectTrace } from '../../traceability/traceStore';
+import { removeAgentChanges } from './agentChangeMarks';
 
 export class ProjectStorageRepository {
 
@@ -463,6 +465,10 @@ export class ProjectStorageRepository {
       this.cleanupGitHubMetadata(projectId);
       clearStoredConversation(projectId);
       clearProjectRunRecords(projectId);
+      removeAgentChanges(projectId);
+
+      // The project's trace is stored under its own key
+      deleteProjectTrace(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();

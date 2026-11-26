@@ -29,6 +29,7 @@ const VERBS: Record<string, string> = {
 
 const DETAIL_KEYS = [
   "path", "file_path", "filename", "target", "action", "id", "ids",
+  "done", "add", "drop", "blocked",
   "text", "command", "pattern", "query", "class_name", "generator", "batched",
 ]
 
@@ -60,9 +61,13 @@ export function describeToolCall(
   const key = TARGET_KEYS.find((k) => fields[k])
   let target = key ? fields[key] : ""
   if (tool === "task_list") {
-    // `action=update id=3` reads better as "update #3".
+    // `action=update id=3` reads better as "update #3", `done=1,3` as "done #1,3".
     const ids = fields.id || fields.ids
-    target = [fields.action, ids ? `#${ids}` : "", fields.text]
+    target = [
+      fields.action, ids ? `#${ids}` : "", fields.text,
+      fields.done ? `done #${fields.done}` : "",
+      ...(["add", "drop", "blocked"] as const).map((k) => (fields[k] ? `${k} ${fields[k]}` : "")),
+    ]
       .filter(Boolean)
       .join(" ")
   } else if (tool.startsWith("generate_") && !target) {

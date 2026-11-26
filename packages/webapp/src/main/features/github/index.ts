@@ -2,4 +2,4 @@ export { GitHubMenu } from './components/GitHubMenu';
 export { useGitHubRepo } from './hooks/useGitHubRepo';
 export type { CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from './hooks/useGitHubRepo';
 export { GitHubAutosaveSetting } from './components/GitHubAutosaveSetting';
-export { ElementMark, RelationshipMark, relationshipLine, useElementBoxes } from './components/ModelAttributionLayer';
+export { offerGeneratedCodeOnGitHub, openSaveToGitHub } from './saveToGitHub';

@@ -241,7 +241,8 @@
     "addTarget": "Add a target…",
     "lineage": "Lineage",
     "lineageSource": "Source:",
-    "lineageDerivedFrom": "Derived from"
+    "lineageDerivedFrom": "Derived from",
+    "showTraceability": "Show traceability"
   },
   "assessment": {
     "assessment": "Assessment for",
@@ -555,6 +556,7 @@
       "systemMessage": "System message",
       "youAreHelpfulAssistant": "You are a helpful assistant.",
       "optionsOnePerLine": "Options (one per line)",
+      "optionsLabel": "Text shown with the buttons (optional)",
       "audioSpeedOptional": "Audio speed (optional)",
       "default": "1.0 (default)",
       "latitude": "Latitude",

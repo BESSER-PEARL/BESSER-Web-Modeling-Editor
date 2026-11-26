@@ -70,6 +70,11 @@ export interface PhaseEvent {
   event: 'phase';
   phase: SpecDrivenPhase;
   message: string;
+  /** The run's totals when this phase started, measured like the `cost`
+   * event. Absent from older backends. */
+  usd?: number | null;
+  turns?: number | null;
+  elapsedSeconds?: number | null;
 }
 
 /**
@@ -84,6 +89,19 @@ export interface PhaseUpdateEvent {
   phase: SpecDrivenPhase;
   details: string;
   message?: string | null;
+}
+
+/**
+ * What the current phase is doing now, while one of its steps runs (during
+ * `validate`: a check round, a requirement judge call, a fix attempt; one can
+ * take minutes). Lasts until the next step, phase or terminal event.
+ * `elapsedSeconds` is the run's elapsed time when the step started.
+ */
+export interface StepEvent {
+  event: 'step';
+  phase: SpecDrivenPhase;
+  message: string;
+  elapsedSeconds?: number | null;
 }
 
 export interface TextDeltaEvent {
@@ -123,6 +141,22 @@ export interface CostEvent {
 }
 
 /**
+ * One Phase 3 validation round. `attempt` is 0 for the first check and n for
+ * the re-check after fix attempt n; the tool calls between two findings events
+ * are that attempt's repairs. `restored`: the run went back to a better earlier
+ * version, which these findings describe. `blockers` is capped (and each
+ * message clipped); the counts are true totals.
+ */
+export interface FindingsEvent {
+  event: 'findings';
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored?: boolean;
+}
+
+/**
  * What the run checked, could not check, and shipped unenforced.
  *
  * A blocker count is one number over three different results. An app scored
@@ -141,29 +175,40 @@ export interface SpecDrivenVerificationItem {
   kind: SpecDrivenVerificationKind;
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the run's trace (`done.trace`); `id` keeps `R<n>`. */
+  traceRef?: string;
   /** What the thing is, in the user's terms. */
   what: string;
-  /** Set on a VERIFIED item: what was actually run or re-checked. */
+  /** Set on a verified item (what was run) and a found-in-code item (the cited source). */
   how?: string;
   /** Set on the other two: why nothing reached it, or what is missing. */
   why?: string;
 }
 
 export interface SpecDrivenVerificationReport {
-  /** We checked and it works. */
+  /** A call to the running app exercised it and it works. */
   verified: SpecDrivenVerificationItem[];
+  /** Its source is cited, but nothing ran it. Absent from older backends. */
+  foundInCode?: SpecDrivenVerificationItem[];
   /** We could not check — unknown, not absent. */
   notVerified: SpecDrivenVerificationItem[];
   /** We checked and it is MISSING from the delivered code. */
   shippedUnenforced: SpecDrivenVerificationItem[];
+  /** A test the agent wrote ran against the app and failed. Absent from older backends. */
+  failed?: SpecDrivenVerificationItem[];
   /** TRUE totals. The three lists above are capped by the backend, so a
    * count may exceed its list length — the UI says "showing N of M". */
   counts: {
     verified: number;
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    failed?: number;
   };
 }
+
+/** The done event's field listing classes of checks the server has switched off. */
+export const CHECKS_OFF_FIELD = 'checksOff';
 
 export interface DoneEvent {
   event: 'done';
@@ -206,8 +251,21 @@ export interface DoneEvent {
   /** Number of unresolved blocker-severity issues left by a run whose
    * loop COMPLETED (0 for runs that were genuinely cut short). Drives
    * "finished with N unresolved issues" framing instead of the
-   * misleading "stopped early" copy. */
+   * misleading "stopped early" copy. On a run that is not incomplete it is
+   * padded for released editors: it also counts `notConfirmedCount`, notes of
+   * checks switched off, and on an unverified run at least one per class of
+   * checks that never ran. */
   blockerCount?: number;
+  /** Findings where a check reached no conclusion; never blockers. Absent from older backends. */
+  notConfirmedCount?: number;
+  /** The real unresolved blockers, on every run. Absent from older backends. */
+  unresolvedBlockerCount?: number;
+  /** The run is not incomplete, but a whole class of checks left no evidence
+   * on the delivered app; `unverifiedReason` is the sentence to show. */
+  unverified?: boolean;
+  unverifiedReason?: string | null;
+  /** Classes of checks switched off on the server (e.g. "build"); never makes a run unverified. */
+  [CHECKS_OFF_FIELD]?: string[];
   /** The three states `blockerCount` collapses into one number: what the run
    * verified, what it could not check, and what it delivered UNENFORCED.
    * Additive — absent on older/interrupted runs, in which case the card
@@ -220,6 +278,11 @@ export interface DoneEvent {
   changedFileCount?: number;
   /** How the model differs from the one the base app was built from (modify runs). */
   modelChanges?: string[];
+  /** The trace of the run (a trace file fragment, `projectId` null): its generator and LLM calls, the files the
+   *  LLM wrote, and requirement -> code links whose requirements are the RequirementArtifact ids the editor sent.
+   *  Absent from an older backend; untrusted, checked and migrated before it is merged (cross-repo traceability
+   *  contract, section 2). */
+  trace?: unknown;
 }
 
 export interface SpecDrivenErrorEvent {
@@ -236,10 +299,12 @@ export type SpecDrivenEvent = (
   | StartEvent
   | PhaseEvent
   | PhaseUpdateEvent
+  | StepEvent
   | TextDeltaEvent
   | ModelUpdateEvent
   | ToolCallEvent
   | CostEvent
+  | FindingsEvent
   | DoneEvent
   | SpecDrivenErrorEvent
 ) & {
@@ -279,6 +344,13 @@ export interface TriggerSpecDrivenPayload {
   /** Deterministic Phase-1 generator selected by the approved preview plan. */
   targetGeneratorOverride?: string;
   /**
+   * `false` (the agent's `remember_newest`) when the last "## Subsequent user
+   * request, verbatim" section of `instructions` states nothing new (a retry,
+   * a fix): it is not kept as part of the project's request, and the run is
+   * told so.
+   */
+  rememberNewest?: boolean;
+  /**
    * Internal UI attestation that the approved preview explicitly selected an
    * LLM-from-scratch run. Incoming agent payloads are rebuilt by
    * `useAssistantLogic` and never copy this field.
@@ -301,17 +373,50 @@ export interface SpecDrivenToolCallView {
   detail?: string | null;
 }
 
+/** The run's cost, turns and elapsed seconds at one point (a phase's start). */
+export interface SpecDrivenRunTotals {
+  usd: number;
+  turns: number;
+  elapsedSeconds: number;
+}
+
+/** One validation round on the validate row, placed among its tool calls. */
+export interface SpecDrivenFindingsView {
+  attempt: number;
+  blockers: string[];
+  blockerCount: number;
+  issueCount: number;
+  restored: boolean;
+  /** How many of the row's tool calls came before this round. */
+  afterToolCalls: number;
+}
+
 export interface SpecDrivenPhaseView {
   phase: string;
   label: string;
   message: string;
   toolCalls: SpecDrivenToolCallView[];
+  /** Run totals when the phase started; absent from older backends. */
+  startedAt?: SpecDrivenRunTotals;
+  /** Validation rounds (validate row only), in order. */
+  findings?: SpecDrivenFindingsView[];
   /**
    * Long-form details attached to a phase after the fact (e.g. the gap
    * analyser's task list). Rendered behind a chevron in
    * SpecDrivenPhaseRow when present.
    */
   details?: string;
+}
+
+/** The step a running phase is on (from the latest `step` event). */
+export interface SpecDrivenStepView {
+  message: string;
+  /** Run elapsed seconds when the step started; absent if unstamped. */
+  startedAt?: number;
+  /** Tool calls on the card when the step started: later ones belong to it. */
+  toolCallsBefore: number;
+  /** Prose length when the step started: later text was written during it. */
+  textBefore: number;
 }
 
 export interface SpecDrivenWarningView {
@@ -336,8 +441,10 @@ export interface SpecDrivenVerificationItemView {
   kind: 'requirement' | 'ocl_constraint' | 'api_workflow' | 'check';
   /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
   id: string;
+  /** Requirement items only: the requirement's artifact id in the project trace. */
+  traceRef?: string;
   what: string;
-  /** VERIFIED items: what was actually run or re-checked. */
+  /** Verified items: what was run; found-in-code items: the cited source. */
   how?: string;
   /** The other two: why nothing reached it, or what is missing. */
   why?: string;
@@ -350,12 +457,18 @@ export interface SpecDrivenVerificationItemView {
  */
 export interface SpecDrivenVerificationView {
   verified: SpecDrivenVerificationItemView[];
+  /** Absent on cards saved before this state existed. */
+  foundInCode?: SpecDrivenVerificationItemView[];
   notVerified: SpecDrivenVerificationItemView[];
   shippedUnenforced: SpecDrivenVerificationItemView[];
+  /** Absent on cards saved before this state existed. */
+  failed?: SpecDrivenVerificationItemView[];
   counts: {
     verified: number;
+    foundInCode?: number;
     notVerified: number;
     shippedUnenforced: number;
+    failed?: number;
   };
 }
 
@@ -374,6 +487,8 @@ export interface SpecDrivenMessageState {
   provider?: string;
   model?: string;
   phases: SpecDrivenPhaseView[];
+  /** What the run is doing now; cleared when a phase starts or the run ends. */
+  step?: SpecDrivenStepView;
   warnings: SpecDrivenWarningView[];
   text: string;
   status: 'running' | 'done' | 'error';
@@ -381,6 +496,15 @@ export interface SpecDrivenMessageState {
   incomplete?: boolean;
   incompleteReason?: string;
   blockerCount?: number;
+  /** Absent on cards from a backend that does not split findings not confirmed out. */
+  notConfirmedCount?: number;
+  /** The backend's real unresolved blockers; absent from older backends. */
+  unresolvedBlockerCount?: number;
+  /** A whole class of checks left no evidence; absent unless the backend said so. */
+  unverified?: boolean;
+  unverifiedReason?: string;
+  /** Classes of checks the server has switched off; absent when none or not reported. */
+  checksOff?: string[];
   /**
    * What the run verified, could not verify, and shipped UNENFORCED. This is
    * the field a human reads; `blockerCount` is the same evidence collapsed to
@@ -392,6 +516,8 @@ export interface SpecDrivenMessageState {
   costUsd?: number;
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
   elapsedSeconds?: number;
+  /** LLM turns so far (from the backend's 2s cost events). */
+  turns?: number;
   /** Cost budget for this run in USD (from the start event). */
   maxCost?: number;
   /** Runtime budget for this run in seconds (from the start event). */

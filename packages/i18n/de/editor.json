@@ -241,7 +241,8 @@
     "addTarget": "Ziel hinzufügen…",
     "lineage": "Herkunft",
     "lineageSource": "Quelle:",
-    "lineageDerivedFrom": "Abgeleitet von"
+    "lineageDerivedFrom": "Abgeleitet von",
+    "showTraceability": "Rückverfolgbarkeit anzeigen"
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -555,6 +556,7 @@
       "systemMessage": "Systemnachricht",
       "youAreHelpfulAssistant": "Sie sind ein hilfreicher Assistent.",
       "optionsOnePerLine": "Optionen (eine pro Zeile)",
+      "optionsLabel": "Text zu den Schaltflächen (optional)",
       "audioSpeedOptional": "Audiogeschwindigkeit (optional)",
       "default": "1,0 (Standard)",
       "latitude": "Breitengrad",

@@ -25,12 +25,15 @@
  */
 
 import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
+import { CHECKS_OFF_FIELD } from '../types';
 import type {
   SpecDrivenErrorCode,
   SpecDrivenEvent,
   SpecDrivenMessageState,
   SpecDrivenPhase,
+  SpecDrivenPhaseView,
   SpecDrivenProvider,
+  SpecDrivenRunTotals,
   SpecDrivenVerificationItem,
   SpecDrivenWarningView,
   TriggerSpecDrivenPayload,
@@ -85,6 +88,8 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    matches the event's phase name; if none exists yet (out-of-order
  *    events) it is skipped — the chevron only opens when there's
  *    something to show.
+ *  - `step` replaces the card's current step when it names the phase
+ *    running now; a new phase or the run's terminal event clears it.
  *  - `tool_call` before any phase gets an implicit "Working" phase so
  *    the row still has a home in the timeline.
  *  - `model_update` swaps the header model and adds a visible step note.
@@ -144,6 +149,7 @@ const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
     items.push({
       kind,
       id: typeof e.id === 'string' ? e.id : '',
+      traceRef: typeof e.traceRef === 'string' && e.traceRef ? e.traceRef : undefined,
       what,
       how: typeof e.how === 'string' && e.how.trim() ? e.how.trim() : undefined,
       why: typeof e.why === 'string' && e.why.trim() ? e.why.trim() : undefined,
@@ -154,7 +160,7 @@ const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
 
 /**
  * Normalise the done event's `verification` report into what the card
- * renders. The three lists are CAPPED by the backend while `counts` carries
+ * renders. The four lists are CAPPED by the backend while `counts` carries
  * the true totals, so a count below its own list length is a backend bug —
  * clamp up rather than render "showing 12 of 3".
  *
@@ -168,8 +174,14 @@ export function extractVerification(
   if (!raw || typeof raw !== 'object') return undefined;
   const r = raw as Record<string, unknown>;
   const verified = readVerificationItems(r.verified);
+  // Absent from backends that still list source citations under verified.
+  const foundInCode = Array.isArray(r.foundInCode)
+    ? readVerificationItems(r.foundInCode)
+    : undefined;
   const notVerified = readVerificationItems(r.notVerified);
   const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
+  // Absent from backends that list a failed test workflow under notVerified.
+  const failed = Array.isArray(r.failed) ? readVerificationItems(r.failed) : undefined;
   const rawCounts =
     r.counts && typeof r.counts === 'object'
       ? (r.counts as Record<string, unknown>)
@@ -184,17 +196,99 @@ export function extractVerification(
   };
   const counts = {
     verified: count('verified', verified.length),
+    ...(foundInCode && { foundInCode: count('foundInCode', foundInCode.length) }),
     notVerified: count('notVerified', notVerified.length),
     shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
+    ...(failed && { failed: count('failed', failed.length) }),
   };
   if (
     counts.verified === 0 &&
+    !counts.foundInCode &&
     counts.notVerified === 0 &&
-    counts.shippedUnenforced === 0
+    counts.shippedUnenforced === 0 &&
+    !counts.failed
   ) {
     return undefined;
   }
-  return { verified, notVerified, shippedUnenforced, counts };
+  return {
+    verified,
+    ...(foundInCode && { foundInCode }),
+    notVerified,
+    shippedUnenforced,
+    ...(failed && { failed }),
+    counts,
+  };
+}
+
+/** The non-empty names in a done event's list of checks switched off, or undefined. */
+const readChecksOff = (raw: unknown): string[] | undefined => {
+  const names = Array.isArray(raw)
+    ? raw.filter((name): name is string => typeof name === 'string' && name.trim() !== '').map((name) => name.trim())
+    : [];
+  return names.length > 0 ? names : undefined;
+};
+
+/**
+ * The unresolved blockers of a finished run. On a run that is not incomplete
+ * the backend's `blockerCount` is padded for released editors (findings not
+ * confirmed, notes of checks switched off, classes of checks that never ran),
+ * so its own `unresolvedBlockerCount` is read there. A backend without it gets
+ * the findings not confirmed subtracted; undefined when even that is unknown.
+ */
+export function unresolvedBlockerCount(run: {
+  incomplete?: boolean;
+  blockerCount?: number;
+  notConfirmedCount?: number;
+  unresolvedBlockerCount?: number;
+  unverified?: boolean;
+}): number | undefined {
+  if (run.incomplete) return run.blockerCount ?? 0;
+  if (typeof run.unresolvedBlockerCount === 'number') return run.unresolvedBlockerCount;
+  if (typeof run.notConfirmedCount !== 'number' || run.unverified) return undefined;
+  return Math.max(0, (run.blockerCount ?? 0) - run.notConfirmedCount);
+}
+
+/** A phase event's run totals at its start, or undefined from an older backend. */
+const readRunTotals = (event: {
+  usd?: number | null;
+  turns?: number | null;
+  elapsedSeconds?: number | null;
+}): SpecDrivenRunTotals | undefined => {
+  const n = (v: unknown): number | undefined =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : undefined;
+  const elapsedSeconds = n(event.elapsedSeconds);
+  if (elapsedSeconds === undefined) return undefined;
+  return { usd: n(event.usd) ?? 0, turns: n(event.turns) ?? 0, elapsedSeconds };
+};
+
+/**
+ * What one phase row cost: the difference between its start and the next
+ * stamped row's start, or, for the last stamped row, the run's latest totals
+ * (the final `cost` event once the run has ended). Undefined when the row has
+ * no stamp (older backend, or a client-side row such as a model switch).
+ */
+export function phaseStats(
+  phases: SpecDrivenPhaseView[],
+  index: number,
+  latest: { costUsd?: number; turns?: number; elapsedSeconds?: number },
+): SpecDrivenRunTotals | undefined {
+  const start = phases[index]?.startedAt;
+  if (!start) return undefined;
+  let end: SpecDrivenRunTotals | undefined;
+  for (let i = index + 1; i < phases.length && !end; i++) end = phases[i].startedAt;
+  if (!end) {
+    if (typeof latest.elapsedSeconds !== 'number') return undefined;
+    end = {
+      usd: latest.costUsd ?? start.usd,
+      turns: latest.turns ?? start.turns,
+      elapsedSeconds: latest.elapsedSeconds,
+    };
+  }
+  return {
+    usd: Math.max(0, end.usd - start.usd),
+    turns: Math.max(0, end.turns - start.turns),
+    elapsedSeconds: Math.max(0, end.elapsedSeconds - start.elapsedSeconds),
+  };
 }
 
 export function applySpecDrivenEvent(
@@ -232,6 +326,7 @@ export function applySpecDrivenEvent(
           : defaultLabel;
       return {
         ...card,
+        step: undefined,
         phases: [
           ...card.phases,
           {
@@ -239,6 +334,7 @@ export function applySpecDrivenEvent(
             label,
             message: event.message,
             toolCalls: [],
+            startedAt: readRunTotals(event),
           },
         ],
       };
@@ -259,6 +355,25 @@ export function applySpecDrivenEvent(
         }
       }
       return { ...card, phases };
+    }
+    case 'step': {
+      // A step belongs to the phase running now (the latest backend row, past
+      // client-side rows such as a model switch); one naming another is stale.
+      const current = [...card.phases].reverse().find((p) => isValidSpecDrivenPhase(p.phase));
+      if (current?.phase !== event.phase) return card;
+      const startedAt =
+        typeof event.elapsedSeconds === 'number' && Number.isFinite(event.elapsedSeconds)
+          ? event.elapsedSeconds
+          : undefined;
+      return {
+        ...card,
+        step: {
+          message: event.message,
+          startedAt,
+          toolCallsBefore: card.phases.reduce((n, p) => n + p.toolCalls.length, 0),
+          textBefore: card.text.length,
+        },
+      };
     }
     case 'tool_call': {
       const phases = [...card.phases];
@@ -294,9 +409,44 @@ export function applySpecDrivenEvent(
       };
     }
     case 'cost': {
-      return { ...card, costUsd: event.usd, elapsedSeconds: event.elapsedSeconds };
+      return {
+        ...card,
+        costUsd: event.usd,
+        elapsedSeconds: event.elapsedSeconds,
+        turns: typeof event.turns === 'number' ? event.turns : card.turns,
+      };
+    }
+    case 'findings': {
+      // Rounds belong to the validate row; its tool calls after a round are the
+      // next fix attempt. No validate row yet (out of order): nothing to attach to.
+      const phases = [...card.phases];
+      for (let i = phases.length - 1; i >= 0; i--) {
+        if (phases[i].phase !== 'validate') continue;
+        const blockers = Array.isArray(event.blockers)
+          ? event.blockers.filter((b): b is string => typeof b === 'string')
+          : [];
+        // The list is capped, the counts are totals: a count below its own list is a backend bug.
+        const blockerCount = Math.max(event.blockerCount ?? 0, blockers.length);
+        phases[i] = {
+          ...phases[i],
+          findings: [
+            ...(phases[i].findings ?? []),
+            {
+              attempt: typeof event.attempt === 'number' ? event.attempt : 0,
+              blockers,
+              blockerCount,
+              issueCount: Math.max(event.issueCount ?? 0, blockerCount),
+              restored: event.restored === true,
+              afterToolCalls: phases[i].toolCalls.length,
+            },
+          ],
+        };
+        break;
+      }
+      return { ...card, phases };
     }
     case 'done': {
+      const checksOff = readChecksOff(event[CHECKS_OFF_FIELD]);
       return {
         ...card,
         runId: event.runId || extractSpecDrivenRunId(event.downloadUrl) || card.runId,
@@ -311,6 +461,19 @@ export function applySpecDrivenEvent(
         )),
         incompleteReason: event.incompleteReason ?? undefined,
         blockerCount: event.blockerCount,
+        // Additive: an older backend sends none of these, and its card keeps none.
+        ...(typeof event.notConfirmedCount === 'number' && {
+          notConfirmedCount: Math.max(0, Math.round(event.notConfirmedCount)),
+        }),
+        ...(typeof event.unresolvedBlockerCount === 'number' && {
+          unresolvedBlockerCount: Math.max(0, Math.round(event.unresolvedBlockerCount)),
+        }),
+        ...(event.unverified === true && {
+          unverified: true,
+          ...(typeof event.unverifiedReason === 'string' &&
+            event.unverifiedReason.trim() && { unverifiedReason: event.unverifiedReason.trim() }),
+        }),
+        ...(checksOff && { checksOff }),
         generatorUsed:
           typeof event.recipe?.generator_used === 'string'
             ? event.recipe.generator_used
@@ -350,7 +513,7 @@ export function applySpecDrivenEvent(
         // context as a secondary throughput number — instead of the
         // misleading cumulative total that re-counts re-sent context.
         tokenUsage: extractTokenUsage(event.recipe),
-        // The three states the blocker count collapses. Undefined for older
+        // The four states the blocker count collapses. Undefined for older
         // backends — the card keeps its blocker-count summary then.
         verification: extractVerification(event.verification),
         runMode: event.mode,
@@ -358,6 +521,7 @@ export function applySpecDrivenEvent(
         changedFileCount: typeof event.changedFileCount === 'number' ? event.changedFileCount : undefined,
         modelChanges: Array.isArray(event.modelChanges) ? event.modelChanges : undefined,
         status: 'done',
+        step: undefined,
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.
         needsDownload: true,
@@ -384,6 +548,7 @@ export function applySpecDrivenEvent(
       return {
         ...card,
         status: 'error',
+        step: undefined,
         warnings: [
           ...card.warnings,
           { code: event.code, message: event.message, severity: 'error' as const },

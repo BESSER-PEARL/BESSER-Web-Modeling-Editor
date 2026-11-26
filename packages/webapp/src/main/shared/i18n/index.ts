@@ -9,6 +9,8 @@ import { localStorageLanguage } from '../constants/constant';
 
 import en from '../../../../../i18n/en/webapp.json';
 
+i18n.on('languageChanged', (language) => document.documentElement.setAttribute('lang', language));
+
 /**
  * react-i18next initialisation for the webapp shell (everything outside the
  * diagramming canvas). The editor engine keeps its own lightweight i18n; the
@@ -21,6 +23,7 @@ import en from '../../../../../i18n/en/webapp.json';
  * together with the editor engine's labels when it becomes active. i18next
  * emits `languageChanged` only after that load, so a switch never shows
  * untranslated keys. `i18nReady` resolves once the detected language is loaded.
+ * The page's `lang` follows the language, for screen readers and the browser's own text handling.
  */
 export const i18nReady = i18n
   .use(

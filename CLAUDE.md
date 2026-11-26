@@ -112,6 +112,10 @@ First-class part of the app, with two independent backends.
   `KnowledgeGraphDiagram` is not supported (its model is not Apollon's; injection refuses to write one). A new type
   needs a converter **and** a modifier — a converter without a modifier silently falls back to the ClassDiagram one.
 - `services/undoStack.ts` keeps assistant edits reversible; `RateLimiterService.ts` throttles per tab.
+- What the assistant changed is marked on the canvas (`components/AgentChangeLayer.tsx`): `updateDiagramModelThunk`
+  diffs each `traceSource: 'assistant'` write of an Apollon diagram (`shared/services/agentChanges/`) and keeps the
+  last 3 edits' marks in `localStorage` (`agentChangeMarks.ts`), never in the model. The marks, chips and box
+  tracking are shared with the GitHub attribution layer in `shared/components/model-marks/ModelMarks.tsx`.
 
 **Spec-Driven Agent — HTTP + SSE to the BESSER backend.**
 - Endpoints in `shared/constants/constant.ts`: `/spec-driven/generate` (SSE), `/config`, `/cancel/<runId>`,
@@ -249,10 +253,32 @@ selector that also catches `window.localStorage`, casts, aliases and `document.d
 tab-scoped state go in `sessionStorage`, never `localStorage`**: the unified BYOK key
 (`besser_llm_api_key` / `_provider` / `_model` / `_base_url`), free-tier opt-in, run budget, the GitHub
 session id, and assistant UI state. `localStorage` holds projects (`besser_projects`, `besser_latest_project`,
-`besser_project_<id>`), preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery
-pointer (no key, prompt or content). Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
+`besser_project_<id>`), preferences, `besser_assistant_user_id`, agent configs, and the spec-driven crash-recovery pointer (no key, prompt
+or content). Project traces are in **IndexedDB** (database `besser_traces`, one record per project id), not
+`localStorage`: they outgrow its ~5 MB. `shared/traceability/traceStore.ts` loads a trace once per session, keeps it in
+memory and saves it in the background (each record has a revision: a save made from a stale revision re-reads the
+trace and replays its unsaved updates, and saves are announced to other tabs on the `besser_traces` BroadcastChannel); a trace an older version left at `besser_traces_<id>` is moved over when first
+read. Agent runtime config lives on `AgentDiagram.config`, not in a top-level key
 (the v3 storage migration deletes the old `besser_systemConfig`). Project storage format:
 `docs/source/webapp/local-projects.rst`.
+
+### Traceability (recording)
+A project that records traces (`settings.traceabilityEnabled`) records into its trace file
+(`shared/traceability/`, format in `shared/types/traceability.ts`, schema version 6; full description in
+`docs/source/webapp/traceability-recording.rst`):
+- **Edits of every diagram type**, diffed by B-UML metaclass: class (`classModelDiff.ts`), GUI (`guiModelDiff.ts`),
+  every other Apollon type through one table-driven builder (`APOLLON_TABLES` in `diagramModelDiff.ts`; a new
+  element type that reaches B-UML needs a row there, with the metaclass the backend's `json_to_buml` processor
+  builds; one the backend gives no id is `traceable: false`, history only), quantum and KG builders in the same file. Code that writes a
+  diagram model outside `updateDiagramModelThunk` must call `recordDiagramUpdate` itself.
+- **Who**: `traceSource` on `updateDiagramModelThunk`/`addDiagramThunk` is `'user'` (default), `'assistant'`, or
+  `{ generator }` (`MODEL_GENERATORS` in `traceStore.ts`) for anything the editor writes that the user did not
+  draw (templates, imports, derivations: pass `generator` to `setElementLineageThunk` so the lineage becomes trace
+  links). An undo of an assistant edit is the user's.
+- **Generations**: every generator goes through the traced endpoints when recording is on (no allowlist); a failed
+  traced request falls back to the plain endpoint. Spec-Driven runs merge `done.trace`, else are recorded from the
+  stream. The assistant's model comes from `llmUsage` on its terminal replies.
+- Retention is bounded per generator (`pruneOldGenerations`: 5 runs whole, 20 at most).
 
 ### Display settings (settingsService)
 `packages/editor/src/main/services/settings/settings-service.ts` stores display preferences under

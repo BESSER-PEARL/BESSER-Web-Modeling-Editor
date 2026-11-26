@@ -41,6 +41,7 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
 import { sanitizeMessageForPersist } from '../../../assistant';
 import { SseHttpError } from '../../../../shared/api/sseClient';
+import { readProjectRunRequest } from '../../../../shared/services/storage/specDrivenRunRecords';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   cancelSpecDrivenUrl,
@@ -151,6 +152,7 @@ interface HarnessAPI {
 function Harness(props: {
   apiRef: { current: HarnessAPI | null };
   hasProject?: boolean;
+  recording?: boolean;
   onRunFinished?: (result: SpecDrivenRunResult) => void;
 }) {
   const [messages, setMessages] = React.useState<any[]>([]);
@@ -163,6 +165,7 @@ function Harness(props: {
           name: 'TestProject',
           diagrams: { ClassDiagram: [{ id: 'cd1', title: 'lib', model: {} }] },
           currentDiagramIndices: { ClassDiagram: 0 },
+          ...(props.recording ? { owner: 'Ada', settings: { traceabilityEnabled: true } } : {}),
         },
   );
   const hook = useSpecDrivenTrigger({
@@ -186,6 +189,7 @@ function Harness(props: {
 function renderHarness(
   opts: {
     hasProject?: boolean;
+    recording?: boolean;
     onRunFinished?: (result: SpecDrivenRunResult) => void;
   } = {},
 ) {
@@ -196,6 +200,7 @@ function renderHarness(
       <Harness
         apiRef={apiRef}
         hasProject={opts.hasProject}
+        recording={opts.recording}
         onRunFinished={opts.onRunFinished}
       />
     </Provider>,
@@ -434,6 +439,33 @@ describe('useSpecDrivenTrigger — run ownership across tabs', () => {
     expect(window.localStorage.getItem(localStorageSpecDrivenActiveRunV1)).not.toBeNull();
   });
 
+  it('does not adopt its own run after a reload when another tab started one on this project meanwhile', async () => {
+    // Before: the reloaded tab adopted its run anyway, so two runs were the project's base.
+    const runId = 'c'.repeat(32);
+    installFakeLocks(['besser_spec_driven_project_test-project']);
+    window.localStorage.setItem(
+      localStorageSpecDrivenActiveRunV1,
+      JSON.stringify({
+        version: 1,
+        runId,
+        projectId: 'test-project',
+        lastSequence: 0,
+        startedAt: Date.now() - 1_000,
+      }),
+    );
+    _mockController.followEvents = [{ event: 'phase', phase: 'generate', message: 'x', sequence: 1 }];
+
+    const { apiRef, store } = renderHarness();
+    await waitFor(() =>
+      expect((apiRef.current!.getMessages() as any[]).some((m) => m.isError && m.content?.includes('in another tab'))).toBe(true),
+    );
+
+    const client = await import('../../services/specDrivenSseClient');
+    expect(vi.mocked(client.followSpecDrivenRun)).not.toHaveBeenCalled();
+    expect((apiRef.current!.getMessages() as any[]).some((m) => m.specDriven)).toBe(false);
+    expect(store.getState().specDriven.runStatus).toBe('idle');
+  });
+
   it('holds ownership of its own run until the run ends', async () => {
     const runId = 'a'.repeat(32);
     const { held, requests } = installFakeLocks();
@@ -453,7 +485,28 @@ describe('useSpecDrivenTrigger — run ownership across tabs', () => {
       name: `besser_spec_driven_run_${runId}`,
       ifAvailable: false,
     });
+    // The project's run lock too: held for the run, released when it ends.
+    expect(requests).toContainEqual({ name: 'besser_spec_driven_project_test-project', ifAvailable: true });
     await waitFor(() => expect(held.size).toBe(0));
+  });
+
+  it('does not start a run while another tab runs one on this project', async () => {
+    // Before: both tabs' runs started from the same base, and whichever ended last became the base.
+    installFakeLocks(['besser_spec_driven_project_test-project']);
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    expect(vi.mocked(sseClientModule.startSpecDrivenRun)).not.toHaveBeenCalled();
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(msgs.some((m) => m.isError && m.content?.includes('in another tab'))).toBe(true);
+    // The tab's own run slot is free again.
+    expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 });
 
@@ -487,7 +540,7 @@ describe('useSpecDrivenTrigger — happy path', () => {
 
     const msgs = apiRef.current!.getMessages() as any[];
     // Expected messages: intro, streaming-card-with-events, "✅ complete"
-    expect(msgs.some((m) => m.content?.includes('I will build this for you'))).toBe(true);
+    expect(msgs.some((m) => m.content === 'Generating your application from your specs…')).toBe(true);
     expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
     // The card is finished and flagged as awaiting a user-initiated save.
     const card = msgs.find((m) => m.specDriven);
@@ -583,6 +636,68 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
   });
 });
 
+
+describe('useSpecDrivenTrigger — a newest message that states nothing new', () => {
+  const RETRY =
+    "## Assistant's notes (may be inaccurate)\n\nRetry the app.\n\n" +
+    "## The user's original request, verbatim\n\nThis is the authority.\n\nA book catalogue.\n\n" +
+    '## Subsequent user request, verbatim\n\nThis later request takes precedence.\n\ntry again';
+
+  async function start(rememberNewest?: boolean) {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, instructions: RETRY, rememberNewest, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('tells the run, and keeps that message out of the recorded request', async () => {
+    const args = await start(false);
+    expect(args.instructions).toBe(RETRY);
+    expect(args.followupStatesNothingNew).toBe(true);
+    expect(readProjectRunRequest('test-project')).toBe('A book catalogue.');
+  });
+
+  it('without the field, sends and records the request as before', async () => {
+    const args = await start();
+    expect(args.followupStatesNothingNew).not.toBe(true);
+    expect(readProjectRunRequest('test-project')).toContain('try again');
+  });
+});
+
+describe('useSpecDrivenTrigger — whether the run is traced', () => {
+  async function runArgs(recording: boolean) {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef } = renderHarness({ recording });
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('asks for no run trace when the project does not record traces', async () => {
+    const args = await runArgs(false);
+    expect(args.traceabilityEnabled).toBe(false);
+    expect(args.actorName).toBeUndefined();
+  });
+
+  it('asks for the run trace, with its actor, when the project records traces', async () => {
+    const args = await runArgs(true);
+    expect(args.traceabilityEnabled).toBe(true);
+    expect(args.actorName).toBe('Ada');
+  });
+});
 
 describe('useSpecDrivenTrigger — explicit free-model choice', () => {
   const FREE_CONFIG_WITH_FALLBACK = {

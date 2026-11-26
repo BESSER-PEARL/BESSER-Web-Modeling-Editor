@@ -8,6 +8,7 @@ import {
 } from '../../shared/services/analytics/events';
 import type { SpecDrivenConfig } from '../../shared/services/specDrivenConfig';
 import type { SpecDrivenRunResult } from './hooks/useSpecDrivenTrigger';
+import { unresolvedBlockerCount } from './state/specDrivenSlice';
 
 /** The run being tracked: its set-up properties and when it began (`Date.now()`). */
 export interface RunAnalytics {
@@ -80,16 +81,30 @@ export function trackRunFinished(
   };
   if (result.ok) {
     const unenforced = result.verificationCounts?.shippedUnenforced ?? 0;
+    const unverified = result.unverified === true;
+    const unresolved = unresolvedBlockerCount(result);
     track('spec_run_completed', {
       ...base,
-      outcome: result.incomplete ? 'incomplete' : unenforced > 0 ? 'unenforced' : 'success',
+      outcome: result.incomplete
+        ? 'incomplete'
+        : unenforced > 0
+          ? 'unenforced'
+          : unverified
+            ? 'unverified'
+            : (unresolved ?? 0) > 0
+              ? 'unresolved'
+              : 'success',
       generator_used: result.generatorUsed,
       file_count: details.stats?.fileCount,
       changed_file_count: details.stats?.changedFileCount,
       tokens_used: details.stats?.tokensUsed,
       is_zip: details.stats?.isZip,
       blocker_count: result.blockerCount ?? 0,
+      unverified,
+      not_confirmed_count: result.notConfirmedCount,
+      unresolved_blocker_count: unresolved,
       verified: result.verificationCounts?.verified,
+      found_in_code: result.verificationCounts?.foundInCode,
       not_verified: result.verificationCounts?.notVerified,
       shipped_unenforced: result.verificationCounts?.shippedUnenforced,
     });

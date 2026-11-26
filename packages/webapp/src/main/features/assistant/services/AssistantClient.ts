@@ -152,12 +152,15 @@ const KNOWN_ACTIONS = new Set([
   'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
+  'trigger_github_save',
   'auto_generate_gui',
   'agent_error',
   'progress',
   'stream_start',
   'stream_chunk',
   'stream_done',
+  // A button that opens the Traceability page; never a side effect (the user clicks it).
+  'show_trace',
 ]);
 
 // Actions with real side effects: they mutate the user's model or start a
@@ -177,6 +180,7 @@ const SIDE_EFFECT_ACTIONS = new Set([
   'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
+  'trigger_github_save',
   'auto_generate_gui',
 ]);
 
@@ -215,6 +219,8 @@ const mergeContexts = (
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
     currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
     githubRepo: override?.githubRepo || base?.githubRepo,
+    traceDigest: override?.traceDigest || base?.traceDigest,
+    traceabilityEnabled: override?.traceabilityEnabled ?? base?.traceabilityEnabled,
     generationKey: override?.generationKey || base?.generationKey,
     lastGeneration: override?.lastGeneration || base?.lastGeneration,
   };
@@ -359,6 +365,9 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
   return compacted;
 };
 
+/** What an injection says when the agent sent no message with it (written by the client, not the agent). */
+export const INJECTION_FALLBACK_MESSAGE = 'Applied assistant update.';
+
 export class AssistantClient {
   private ws: WebSocket | null = null;
   private isConnected = false;
@@ -415,7 +424,7 @@ export class AssistantClient {
   // Mutable so a shared (singleton) client can be re-pointed at the live
   // workspace context by whichever surface is currently mounted, instead of
   // going stale when the creating surface unmounts.
-  private contextProvider?: () => AssistantWorkspaceContext | undefined;
+  private contextProvider?: (message?: string) => AssistantWorkspaceContext | undefined;
   // The conversation before the message being sent. The agent keeps its memory
   // in its own process, so a restart or an idle expiry loses it; the first
   // message on each new socket carries the recent turns so the agent can
@@ -474,7 +483,7 @@ export class AssistantClient {
   }
 
   /** Re-point the (possibly shared) client at the live workspace-context source. */
-  setContextProvider(provider: () => AssistantWorkspaceContext | undefined): void {
+  setContextProvider(provider: (message?: string) => AssistantWorkspaceContext | undefined): void {
     this.contextProvider = provider;
   }
 
@@ -861,7 +870,7 @@ export class AssistantClient {
     attachments?: FileAttachmentPayload[],
     clientMode?: AssistantClientMode,
   ): Record<string, any> {
-    const baseContext = this.contextProvider?.();
+    const baseContext = this.contextProvider?.(message);
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
@@ -1061,7 +1070,7 @@ export class AssistantClient {
                 ? directAction.message
                 : payload.message && typeof payload.message === 'string'
                   ? payload.message
-                  : 'Applied assistant update.',
+                  : INJECTION_FALLBACK_MESSAGE,
           });
           // Don't fire the action handler for injection commands —
           // they are fully processed by the injection handler above.

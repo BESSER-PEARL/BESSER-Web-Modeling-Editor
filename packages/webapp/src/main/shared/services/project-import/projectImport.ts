@@ -18,6 +18,7 @@ import {
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
 } from '../storage/local-storage-types';
+import { readImportedTrace, replaceProjectTrace } from '../../traceability/traceStore';
 import { getProjectJsonModel } from '../../api/conversion';
 import { ApiError } from '../../api/api-client';
 import { restoreRedactedSecrets } from '../../utils/redactedSecrets';
@@ -34,6 +35,8 @@ interface V2ExportData {
   agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
   activeAgentConfigurationId?: string | null;
   agentBaseModels?: Record<string, UMLModel>;
+  /** The project trace, when it was exported with the project (validated on import). */
+  trace?: unknown;
 }
 
 // Interface for legacy import validation (V1 format)
@@ -309,6 +312,20 @@ interface ImportedPersonalization {
   agentBaseModels?: Record<string, UMLModel>;
 }
 
+/**
+ * Store an imported project with the trace its file carried, under the project's new id. The trace is checked
+ * first and stored only once the project itself is (a project that fails to import leaves no orphan trace). A
+ * B-UML file has no project settings, so a project imported from one with a trace goes on recording traces.
+ */
+function storeImportedProjectWithTrace(
+  project: BesserProject, imported: unknown, fromBuml: boolean, personalization?: ImportedPersonalization,
+): void {
+  const trace = imported == null ? undefined : readImportedTrace(imported);
+  if (trace && fromBuml) project.settings = { ...project.settings, traceabilityEnabled: true };
+  storeImportedProject(project, personalization);
+  if (trace) void replaceProjectTrace(project.id, { ...trace, projectId: project.id });
+}
+
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
   // Loading runs this check too: without it here, a project is stored that can never be opened,
@@ -387,7 +404,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
     });
-    storeImportedProject(project, extractPersonalization(jsonData));
+    storeImportedProjectWithTrace(project, jsonData.trace, true, extractPersonalization(jsonData));
     return project;
   } else if (validateLegacyImportData(jsonData)) {
     const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
@@ -468,7 +485,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           });
 
           // Store using project storage
-          storeImportedProject(importedProject, extractPersonalization(jsonData));
+          storeImportedProjectWithTrace(importedProject, jsonData.trace, false, extractPersonalization(jsonData));
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
           resolve(importedProject);
