@@ -223,15 +223,24 @@ const MeterRow: React.FC<{ label: string; meter: LabMeter; testId: string }> = (
   );
 };
 
-const UsageCard: React.FC<{ settings: LabSettingsResponse; audit: LabAuditResponse }> = ({ settings, audit }) => {
+/** `labPays`: the lab has a key of its own, so the monthly caps and meters mean something. */
+const UsageCard: React.FC<{ settings: LabSettingsResponse; audit: LabAuditResponse; labPays: boolean }> = ({
+  settings,
+  audit,
+  labPays,
+}) => {
   const { t, i18n } = useTranslation();
   const usd = (value: number) => formatUsd(value, i18n.language);
   const { limits } = settings;
   const spenders = Object.entries(audit.totalsByLogin).sort(([, a], [, b]) => b - a);
   const limitRows: [string, string][] = [
     [t('lab.settings.limits.perRun', { defaultValue: 'Per run' }), usd(limits.perRunUsd)],
-    [t('lab.settings.limits.perUser', { defaultValue: 'Per person a month' }), usd(limits.userMonthlyUsd)],
-    [t('lab.settings.limits.instance', { defaultValue: 'The lab a month' }), usd(limits.instanceMonthlyUsd)],
+    ...(labPays
+      ? ([
+          [t('lab.settings.limits.perUser', { defaultValue: 'Per person a month' }), usd(limits.userMonthlyUsd)],
+          [t('lab.settings.limits.instance', { defaultValue: 'The lab a month' }), usd(limits.instanceMonthlyUsd)],
+        ] as [string, string][])
+      : []),
     [t('lab.settings.limits.runs', { defaultValue: 'Runs at once' }), String(limits.maxConcurrentRuns)],
     [t('lab.settings.limits.slots', { defaultValue: 'Preview slots' }), String(limits.previewSlots)],
     [
@@ -261,6 +270,7 @@ const UsageCard: React.FC<{ settings: LabSettingsResponse; audit: LabAuditRespon
       })}
       className="lab-d3"
     >
+      {labPays && (
       <div className="flex flex-col gap-4">
         <MeterRow
           testId="lab-settings-meter-user"
@@ -273,6 +283,7 @@ const UsageCard: React.FC<{ settings: LabSettingsResponse; audit: LabAuditRespon
           meter={settings.meters.instance}
         />
       </div>
+      )}
 
       {settings.linkMode === 'hardlink' && (
         <Alert variant="warning" data-testid="lab-settings-hardlink" className="mt-5">
@@ -561,7 +572,7 @@ type PageState =
  */
 export const LabSettingsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { session } = useLabShell();
+  const { session, home } = useLabShell();
   const [state, setState] = useState<PageState>({ status: 'loading' });
 
   const load = useCallback(() => {
@@ -613,7 +624,7 @@ export const LabSettingsPage: React.FC = () => {
         {state.status === 'ready' && (
           <>
             <RepositoriesCard settings={state.settings} onRefreshed={setSettings} />
-            <UsageCard settings={state.settings} audit={state.audit} />
+            <UsageCard settings={state.settings} audit={state.audit} labPays={home.labKey} />
             <ActivityCard current={state.audit} />
           </>
         )}

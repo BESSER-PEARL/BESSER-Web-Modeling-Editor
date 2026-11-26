@@ -20,8 +20,10 @@ const NOW = Date.now() / 1000;
 const reloadHome = vi.fn(async () => undefined);
 
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn(), update: vi.fn() } }));
+// Whether the lab has a key of its own: its monthly caps and meters are shown only then.
+const shell = vi.hoisted(() => ({ labKey: true }));
 vi.mock('../LabAuthGate', () => ({
-  useLabShell: () => ({ session: SESSION, reloadHome, user: { login: 'ana', isAdmin: false } }),
+  useLabShell: () => ({ session: SESSION, reloadHome, user: { login: 'ana', isAdmin: false }, home: { labKey: shell.labKey } }),
 }));
 vi.mock('../../../shared/api/lab', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../shared/api/lab')>()),
@@ -110,6 +112,7 @@ async function renderPage(settings: LabSettingsResponse = SETTINGS) {
 }
 
 beforeEach(() => {
+  shell.labKey = true;
   reloadHome.mockClear();
   vi.mocked(toast.success).mockClear();
   vi.mocked(toast.error).mockClear();
@@ -123,6 +126,18 @@ afterEach(cleanup);
 describe('LabSettingsPage', () => {
   it('keeps the default export the lazy route imports', () => {
     expect(LabSettingsPageDefault).toBe(LabSettingsPage);
+  });
+
+  it('shows no monthly cap or meter on a lab without a key of its own, where everyone pays with theirs', async () => {
+    shell.labKey = false;
+    await renderPage();
+    const usage = screen.getByTestId('lab-settings-usage');
+    expect(within(usage).queryByTestId('lab-settings-meter-user')).toBeNull();
+    expect(within(usage).queryByTestId('lab-settings-meter-instance')).toBeNull();
+    expect(usage).not.toHaveTextContent('Per person a month');
+    expect(usage).not.toHaveTextContent('The lab a month');
+    // What a run may cost at most still applies to a run on a user's own key.
+    expect(usage).toHaveTextContent('Per run$5');
   });
 
   it('renders the repositories, usage, activity and team notes cards from the API answers', async () => {

@@ -78,9 +78,18 @@ describe('LabHeader key chip', () => {
     expect(chip).toHaveTextContent("Lab's key");
   });
 
-  it('asks for a key on a lab that has none of its own', async () => {
-    await renderHeader({ ...home({ spentUsd: 0, reservedUsd: 0, capUsd: 75 }, UPSTREAM_BASES), labKey: false });
-    expect(screen.getByTestId('lab-key-chip')).toHaveTextContent('Add your API key');
+  it('asks for a key on a lab that has none of its own, and shows no spending meter there', async () => {
+    vi.mocked(getLabHome).mockResolvedValue({ ...home({ spentUsd: 0, reservedUsd: 0, capUsd: 75 }, UPSTREAM_BASES), labKey: false });
+    render(
+      <MemoryRouter>
+        <LabAuthGate>
+          <LabHeader />
+        </LabAuthGate>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByTestId('lab-key-chip')).toHaveTextContent('Add your API key');
+    // Everyone pays with their own key: the lab's monthly caps count nothing.
+    expect(screen.queryByTestId('lab-meter')).toBeNull();
   });
 });
 

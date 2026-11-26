@@ -410,7 +410,7 @@ export const LabChangeView: React.FC<LabChangeViewProps> = ({ changeId, onLeave 
       <Pill className={cn('hidden sm:inline-flex', PHASE_TONE[ready.phase])}>{phaseLabel(ready.phase)}</Pill>
       <span className="hidden items-center gap-3 xl:flex">
         <LabKeyChip labKey={home.labKey} />
-        <MonthMeter meter={home.meters.user} />
+        {home.labKey && <MonthMeter meter={home.meters.user} />}
       </span>
       {pushed ? (
         <Button size="sm" disabled={prBlocked} onClick={() => void pushPullRequests()}>

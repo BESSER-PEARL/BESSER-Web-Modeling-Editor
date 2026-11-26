@@ -217,7 +217,8 @@ export const LabHeader: React.FC = () => {
       <div className="ml-auto flex min-w-0 items-center gap-4">
         <BaseChips bases={home.bases} />
         <LabKeyChip labKey={home.labKey} />
-        <MonthMeter meter={home.meters.user} />
+        {/* The caps count what the lab's own key pays; a lab without one has nothing to meter. */}
+        {home.labKey && <MonthMeter meter={home.meters.user} />}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-1.5 px-1.5" aria-label={t('lab.app.header.account', { defaultValue: 'Account' })}>

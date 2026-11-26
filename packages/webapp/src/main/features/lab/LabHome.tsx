@@ -39,7 +39,8 @@ function useStartBlock(home: LabHomeResponse, changes: LabChangeSummary[] | null
   const { t, i18n } = useTranslation();
   const { meters, runs } = home;
   const usd = (value: number) => formatUsd(value, i18n.language);
-  if (meters.user.spentUsd + meters.user.reservedUsd >= meters.user.capUsd) {
+  // The monthly caps hold back only what the lab's own key pays.
+  if (home.labKey && meters.user.spentUsd + meters.user.reservedUsd >= meters.user.capUsd) {
     return t('lab.app.home.userCap', {
       defaultValue: 'You have used {{spent}} of your {{cap}} this month. Runs start again on {{date}}.',
       spent: usd(meters.user.spentUsd),
@@ -47,7 +48,7 @@ function useStartBlock(home: LabHomeResponse, changes: LabChangeSummary[] | null
       date: nextMonthStart(meters.month, i18n.language),
     });
   }
-  if (meters.instance.spentUsd + meters.instance.reservedUsd >= meters.instance.capUsd) {
+  if (home.labKey && meters.instance.spentUsd + meters.instance.reservedUsd >= meters.instance.capUsd) {
     return t('lab.app.home.instanceCap', {
       defaultValue: 'The lab has used its {{cap}} for this month.',
       cap: usd(meters.instance.capUsd),
