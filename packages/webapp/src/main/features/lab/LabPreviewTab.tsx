@@ -382,6 +382,7 @@ const Strip: React.FC<{
   const stateLabel = useStateLabel();
   const started = slot.startedAt !== null ? formatAgo(slot.startedAt, i18n.language) : null;
   const linkable = urlKind(slot.url) !== null;
+  const entry = slot.entryUrl ?? slot.url;
   // A service the slot does not run (stopped with its reason, such as the modeling agent) has nothing to restart.
   const notRun = new Set(slot.services.filter((service) => service.state === 'stopped' && service.detail).map((service) => service.name));
   return (
@@ -416,9 +417,9 @@ const Strip: React.FC<{
         ))}
       </p>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {linkable && slot.url && (
+        {linkable && entry && (
           <Button asChild variant="ghost" size="xs">
-            <a href={slot.url} target="_blank" rel="noopener noreferrer">
+            <a href={entry} target="_blank" rel="noopener noreferrer">
               <ExternalLink aria-hidden />
               {t('lab.preview.openNewTab', { defaultValue: 'Open in a new tab' })}
             </a>
@@ -502,13 +503,15 @@ const SlotBody: React.FC<{
   const stopped = services.filter((service) => service.state === 'stopped' && service.detail);
   const editor = services.find((service) => service.name === 'frontend');
   const kind = urlKind(slot.url);
+  // A hosted preview is entered through its gate, with the pass the lab gives its signed-in users.
+  const entry = slot.entryUrl ?? slot.url;
 
   let preview: React.ReactNode = null;
-  if (kind === 'link' && slot.url) {
+  if (kind === 'link' && entry) {
     preview = (
       <div data-testid="lab-preview-http" className="rounded-2xl border border-border bg-card p-5 text-sm">
         <a
-          href={slot.url}
+          href={entry}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-2 hover:underline"
@@ -523,10 +526,10 @@ const SlotBody: React.FC<{
         </p>
       </div>
     );
-  } else if (kind === 'frame' && slot.url && editor?.state === 'running') {
+  } else if (kind === 'frame' && entry && editor?.state === 'running') {
     preview = (
       <iframe
-        src={slot.url}
+        src={entry}
         title={t('lab.preview.frameTitle', { defaultValue: 'Preview of {{title}}', title })}
         sandbox={PREVIEW_IFRAME_SANDBOX}
         className="min-h-[480px] w-full flex-1 rounded-xl border border-border bg-white"

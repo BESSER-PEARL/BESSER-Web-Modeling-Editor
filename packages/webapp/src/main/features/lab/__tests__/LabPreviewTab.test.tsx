@@ -44,6 +44,7 @@ function slot(overrides: Partial<LabPreviewSlot> = {}): LabPreviewSlot {
   return {
     enabled: true,
     url: PREVIEW_URL,
+    entryUrl: null,
     confined: true,
     detail: '',
     services: RUNNING,
@@ -116,6 +117,15 @@ describe('LabPreviewTab frame', () => {
     expect(open).toHaveAttribute('href', PREVIEW_URL);
     expect(open).toHaveAttribute('target', '_blank');
     expect(open.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('enters a hosted preview through its gate, in the frame and in a new tab', async () => {
+    const entryUrl = `${PREVIEW_URL}/.besser-lab/enter?token=pass-of-the-slot`;
+    serve(slot({ entryUrl }));
+    renderTab();
+    expect(await screen.findByTitle('Preview of Note element')).toHaveAttribute('src', entryUrl);
+    const open = within(screen.getByTestId('lab-preview-strip')).getByRole('link', { name: 'Open in a new tab' });
+    expect(open).toHaveAttribute('href', entryUrl);
   });
 
   it('links to an http: preview instead of framing it, and says why', async () => {

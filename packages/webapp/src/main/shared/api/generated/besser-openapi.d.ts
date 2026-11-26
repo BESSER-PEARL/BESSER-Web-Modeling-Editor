@@ -2159,6 +2159,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/besser_api/lab/preview/enter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Enter Preview
+         * @description Entering a preview with its pass (the ``entryUrl`` of a slot): stores the pass as a cookie of the preview
+         *     host and goes on to the preview. The preview host's reverse proxy sends ``/.besser-lab/enter`` here.
+         */
+        get: operations["lab_enter_preview_besser_api_lab_preview_enter_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/besser_api/lab/preview/gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lab Preview Gate
+         * @description Whether a request to a preview host may pass: asked by the host's reverse proxy for every request
+         *     (nginx ``auth_request``), with the request's cookies. 204 lets it through to the change's services.
+         */
+        get: operations["lab_preview_gate_besser_api_lab_preview_gate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/besser_api/lab/preview/slot": {
         parameters: {
             query?: never;
@@ -4127,6 +4169,8 @@ export interface components {
             startedAt: number | null;
             /** Lastusedat */
             lastUsedAt: number | null;
+            /** Entryurl */
+            entryUrl: string | null;
         };
         /**
          * LabPreviewView
@@ -8893,6 +8937,81 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LabPreviewView"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_enter_preview_besser_api_lab_preview_enter_get: {
+        parameters: {
+            query: {
+                slot: number;
+                token?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The pass is not this slot's, or the slot shows no change. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lab_preview_gate_besser_api_lab_preview_gate_get: {
+        parameters: {
+            query: {
+                slot: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                besser_lab_preview?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No pass, or not this slot's. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

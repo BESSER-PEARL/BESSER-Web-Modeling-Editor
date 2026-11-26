@@ -5197,6 +5197,110 @@
         }
       }
     },
+    "/besser_api/lab/preview/enter": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Enter Preview",
+        "description": "Entering a preview with its pass (the ``entryUrl`` of a slot): stores the pass as a cookie of the preview\nhost and goes on to the preview. The preview host's reverse proxy sends ``/.besser-lab/enter`` here.",
+        "operationId": "lab_enter_preview_besser_api_lab_preview_enter_get",
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 63,
+              "minimum": 0,
+              "title": "Slot"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "The pass is not this slot's, or the slot shows no change."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/besser_api/lab/preview/gate": {
+      "get": {
+        "tags": [
+          "lab"
+        ],
+        "summary": "Lab Preview Gate",
+        "description": "Whether a request to a preview host may pass: asked by the host's reverse proxy for every request\n(nginx ``auth_request``), with the request's cookies. 204 lets it through to the change's services.",
+        "operationId": "lab_preview_gate_besser_api_lab_preview_gate_get",
+        "parameters": [
+          {
+            "name": "slot",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 63,
+              "minimum": 0,
+              "title": "Slot"
+            }
+          },
+          {
+            "name": "besser_lab_preview",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Besser Lab Preview"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "No pass, or not this slot's."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/besser_api/lab/preview/slot": {
       "post": {
         "tags": [
@@ -10443,6 +10547,17 @@
               }
             ],
             "title": "Lastusedat"
+          },
+          "entryUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entryurl"
           }
         },
         "type": "object",
@@ -10458,7 +10573,8 @@
           "owner",
           "usedBy",
           "startedAt",
-          "lastUsedAt"
+          "lastUsedAt",
+          "entryUrl"
         ],
         "title": "LabPreviewSlot",
         "description": "A preview slot and the change it shows."
